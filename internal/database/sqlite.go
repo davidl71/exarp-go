@@ -7,45 +7,17 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
-// DB is the global database connection (sqlx wrapped for convenience).
-var DB *sqlx.DB
-
-// GetDB returns the underlying *sql.DB for backward compatibility.
-// For new code, prefer using sqlx methods via GetDBx().
-func GetDB() (*sql.DB, error) {
-	if DB == nil {
-		return nil, fmt.Errorf("database not initialized, call Init() first")
-	}
-	return DB.DB, nil
-}
-
-// GetDBx returns the global sqlx database connection.
-func GetDBx() (*sqlx.DB, error) {
-	if DB == nil {
-		return nil, fmt.Errorf("database not initialized, call Init() first")
-	}
-	return DB, nil
-}
+// DB is the global database connection.
+var DB *sql.DB
 
 // currentDriver is the currently active database driver.
 var currentDriver Driver
 
 // dbMutex protects the global DB variable from concurrent access.
 var dbMutex sync.Mutex
-
-// initCfgFingerprint records the last successful InitWithConfig inputs. When a subsequent init
-// matches, we skip Close/reopen so queue workers and hot paths do not churn the global pool.
-var initCfgFingerprint struct {
-	driver                       DriverType
-	dsn                          string
-	autoMigrate                  bool
-	migrationsDir                string
-	migrationsResolveFingerprint string // resolved source: override path, on-disk abs path, or :embedded:
-}
 
 // Init initializes the database connection using the default SQLite driver
 // This is kept for backward compatibility
@@ -82,21 +54,6 @@ func InitWithCentralizedConfig(projectRoot string, dbCfg DatabaseConfigFields) e
 func InitWithConfig(cfg *Config) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
-
-	wantMigFP, err := resolvedMigrationsFingerprintForInit(cfg)
-	if err != nil {
-		return err
-	}
-
-	if DB != nil &&
-		cfg != nil &&
-		cfg.Driver == initCfgFingerprint.driver &&
-		cfg.DSN == initCfgFingerprint.dsn &&
-		cfg.AutoMigrate == initCfgFingerprint.autoMigrate &&
-		cfg.MigrationsDir == initCfgFingerprint.migrationsDir &&
-		wantMigFP == initCfgFingerprint.migrationsResolveFingerprint {
-		return nil
-	}
 
 	// Close existing connection if any
 	if DB != nil {
@@ -138,21 +95,12 @@ func InitWithConfig(cfg *Config) error {
 		return fmt.Errorf("failed to configure database: %w", err)
 	}
 
-	DB = sqlx.NewDb(db, string(driver.Type()))
+	DB = db
 	currentDriver = driver
-	initCfgFingerprint.driver = cfg.Driver
-	initCfgFingerprint.dsn = cfg.DSN
-	initCfgFingerprint.autoMigrate = cfg.AutoMigrate
-	initCfgFingerprint.migrationsDir = cfg.MigrationsDir
-	initCfgFingerprint.migrationsResolveFingerprint = wantMigFP
 
-	// Run migrations if enabled (single resolve; matches wantMigFP)
+	// Run migrations if enabled
 	if cfg.AutoMigrate {
-		dir, useEmbed, _, err := ResolveMigrationsSource(cfg.MigrationsDir)
-		if err != nil {
-			return fmt.Errorf("failed to resolve migrations: %w", err)
-		}
-		if err := runPendingMigrations(dir, useEmbed); err != nil {
+		if err := RunMigrationsFromDir(cfg.MigrationsDir); err != nil {
 			return fmt.Errorf("failed to run migrations: %w", err)
 		}
 	}
@@ -175,14 +123,41 @@ func Close() error {
 			currentDriver = nil
 		}
 
-		initCfgFingerprint.driver = ""
-		initCfgFingerprint.dsn = ""
-		initCfgFingerprint.autoMigrate = false
-		initCfgFingerprint.migrationsDir = ""
-		initCfgFingerprint.migrationsResolveFingerprint = ""
-
 		return err
 	}
 
 	return nil
+}
+
+// GetDB returns the global database connection
+// Returns error if database is not initialized
+// Note: Reading the DB pointer is safe without mutex (atomic pointer read)
+// The mutex in Init()/Close() ensures proper initialization/cleanup.
+func GetDB() (*sql.DB, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized, call Init() first")
+	}
+
+	return DB, nil
+}
+
+// GetDriver returns the current database driver
+// Returns error if database is not initialized.
+func GetCurrentDriver() (Driver, error) {
+	if currentDriver == nil {
+		return nil, fmt.Errorf("database not initialized, call Init() first")
+	}
+
+	return currentDriver, nil
+}
+
+// GetDialect returns the SQL dialect for the current database
+// Returns error if database is not initialized.
+func GetDialect() (Dialect, error) {
+	driver, err := GetCurrentDriver()
+	if err != nil {
+		return nil, err
+	}
+
+	return driver.Dialect(), nil
 }

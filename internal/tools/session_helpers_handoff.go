@@ -6,25 +6,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
-
-	"github.com/davidl71/exarp-go/internal/cache"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
 //   checkHandoffAlert
-//   saveHandoff — appends a typed HandoffEntry to .todo2/handoffs.store (gzip+gob).
-//   updateHandoffStatus — sets status on handoffs by id and rewrites the store.
-//   handleSessionHandoffStatus — closes or approves handoffs by id.
-//   handleSessionHandoffDelete — removes handoffs by id from the store.
-//   deleteHandoffs — removes handoffs by id. Returns count deleted.
+//   saveHandoff — saveHandoff saves a handoff note to the handoffs.json file.
+//   updateHandoffStatus — updateHandoffStatus sets status on handoffs by id and writes handoffs.json back.
+//   handleSessionHandoffStatus — handleSessionHandoffStatus closes or approves handoffs by id.
+//   handleSessionHandoffDelete — handleSessionHandoffDelete removes handoffs by id from handoffs.json.
+//   deleteHandoffs — deleteHandoffs removes handoffs by id from handoffs.json. Returns count deleted.
 //   getGitStatus — getGitStatus gets current Git status.
 //   buildSuggestedNextAction — buildSuggestedNextAction builds a client-agnostic next-action hint from a suggested task map.
 //   buildCursorCliSuggestion — buildCursorCliSuggestion builds a ready-to-run Cursor CLI command from the first suggested task.
@@ -33,95 +30,161 @@ import (
 
 // ─── checkHandoffAlert ──────────────────────────────────────────────────────
 func checkHandoffAlert(projectRoot string) map[string]interface{} {
-	if !handoffsAnyFileExists(projectRoot) {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		return nil
 	}
 
 	fileCache := cache.GetGlobalFileCache()
-	path := handoffsPersistPath(projectRoot)
-	data, _, err := fileCache.ReadFile(path)
+
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil
 	}
 
-	store, err := loadHandoffStoreFromBytes(path, data)
-	if err != nil || len(store.Handoffs) == 0 {
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
 		return nil
 	}
 
-	latest := store.Handoffs[len(store.Handoffs)-1]
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	if len(handoffs) == 0 {
+		return nil
+	}
+
+	// Get latest handoff
+	latestHandoff := handoffs[len(handoffs)-1]
+
+	handoffMap, ok := latestHandoff.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
 	hostname, _ := os.Hostname()
-	if latest.Host == hostname {
-		return nil
+	handoffHost, _ := handoffMap["host"].(string)
+
+	// Only show if from different host
+	if handoffHost != hostname {
+		return map[string]interface{}{
+			"from_host":  handoffMap["host"],
+			"timestamp":  handoffMap["timestamp"],
+			"summary":    truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
+			"blockers":   handoffMap["blockers"],
+			"next_steps": handoffMap["next_steps"],
+		}
 	}
 
-	alert := map[string]interface{}{
-		"from_host":  latest.Host,
-		"timestamp":  latest.Timestamp,
-		"summary":    truncateString(latest.Summary, 100),
-		"blockers":   latest.Blockers,
-		"next_steps": latest.NextSteps,
-	}
-	if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
-		alert["latest_ledger"] = latestLedger
-	}
-	return alert
+	return nil
 }
 
 // ─── saveHandoff ────────────────────────────────────────────────────────────
-// saveHandoff appends a handoff entry and persists HandoffStore (gzip+gob).
-func saveHandoff(projectRoot string, entry HandoffEntry) error {
-	store, err := loadHandoffStore(projectRoot)
+// saveHandoff saves a handoff note to the handoffs.json file.
+func saveHandoff(projectRoot string, handoff map[string]interface{}) error {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	// Ensure .todo2 directory exists
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
+		return err
+	}
+
+	// Load existing handoffs
+	fileCache := cache.GetGlobalFileCache()
+	handoffs := []interface{}{}
+
+	if data, _, err := fileCache.ReadFile(handoffFile); err == nil {
+		var handoffData map[string]interface{}
+		if err := json.Unmarshal(data, &handoffData); err == nil {
+			if existing, ok := handoffData["handoffs"].([]interface{}); ok {
+				handoffs = existing
+			}
+		}
+	}
+
+	// Add new handoff
+	handoffs = append(handoffs, handoff)
+
+	// Keep last 20 handoffs
+	if len(handoffs) > 20 {
+		handoffs = handoffs[len(handoffs)-20:]
+	}
+
+	// Save
+	handoffData := map[string]interface{}{
+		"handoffs": handoffs,
+	}
+
+	data, err := json.MarshalIndent(handoffData, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	store.Handoffs = append(store.Handoffs, entry)
-	if len(store.Handoffs) > 20 {
-		store.Handoffs = store.Handoffs[len(store.Handoffs)-20:]
-	}
-
-	return saveHandoffStore(projectRoot, store)
+	return os.WriteFile(handoffFile, data, 0644)
 }
 
 // ─── updateHandoffStatus ────────────────────────────────────────────────────
-// updateHandoffStatus sets status on handoffs by id and rewrites the store.
+// updateHandoffStatus sets status on handoffs by id and writes handoffs.json back.
 func updateHandoffStatus(projectRoot string, handoffIDs []string, status string) error {
 	if len(handoffIDs) == 0 {
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Join(projectRoot, ".todo2"), 0o755); err != nil {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
 		return err
 	}
 
 	idsSet := make(map[string]struct{})
+
 	for _, id := range handoffIDs {
 		if id != "" {
 			idsSet[id] = struct{}{}
 		}
 	}
 
-	store, err := loadHandoffStore(projectRoot)
+	fileCache := cache.GetGlobalFileCache()
+
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return err
 	}
-	if len(store.Handoffs) == 0 {
+
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return err
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	if len(handoffs) == 0 {
 		return nil
 	}
 
 	updated := 0
-	for i := range store.Handoffs {
-		if _, want := idsSet[store.Handoffs[i].ID]; want {
-			store.Handoffs[i].Status = status
+
+	for _, v := range handoffs {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		id, _ := h["id"].(string)
+		if _, want := idsSet[id]; want {
+			h["status"] = status
 			updated++
 		}
 	}
+
 	if updated == 0 {
 		return nil
 	}
 
-	return saveHandoffStore(projectRoot, store)
+	handoffData["handoffs"] = handoffs
+
+	out, err := json.MarshalIndent(handoffData, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(handoffFile, out, 0644)
 }
 
 // ─── handleSessionHandoffStatus ─────────────────────────────────────────────
@@ -175,7 +238,7 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 }
 
 // ─── handleSessionHandoffDelete ─────────────────────────────────────────────
-// handleSessionHandoffDelete removes handoffs by id from the store.
+// handleSessionHandoffDelete removes handoffs by id from handoffs.json.
 func handleSessionHandoffDelete(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	var ids []string
 	if id := strings.TrimSpace(cast.ToString(params["handoff_id"])); id != "" {
@@ -220,49 +283,76 @@ func handleSessionHandoffDelete(ctx context.Context, params map[string]interface
 }
 
 // ─── deleteHandoffs ─────────────────────────────────────────────────────────
-// deleteHandoffs removes handoffs by id from the store. Returns count deleted.
+// deleteHandoffs removes handoffs by id from handoffs.json. Returns count deleted.
 func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
 	if len(handoffIDs) == 0 {
 		return 0, nil
 	}
 
-	if err := os.MkdirAll(filepath.Join(projectRoot, ".todo2"), 0o755); err != nil {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
 		return 0, err
 	}
 
 	idsSet := make(map[string]struct{})
+
 	for _, id := range handoffIDs {
 		if id != "" {
 			idsSet[id] = struct{}{}
 		}
 	}
 
-	if !handoffsAnyFileExists(projectRoot) {
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		return 0, nil
 	}
 
-	store, err := loadHandoffStore(projectRoot)
+	data, err := os.ReadFile(handoffFile)
 	if err != nil {
 		return 0, err
 	}
 
-	var kept []HandoffEntry
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return 0, err
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+
+	var kept []interface{}
+
 	deleted := 0
-	for _, h := range store.Handoffs {
-		if _, want := idsSet[h.ID]; want {
+
+	for _, v := range handoffs {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			kept = append(kept, v)
+			continue
+		}
+
+		id, _ := h["id"].(string)
+		if _, want := idsSet[id]; want {
 			deleted++
 			continue
 		}
-		kept = append(kept, h)
+
+		kept = append(kept, v)
 	}
+
 	if deleted == 0 {
 		return 0, nil
 	}
 
-	store.Handoffs = kept
-	if err := saveHandoffStore(projectRoot, store); err != nil {
+	handoffData["handoffs"] = kept
+
+	out, err := json.MarshalIndent(handoffData, "", "  ")
+	if err != nil {
 		return 0, err
 	}
+
+	if err := os.WriteFile(handoffFile, out, 0644); err != nil {
+		return 0, err
+	}
+
 	return deleted, nil
 }
 
@@ -312,22 +402,16 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 func buildSuggestedNextAction(task map[string]interface{}) string {
 	id, _ := task["id"].(string)
 	content, _ := task["content"].(string)
-	lane, _ := task["lane"].(string)
 
 	if id == "" {
 		return ""
 	}
 
-	idPart := fmt.Sprintf("Work on %s", id)
-	if lane != "" {
-		idPart = fmt.Sprintf("Work on %s [lane %s]", id, lane)
-	}
-
 	if content != "" {
-		return fmt.Sprintf("%s: %s", idPart, truncateString(content, 80))
+		return fmt.Sprintf("Work on %s: %s", id, truncateString(content, 80))
 	}
 
-	return idPart
+	return fmt.Sprintf("Work on %s", id)
 }
 
 // ─── buildCursorCliSuggestion ───────────────────────────────────────────────
@@ -351,98 +435,6 @@ func truncateString(s string, maxLen int) string {
 	}
 
 	return s[:maxLen-3] + "..."
-}
-
-// ─── buildOwnershipHints ────────────────────────────────────────────────────
-// buildOwnershipHints checks suggested tasks for file collisions and returns warning hints.
-// Returns a list of warning strings about parallelization risks.
-func buildOwnershipHints(suggestedTasks []Todo2Task) []string {
-	if len(suggestedTasks) < 2 {
-		return nil
-	}
-
-	// Build ownership map for suggested tasks
-	ownershipMap := make(map[string]*models.TaskOwnership)
-	for i := range suggestedTasks {
-		own := models.GetTaskOwnership(&suggestedTasks[i])
-		if own != nil && (len(own.OwnedFiles) > 0 || own.Lane != "") {
-			ownershipMap[suggestedTasks[i].ID] = own
-		}
-	}
-
-	if len(ownershipMap) < 2 {
-		return nil
-	}
-
-	var hints []string
-
-	// Check for file collisions
-	fileToTasks := make(map[string][]string)
-	for taskID, own := range ownershipMap {
-		for _, f := range own.OwnedFiles {
-			fileToTasks[f] = append(fileToTasks[f], taskID)
-		}
-	}
-
-	for file, taskIDs := range fileToTasks {
-		if len(taskIDs) >= 2 {
-			sort.Strings(taskIDs)
-			hints = append(hints, fmt.Sprintf("⚠️ File collision: %s shared by %s (run serially)", file, strings.Join(taskIDs, ", ")))
-		}
-	}
-
-	// Check for same-lane tasks
-	laneToTasks := make(map[string][]string)
-	for taskID, own := range ownershipMap {
-		if own.Lane != "" {
-			laneToTasks[own.Lane] = append(laneToTasks[own.Lane], taskID)
-		}
-	}
-
-	for lane, taskIDs := range laneToTasks {
-		if len(taskIDs) >= 2 {
-			sort.Strings(taskIDs)
-			hints = append(hints, fmt.Sprintf("⚠️ Same lane (%s): %s — may have related files", lane, strings.Join(taskIDs, ", ")))
-		}
-	}
-
-	return hints
-}
-
-// ─── buildHotspotSummary ────────────────────────────────────────────────────
-// buildHotspotSummary analyzes all pending tasks and returns a summary of contested files.
-// Returns a list of hotspot entries: "file_path: N tasks (task_ids)"
-func buildHotspotSummary(tasks []Todo2Task) []string {
-	// Count how many tasks touch each file
-	fileToTasks := make(map[string][]string)
-
-	for i := range tasks {
-		task := &tasks[i]
-		if !IsPendingStatus(task.Status) {
-			continue
-		}
-
-		own := models.GetTaskOwnership(task)
-		if own == nil {
-			continue
-		}
-
-		for _, f := range own.OwnedFiles {
-			fileToTasks[f] = append(fileToTasks[f], task.ID)
-		}
-	}
-
-	// Build hotspot list (files touched by 2+ tasks)
-	var hotspots []string
-	for file, taskIDs := range fileToTasks {
-		if len(taskIDs) >= 2 {
-			sort.Strings(taskIDs)
-			hotspots = append(hotspots, fmt.Sprintf("%s: %d tasks (%s)", file, len(taskIDs), strings.Join(taskIDs, ", ")))
-		}
-	}
-
-	sort.Strings(hotspots)
-	return hotspots
 }
 
 // handleSessionPrompts handles the prompts action - lists available prompts.

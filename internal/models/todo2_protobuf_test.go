@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestTodo2TaskToProto(t *testing.T) {
@@ -106,8 +105,8 @@ func TestProtoToTodo2Task(t *testing.T) {
 				Dependencies:    []string{"T-0"},
 				Completed:       false,
 				Metadata:        map[string]string{"key": "value"},
-				CreatedAt:       timestamppb.New(time.Now()),
-				UpdatedAt:       timestamppb.New(time.Now()),
+				CreatedAt:       time.Now().Unix(),
+				UpdatedAt:       time.Now().Unix(),
 			},
 			wantErr: false,
 		},

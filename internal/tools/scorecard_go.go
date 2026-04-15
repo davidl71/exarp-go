@@ -1,8 +1,10 @@
-// scorecard_go.go — Go scorecard: types, consts, and health checks.
+// scorecard_go.go — Go scorecard: types, consts, collectGoMetrics.
 package tools
 
 import (
 	"context"
+	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,35 +30,28 @@ type GoProjectMetrics struct {
 
 // GoHealthChecks represents Go-specific health check results.
 type GoHealthChecks struct {
-	GoModExists          bool    `json:"go_mod_exists"`
-	GoSumExists          bool    `json:"go_sum_exists"`
-	GoModTidyPasses      bool    `json:"go_mod_tidy_passes"`
-	GoVersionValid       bool    `json:"go_version_valid"`
-	GoVersion            string  `json:"go_version"`
-	GoBuildPasses        bool    `json:"go_build_passes"`
-	GoVetPasses          bool    `json:"go_vet_passes"`
-	GoFmtCompliant       bool    `json:"go_fmt_compliant"`
-	GoLintConfigured     bool    `json:"go_lint_configured"`
-	GoLintPasses         bool    `json:"go_lint_passes"`
-	GoTestPasses         bool    `json:"go_test_passes"`
-	GoTestCoverage       float64 `json:"go_test_coverage"`
-	GoVulnCheckAvailable bool    `json:"go_vulncheck_available"`
-	GoVulnCheckPasses    bool    `json:"go_vulncheck_passes"`
+	GoModExists       bool    `json:"go_mod_exists"`
+	GoSumExists       bool    `json:"go_sum_exists"`
+	GoModTidyPasses   bool    `json:"go_mod_tidy_passes"`
+	GoVersionValid    bool    `json:"go_version_valid"`
+	GoVersion         string  `json:"go_version"`
+	GoBuildPasses     bool    `json:"go_build_passes"`
+	GoVetPasses       bool    `json:"go_vet_passes"`
+	GoFmtCompliant    bool    `json:"go_fmt_compliant"`
+	GoLintConfigured  bool    `json:"go_lint_configured"`
+	GoLintPasses      bool    `json:"go_lint_passes"`
+	GoTestPasses      bool    `json:"go_test_passes"`
+	GoTestCoverage    float64 `json:"go_test_coverage"`
+	GoVulnCheckPasses bool    `json:"go_vulncheck_passes"`
 	// Security features
 	PathBoundaryEnforcement bool `json:"path_boundary_enforcement"`
 	RateLimiting            bool `json:"rate_limiting"`
 	AccessControl           bool `json:"access_control"`
 	// Documentation (for documentation score dimension)
-	ReadmeExists              bool    `json:"readme_exists"`
-	DocsDirExists             bool    `json:"docs_dir_exists"`
-	DocsFileCount             int     `json:"docs_file_count"`
-	DocsLiveCount             int     `json:"docs_live_count"`
-	DocsArchiveCount          int     `json:"docs_archive_count"`
-	DocsGeneratedCount        int     `json:"docs_generated_count"`
-	DocsStalePathMatches      int     `json:"docs_stale_path_matches"`
-	DocsMissingReferenceCount int     `json:"docs_missing_reference_count"`
-	DocsHealthScore           float64 `json:"docs_health_score"`
-	AIAssistDocsExist         bool    `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
+	ReadmeExists      bool `json:"readme_exists"`
+	DocsDirExists     bool `json:"docs_dir_exists"`
+	DocsFileCount     int  `json:"docs_file_count"`
+	AIAssistDocsExist bool `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
 }
 
 // FileSizeInfo holds per-file size and token estimate for split/refactor analysis.
@@ -92,13 +87,65 @@ type GoScorecardResult struct {
 	LargeFileCandidates []FileSizeInfo   `json:"large_file_candidates,omitempty"` // Files above token/line threshold; consider splitting
 	// FastModeUsed is true when scorecard was generated with FastMode (coverage/lint not run).
 	FastModeUsed bool `json:"fast_mode_used,omitempty"`
-	// OtherLanguages holds LangHealth for non-Go languages detected in the project (polyglot support).
-	OtherLanguages []LangHealth `json:"other_languages,omitempty"`
 }
 
 // ScorecardOptions configures scorecard generation behavior.
 type ScorecardOptions struct {
 	FastMode bool // Skip expensive operations (go test, go build, go mod tidy)
+}
+
+// collectGoMetrics collects Go-specific project metrics.
+func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetrics, error) {
+	metrics := &GoProjectMetrics{}
+
+	// Count Go files (files, lines, bytes)
+	goFiles, goLines, goBytes, err := countGoFilesWithBytes(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count Go files: %w", err)
+	}
+
+	metrics.GoFiles = goFiles
+	metrics.GoLines = goLines
+
+	// Count Go test files
+	testFiles, testLines, testBytes, err := countGoTestFilesWithBytes(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count Go test files: %w", err)
+	}
+
+	metrics.GoTestFiles = testFiles
+	metrics.GoTestLines = testLines
+
+	// Count Python files (bridge scripts only)
+	pythonFiles, pythonLines, pythonBytes, err := countPythonFilesWithBytes(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count Python files: %w", err)
+	}
+
+	metrics.PythonFiles = pythonFiles
+	metrics.PythonLines = pythonLines
+
+	totalBytes := goBytes + testBytes + pythonBytes
+	metrics.TotalCodeBytes = totalBytes
+	metrics.EstimatedTokens = int(float64(totalBytes) * config.TokensPerChar())
+
+	// Check Go module
+	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+		metrics.GoModules = 1
+		// Count dependencies
+		deps, version, err := getGoModuleInfo(ctx, projectRoot)
+		if err == nil {
+			metrics.GoDependencies = deps
+			metrics.GoVersion = version
+		}
+	}
+
+	// MCP server counts (these should be accurate)
+	metrics.MCPTools = 25     // 24 base + llamacpp
+	metrics.MCPPrompts = 15   // Fixed: was 38 (actual count may vary, check sanity-check)
+	metrics.MCPResources = 17 // Updated: 11 base + 6 task resources
+
+	return metrics, nil
 }
 
 // performGoHealthChecks performs Go-specific health checks.
@@ -154,7 +201,7 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 
 	// Check govulncheck (skip in fast mode)
 	if opts == nil || !opts.FastMode {
-		health.GoVulnCheckAvailable, health.GoVulnCheckPasses = checkGoVulncheck(ctx, projectRoot)
+		health.GoVulnCheckPasses = checkGoVulncheck(ctx, projectRoot)
 	}
 
 	// Check security features
@@ -174,21 +221,11 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	docsDir := filepath.Join(projectRoot, "docs")
 	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
 		health.DocsDirExists = true
-		stats, statsErr := collectDocsHealthStats(projectRoot, docsDir)
-		if statsErr == nil {
-			health.DocsFileCount = stats.TotalDocs
-			health.DocsLiveCount = stats.LiveDocs
-			health.DocsArchiveCount = stats.ArchiveDocs
-			health.DocsGeneratedCount = stats.GeneratedDocs
-			health.DocsStalePathMatches = len(stats.StalePaths)
-			health.DocsMissingReferenceCount = len(stats.MissingReferences)
-		} else {
-			entries, _ := os.ReadDir(docsDir)
-			for _, e := range entries {
-				if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
-					health.DocsFileCount++
-					health.DocsLiveCount++
-				}
+
+		entries, _ := os.ReadDir(docsDir)
+		for _, e := range entries {
+			if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
+				health.DocsFileCount++
 			}
 		}
 	}
@@ -213,8 +250,6 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	if info, _ := os.Stat(claudeCommands); info != nil && info.IsDir() {
 		health.AIAssistDocsExist = true
 	}
-
-	health.DocsHealthScore = calculateDocsHealthScore(health)
 
 	return health, nil
 }

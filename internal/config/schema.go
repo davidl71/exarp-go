@@ -12,7 +12,6 @@ type FullConfig struct {
 	Thresholds  ThresholdsConfig  `yaml:"thresholds"`
 	Tasks       TasksConfig       `yaml:"tasks"`
 	Database    DatabaseConfig    `yaml:"database"`
-	Cloud       CloudConfig       `yaml:"cloud"`
 	Security    SecurityConfig    `yaml:"security"`
 	Logging     LoggingConfig     `yaml:"logging"`
 	Tools       ToolsConfig       `yaml:"tools"`
@@ -20,12 +19,6 @@ type FullConfig struct {
 	Memory      MemoryConfig      `yaml:"memory"`
 	Project     ProjectConfig     `yaml:"project"`
 	Automations AutomationsConfig `yaml:"automations"`
-	TUI         TUIConfig         `yaml:"tui"`
-}
-
-// TUIConfig contains TUI-specific settings.
-type TUIConfig struct {
-	SpinnerStyle string `yaml:"spinner_style" json:"spinner_style"`
 }
 
 // TimeoutsConfig contains all timeout and duration settings.
@@ -89,10 +82,9 @@ type ThresholdsConfig struct {
 // TasksConfig contains task management defaults and settings.
 type TasksConfig struct {
 	// Defaults
-	DefaultStatus   string              `yaml:"default_status"`
-	DefaultPriority string              `yaml:"default_priority"`
-	DefaultTags     []string            `yaml:"default_tags"`
-	Keybindings     map[string][]string `yaml:"keybindings"`
+	DefaultStatus   string   `yaml:"default_status"`
+	DefaultPriority string   `yaml:"default_priority"`
+	DefaultTags     []string `yaml:"default_tags"`
 
 	// Status transitions (map of status -> allowed next statuses)
 	StatusWorkflow map[string][]string `yaml:"status_workflow"`
@@ -114,7 +106,6 @@ type TasksConfig struct {
 
 // DatabaseConfig contains database settings.
 type DatabaseConfig struct {
-	Backend             string        `yaml:"backend"`
 	SQLitePath          string        `yaml:"sqlite_path"`
 	JSONFallbackPath    string        `yaml:"json_fallback_path"`
 	BackupPath          string        `yaml:"backup_path"`
@@ -129,16 +120,6 @@ type DatabaseConfig struct {
 	WALMode             bool          `yaml:"wal_mode"`
 	CheckpointInterval  int           `yaml:"checkpoint_interval"`
 	BackupRetentionDays int           `yaml:"backup_retention_days"`
-}
-
-// CloudConfig contains cloud storage settings for TaskStore.
-type CloudConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	Provider        string `yaml:"provider"` // "firestore", "dynamodb"
-	ProjectID       string `yaml:"project_id"`
-	Region          string `yaml:"region"`
-	CollectionName  string `yaml:"collection_name"`  // Firestore collection or DynamoDB table
-	CredentialsFile string `yaml:"credentials_file"` // Path to credentials JSON
 }
 
 // SecurityConfig contains security settings.
@@ -210,6 +191,7 @@ type ToolsConfig struct {
 	Report    ReportConfig    `yaml:"report"`
 	Linting   LintingConfig   `yaml:"linting"`
 	Testing   TestingConfig   `yaml:"testing"`
+	MLX       MLXConfig       `yaml:"mlx"`
 	Ollama    OllamaConfig    `yaml:"ollama"`
 	Context   ContextConfig   `yaml:"context"`
 }
@@ -243,6 +225,14 @@ type TestingConfig struct {
 	MinCoverage      int    `yaml:"min_coverage"`
 	CoverageFormat   string `yaml:"coverage_format"`
 	Verbose          bool   `yaml:"verbose"`
+}
+
+// MLXConfig contains MLX tool settings.
+type MLXConfig struct {
+	DefaultModel       string  `yaml:"default_model"`
+	DefaultMaxTokens   int     `yaml:"default_max_tokens"`
+	DefaultTemperature float64 `yaml:"default_temperature"`
+	Verbose            bool    `yaml:"verbose"`
 }
 
 // OllamaConfig contains Ollama tool settings.
@@ -324,16 +314,15 @@ type SessionConfig struct {
 
 // ProjectConfig contains project-specific settings.
 type ProjectConfig struct {
-	Name                     string         `yaml:"name"`
-	Type                     string         `yaml:"type"`
-	Language                 string         `yaml:"language"`
-	Root                     string         `yaml:"root"`
-	Todo2Path                string         `yaml:"todo2_path"`
-	ExarpPath                string         `yaml:"exarp_path"`
-	Features                 FeaturesConfig `yaml:"features"`
-	SkipChecks               []string       `yaml:"skip_checks"`
-	CustomTools              []string       `yaml:"custom_tools"`
-	TaskDiscoveryIgnorePaths []string       `yaml:"task_discovery_ignore_paths"`
+	Name        string         `yaml:"name"`
+	Type        string         `yaml:"type"`
+	Language    string         `yaml:"language"`
+	Root        string         `yaml:"root"`
+	Todo2Path   string         `yaml:"todo2_path"`
+	ExarpPath   string         `yaml:"exarp_path"`
+	Features    FeaturesConfig `yaml:"features"`
+	SkipChecks  []string       `yaml:"skip_checks"`
+	CustomTools []string       `yaml:"custom_tools"`
 }
 
 // FeaturesConfig contains feature flags.

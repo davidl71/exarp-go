@@ -9,12 +9,6 @@ import (
 	"testing"
 )
 
-// scoreTasksHeuristic scores each task and returns only those with confidence >= threshold (for tests).
-func scoreTasksHeuristic(tasks []Todo2Task, evidence *CodebaseEvidence, threshold float64) []InferredResult {
-	all := scoreAllTasksHeuristic(tasks, evidence)
-	return filterByThreshold(all, threshold)
-}
-
 func TestGatherEvidence(t *testing.T) {
 	tmpDir := t.TempDir()
 

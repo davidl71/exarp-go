@@ -33,7 +33,7 @@ func rateLimitToProtobuf(r *RateLimitConfig) *configpb.RateLimitConfig {
 		return &configpb.RateLimitConfig{
 			Enabled:           r.Enabled,
 			RequestsPerWindow: int32(r.RequestsPerWindow),
-			WindowDuration:    durationToProto(r.WindowDuration),
+			WindowDuration:    durationToSeconds(r.WindowDuration),
 			BurstSize:         int32(r.BurstSize),
 		}
 	})
@@ -46,7 +46,7 @@ func rateLimitFromProtobuf(pb *configpb.RateLimitConfig) RateLimitConfig {
 	return RateLimitConfig{
 		Enabled:           pb.GetEnabled(),
 		RequestsPerWindow: int(pb.GetRequestsPerWindow()),
-		WindowDuration:    durationFromProto(pb.GetWindowDuration()),
+		WindowDuration:    secondsToDuration(pb.GetWindowDuration()),
 		BurstSize:         int(pb.GetBurstSize()),
 	}
 }

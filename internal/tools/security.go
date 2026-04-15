@@ -11,14 +11,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
-	"github.com/spf13/cast"
 )
-
-var runDependabotAlertsCommand = func(ctx context.Context, repo, jqQuery string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "gh", "api", fmt.Sprintf("repos/%s/dependabot/alerts", repo), "--jq", jqQuery)
-	return cmd.CombinedOutput()
-}
 
 // handleSecurityScan handles the scan action for security tool (Go, Python, Rust, Node).
 // Runs language-specific dependency scanners for each detected ecosystem and aggregates results.
@@ -107,42 +100,9 @@ func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]f
 	}, nil
 }
 
-// getGitHubRepoFromRemote returns the "owner/repo" from the current git remote URL.
-// Falls back to empty string if no remote or not a GitHub URL.
-func getGitHubRepoFromRemote(ctx context.Context, projectRoot string) string {
-	cmd := exec.CommandContext(ctx, "git", "remote", "get-url", "origin")
-	cmd.Dir = projectRoot
-	output, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	url := strings.TrimSpace(string(output))
-
-	// Handle SSH format: git@github.com:owner/repo.git
-	if strings.HasPrefix(url, "git@github.com:") {
-		url = strings.TrimPrefix(url, "git@github.com:")
-		url = strings.TrimSuffix(url, ".git")
-		return url
-	}
-
-	// Handle HTTPS format: https://github.com/owner/repo.git
-	if strings.HasPrefix(url, "https://github.com/") {
-		url = strings.TrimPrefix(url, "https://github.com/")
-		url = strings.TrimSuffix(url, ".git")
-		return url
-	}
-
-	return ""
-}
-
 // handleSecurityAlerts handles the alerts action for security tool.
 func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Default to current git repo, not hardcoded exarp-go
-	repo := ""
-	if projectRoot, err := FindProjectRoot(); err == nil {
-		repo = getGitHubRepoFromRemote(ctx, projectRoot)
-	}
-	// Override with explicit repo parameter if provided
+	repo := "davidl71/exarp-go"
 	if r, ok := params["repo"].(string); ok && r != "" {
 		repo = r
 	}
@@ -354,10 +314,10 @@ func parseNpmAuditOutput(output string) ([]Vulnerability, error) {
 	var vulns []Vulnerability
 	var result struct {
 		Vulnerabilities map[string]struct {
-			Severity     string        `json:"severity"`
-			Via          []interface{} `json:"via"`
-			Range        string        `json:"range"`
-			FixAvailable interface{}   `json:"fixAvailable"`
+			Severity  string `json:"severity"`
+			Via       []interface{} `json:"via"`
+			Range     string `json:"range"`
+			FixAvailable interface{} `json:"fixAvailable"`
 		} `json:"vulnerabilities"`
 	}
 	if err := json.Unmarshal([]byte(output), &result); err != nil {
@@ -472,33 +432,14 @@ type DependabotAlert struct {
 	FixVersion   string `json:"fixed_version,omitempty"`
 }
 
-// handleSecurityValidatePath handles the validate_path action for security tool.
-// Validates that a path exists and is within the project root.
-func handleSecurityValidatePath(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	path := cast.ToString(params["path"])
-	if path == "" {
-		return nil, fmt.Errorf("path is required")
-	}
-
-	absPath, err := security.ValidatePathExists(path, projectRoot)
-	if err != nil {
-		return []framework.TextContent{{Text: fmt.Sprintf("Invalid: %v", err), Type: "text"}}, nil
-	}
-
-	return []framework.TextContent{{Text: fmt.Sprintf("Valid: %s", absPath), Type: "text"}}, nil
-}
-
 // fetchDependabotAlerts fetches Dependabot alerts using gh CLI.
 func fetchDependabotAlerts(ctx context.Context, repo, state string) ([]DependabotAlert, error) {
 	// Use gh CLI to fetch alerts (same approach as Python)
 	jqQuery := `.[] | {package: .security_vulnerability.package.name, severity: .security_vulnerability.severity, cve: .security_advisory.cve_id, state: .state, ecosystem: .security_vulnerability.package.ecosystem, description: .security_advisory.summary, fix_available: .security_vulnerability.first_patched_version != null, fixed_version: .security_vulnerability.first_patched_version.identifier}`
 
-	output, err := runDependabotAlertsCommand(ctx, repo, jqQuery)
+	cmd := exec.CommandContext(ctx, "gh", "api", fmt.Sprintf("repos/%s/dependabot/alerts", repo), "--jq", jqQuery)
+
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("gh CLI failed: %w, output: %s", err, output)
 	}

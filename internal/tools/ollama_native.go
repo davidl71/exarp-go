@@ -7,15 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
-
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -36,37 +34,6 @@ import (
 // requests to enable connection pooling (Keep-Alive) instead of creating a new
 // client per call. No Client.Timeout; callers use context.WithTimeout per request.
 var ollamaHTTPClient = &http.Client{}
-
-// ollamaFMProbeTimeout bounds GET /api/tags probes used for FMAvailable (default FM chain).
-const ollamaFMProbeTimeout = 2 * time.Second
-
-// ollamaPingTagsAPI reports whether Ollama responded with HTTP 200 for GET {host}/api/tags.
-// Used by OllamaReachableForFM; does not validate the response body.
-func ollamaPingTagsAPI(ctx context.Context, host string) bool {
-	if strings.TrimSpace(host) == "" {
-		return false
-	}
-
-	url := fmt.Sprintf("%s/api/tags", host)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return false
-	}
-
-	resp, err := ollamaHTTPClient.Do(req)
-	if err != nil {
-		return false
-	}
-
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			// best effort close
-		}
-	}()
-
-	return resp.StatusCode == http.StatusOK
-}
 
 // ─── OllamaModel ────────────────────────────────────────────────────────────
 // OllamaModel represents an Ollama model.
@@ -363,14 +330,17 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 
 	model := getOllamaModelParam(params, "llama3.2")
 
-	stream := ParamBool(params, "stream", false)
+	stream := false
+	if s, ok := params["stream"].(bool); ok {
+		stream = s
+	}
 
 	// Build options
 	options := make(map[string]interface{})
 
 	// Parse num_gpu
-	if n, ok := ParamIntOK(params, "num_gpu"); ok {
-		options["num_gpu"] = n
+	if numGPU, ok := params["num_gpu"].(float64); ok {
+		options["num_gpu"] = int(numGPU)
 	} else if envGPU := os.Getenv("OLLAMA_NUM_GPU"); envGPU != "" {
 		if gpu, err := strconv.Atoi(envGPU); err == nil {
 			options["num_gpu"] = gpu
@@ -378,8 +348,8 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 
 	// Parse num_threads
-	if n, ok := ParamIntOK(params, "num_threads"); ok {
-		options["num_threads"] = n
+	if numThreads, ok := params["num_threads"].(float64); ok {
+		options["num_threads"] = int(numThreads)
 	} else if envThreads := os.Getenv("OLLAMA_NUM_THREADS"); envThreads != "" {
 		if threads, err := strconv.Atoi(envThreads); err == nil {
 			options["num_threads"] = threads
@@ -387,8 +357,8 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 
 	// Parse context_size
-	if n, ok := ParamIntOK(params, "context_size"); ok {
-		options["num_ctx"] = n
+	if contextSize, ok := params["context_size"].(float64); ok {
+		options["num_ctx"] = int(contextSize)
 	} else if envCtx := os.Getenv("OLLAMA_NUM_CTX"); envCtx != "" {
 		if ctx, err := strconv.Atoi(envCtx); err == nil {
 			options["num_ctx"] = ctx

@@ -18,12 +18,12 @@ func TestDefaultModelRouter_SelectModel(t *testing.T) {
 		wantOneOf []ModelType
 	}{
 		{"general empty", "", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
-		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
-		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
-		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
-		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
+		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
+		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
 		{"prefer speed", "general", ModelRequirements{PreferSpeed: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
-		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
+		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -55,15 +55,8 @@ func TestDefaultModelRouter_Generate_UnknownType(t *testing.T) {
 	}
 }
 
-func TestResolveModelForTask_CarriesAgentRole(t *testing.T) {
-	_, req := ResolveModelForTask("task description", "general", "quality", AgentRoleReviewer)
-	if req.AgentRole != AgentRoleReviewer {
-		t.Fatalf("ResolveModelForTask() AgentRole = %q, want %q", req.AgentRole, AgentRoleReviewer)
-	}
-}
-
 func TestModelTypeConstants(t *testing.T) {
-	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" {
+	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" || ModelMLX == "" {
 		t.Error("model type constants should be non-empty")
 	}
 }

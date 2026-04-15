@@ -12,28 +12,18 @@ import (
 	"time"
 )
 
-// FileStats holds aggregated file statistics from a single walk.
-type FileStats struct {
-	GoFiles, GoLines, GoBytes             int
-	TestFiles, TestLines, TestBytes       int
-	PythonFiles, PythonLines, PythonBytes int
-	PerFileStats                          []FileSizeInfo
-}
+// collectPerFileCodeStats returns per-file stats (path, lines, bytes, estimated tokens) for .go, _test.go, and bridge/tests .py.
+// Used for large-file detection (split/refactor candidates) and for optional token-based analysis.
+func collectPerFileCodeStats(projectRoot string) ([]FileSizeInfo, error) {
+	var out []FileSizeInfo
 
-// collectAllFileStats walks the project once and collects all file statistics.
-// This replaces 4 separate walks: countGoFilesWithBytes, countGoTestFilesWithBytes,
-// countPythonFilesWithBytes, and collectPerFileCodeStats.
-func collectAllFileStats(projectRoot string) (*FileStats, error) {
-	stats := &FileStats{}
-
-	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
+	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
 
 		if info.IsDir() {
-			switch info.Name() {
-			case ".git", "vendor", ".venv", "node_modules", "__pycache__", ".bfg-report", ".cursor", ".opencode", "out":
+			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" || info.Name() == "__pycache__" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -44,62 +34,38 @@ func collectAllFileStats(projectRoot string) (*FileStats, error) {
 			return nil
 		}
 
-		isGoFile := strings.HasSuffix(path, ".go")
-		isTestFile := isGoFile && strings.HasSuffix(path, "_test.go")
-		isPythonFile := strings.HasSuffix(path, ".py")
-
-		// Determine if we should count this file
-		shouldCount := false
-		if isGoFile && !isTestFile && !skipGeneratedProtobufGo(projectRoot, path) {
-			shouldCount = true
+		var add bool
+		if strings.HasSuffix(path, ".go") {
+			if skipGeneratedProtobufGo(projectRoot, path) {
+				return nil
+			}
+			add = true
+		} else if strings.HasSuffix(path, ".py") && (strings.Contains(path, "bridge/") || strings.Contains(path, "tests/")) {
+			add = true
 		}
-		if isTestFile && !skipGeneratedProtobufGo(projectRoot, path) {
-			stats.TestFiles++
-		}
-		if isPythonFile && (strings.Contains(path, "bridge/") || strings.Contains(path, "tests/")) {
-			stats.PythonFiles++
-		}
-
-		if !shouldCount && !isTestFile && !isPythonFile {
+		if !add {
 			return nil
 		}
 
-		data, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return nil
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil // skip unreadable
 		}
 
-		fileLines := len(strings.Split(string(data), "\n"))
-		fileBytes := len(data)
+		lines := len(strings.Split(string(data), "\n"))
+		bytes := len(data)
+		tokens := int(float64(bytes) * config.TokensPerChar())
 
-		if isGoFile && !isTestFile {
-			stats.GoFiles++
-			stats.GoLines += fileLines
-			stats.GoBytes += fileBytes
-		}
-		if isTestFile {
-			stats.TestLines += fileLines
-			stats.TestBytes += fileBytes
-		}
-		if isPythonFile && (strings.Contains(path, "bridge/") || strings.Contains(path, "tests/")) {
-			stats.PythonLines += fileLines
-			stats.PythonBytes += fileBytes
-		}
-
-		// For per-file stats (large file detection), collect all .go files
-		if isGoFile {
-			stats.PerFileStats = append(stats.PerFileStats, FileSizeInfo{
-				Path:            rel,
-				Lines:           fileLines,
-				Bytes:           fileBytes,
-				EstimatedTokens: int(float64(fileBytes) * config.TokensPerChar()),
-			})
-		}
-
+		out = append(out, FileSizeInfo{
+			Path:            rel,
+			Lines:           lines,
+			Bytes:           bytes,
+			EstimatedTokens: tokens,
+		})
 		return nil
 	})
 
-	return stats, err
+	return out, err
 }
 
 // filterLargeFileCandidates returns files that exceed the token or line threshold (split/refactor candidates).
@@ -111,6 +77,111 @@ func filterLargeFileCandidates(files []FileSizeInfo, tokenThreshold, lineThresho
 		}
 	}
 	return out
+}
+
+// countGoFilesWithBytes counts Go source files, lines, and total bytes (for token estimate).
+func countGoFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			// Skip .venv, vendor, .git directories
+			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
+			if skipGeneratedProtobufGo(root, path) {
+				return nil
+			}
+			count++
+			data, err := os.ReadFile(path)
+			if err == nil {
+				lines += len(strings.Split(string(data), "\n"))
+				bytes += len(data)
+			}
+		}
+
+		return nil
+	})
+
+	return count, lines, bytes, err
+}
+
+// countGoTestFilesWithBytes counts Go test files, lines, and total bytes (for token estimate).
+func countGoTestFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if strings.HasSuffix(path, "_test.go") {
+			count++
+
+			data, err := os.ReadFile(path)
+			if err == nil {
+				lines += len(strings.Split(string(data), "\n"))
+				bytes += len(data)
+			}
+		}
+
+		return nil
+	})
+
+	return count, lines, bytes, err
+}
+
+// countPythonFilesWithBytes counts Python files and lines (bridge scripts only) and total bytes (for token estimate).
+func countPythonFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
+
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			if info.Name() == ".venv" || info.Name() == "__pycache__" || info.Name() == ".git" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if strings.HasSuffix(path, ".py") {
+			// Only count bridge scripts and tests
+			if strings.Contains(path, "bridge/") || strings.Contains(path, "tests/") {
+				count++
+
+				data, err := os.ReadFile(path)
+				if err == nil {
+					lines += len(strings.Split(string(data), "\n"))
+					bytes += len(data)
+				}
+			}
+		}
+
+		return nil
+	})
+
+	return count, lines, bytes, err
 }
 
 // getGoModuleInfo gets Go module dependency count and version.
@@ -215,10 +286,10 @@ func checkGoFmt(ctx context.Context, root string) bool {
 		}
 
 		if info.IsDir() {
-			switch info.Name() {
-			case ".git", "vendor", ".venv", "node_modules", ".bfg-report", ".cursor", ".opencode", "out":
+			if info.Name() == ".git" || info.Name() == "vendor" || info.Name() == ".venv" {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -339,21 +410,21 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	return passes, coverage
 }
 
-// checkGoVulncheck reports whether govulncheck is available and whether the scan passed.
-func checkGoVulncheck(ctx context.Context, root string) (available bool, passes bool) {
+// checkGoVulncheck checks if govulncheck passes.
+func checkGoVulncheck(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if govulncheck is available
 	if _, err := exec.LookPath("govulncheck"); err != nil {
-		return false, false
+		return false // Not installed, not a failure
 	}
 
 	cmd := exec.CommandContext(ctx, "govulncheck", "./...")
 	cmd.Dir = root
 	err := cmd.Run()
 
-	return true, err == nil
+	return err == nil
 }
 
 // checkPathBoundaryEnforcement checks if path boundary enforcement is implemented.

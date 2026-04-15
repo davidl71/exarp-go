@@ -366,8 +366,6 @@ func getHintsForMode(mode string) map[string]string {
 		"tasks":             "Use task_workflow tool for task management",
 		"tractatus":         "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
 		"context_reduction": "When context is large: use compact=true on prime/task_workflow/report; call context(action=budget, items=[...], budget_tokens=N) for safe_to_summarize and agent_hint.",
-		"no_color":          "Set NO_COLOR=1 in the MCP server env for plain-text output without ANSI codes — recommended for AI/MCP consumers. Affects Makefile output and TUI. See https://no-color.org",
-		"ownership":         "💡 Add file ownership to tasks for parallel safety: task_workflow create/update with owned_files=['src/file.go'] and lane='backend'. Run task_analysis action=infer_ownership to auto-populate.",
 	}
 
 	switch mode {
@@ -394,7 +392,7 @@ func getTasksSummaryFromTasks(tasks []Todo2Task) map[string]interface{} {
 	recentTasks := []map[string]interface{}{}
 
 	for i, task := range tasks {
-		if i >= 5 {
+		if i >= 10 {
 			break
 		}
 
@@ -446,15 +444,8 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 		if !ok {
 			m := map[string]interface{}{"id": id, "content": ""}
 			if t, has := taskByID[id]; has {
-				if ln := models.GetTaskLane(&t); ln != "" {
-					m["lane"] = ln
-				}
 				if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 					m["recommended_tools"] = rt
-				}
-				m["lazy_context"] = buildLazyTaskContext(t)
-				for key, value := range BuildWorkflowContract(&t, nil, nil) {
-					m[key] = value
 				}
 			}
 			out = append(out, m)
@@ -467,16 +458,9 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 			"priority": d.Priority,
 			"level":    d.Level,
 		}
-		if d.Lane != "" {
-			m["lane"] = d.Lane
-		}
 		if t, has := taskByID[id]; has {
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
-			}
-			m["lazy_context"] = buildLazyTaskContext(t)
-			for key, value := range BuildWorkflowContract(&t, nil, nil) {
-				m[key] = value
 			}
 		}
 		out = append(out, m)
@@ -509,9 +493,6 @@ func GetSessionStatus(projectRoot string) (label, contextType string, details ma
 		details["task_id"] = t.ID
 		details["content"] = t.Content
 		details["priority"] = t.Priority
-		if t.Lane != "" {
-			details["lane"] = t.Lane
-		}
 
 		return
 	}

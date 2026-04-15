@@ -222,14 +222,14 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		"alignment_by_persona":    alignmentByPersona,
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath != "" {
 		fullPath := outputPath
 		if !filepath.IsAbs(fullPath) {
 			fullPath = filepath.Join(projectRoot, fullPath)
 		}
 
-		if err := EnsureParentDir(fullPath); err == nil {
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
 			raw, _ := json.MarshalIndent(data, "", "  ")
 			_ = os.WriteFile(fullPath, raw, 0644)
 			data["report_path"] = fullPath

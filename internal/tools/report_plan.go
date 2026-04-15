@@ -5,16 +5,15 @@ package tools
 import (
 	"context"
 	"fmt"
-	"math"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -50,7 +49,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	outputPath := DefaultPlanOutputPath(projectRoot, planFilenameFromTitle(planTitle)+".plan.md", params)
-	if ParamOutputPath(params) != "" {
+	if strings.TrimSpace(cast.ToString(params["output_path"])) != "" {
 		outputPath = ensurePlanMdSuffix(outputPath)
 	}
 
@@ -61,11 +60,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	} else {
 		planPath = ensurePlanMdSuffix(planPath)
 	}
-	// Auto-repair: if file exists and repair not explicitly set, repair to preserve hand-written body.
-	// Explicit repair=true also enters this path; repair=false skips it (full regenerate).
-	_, fileExists := os.Stat(planPath)
-	autoRepair := repair || (fileExists == nil && !cast.ToBool(params["force"]))
-	if autoRepair {
+	if repair {
 		repaired, err := repairPlanFile(ctx, projectRoot, planPath, planTitle)
 		if err != nil {
 			return nil, fmt.Errorf("repair plan: %w", err)
@@ -267,7 +262,7 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		}
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath == "" {
 		outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
 	}
@@ -277,8 +272,10 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		return nil, fmt.Errorf("generate parallel execution plan: %w", err)
 	}
 
-	if err := EnsureParentDir(outputPath); err != nil {
-		return nil, fmt.Errorf("create plan directory: %w", err)
+	if dir := filepath.Dir(outputPath); dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("create plan directory: %w", err)
+		}
 	}
 
 	if err := os.WriteFile(outputPath, []byte(subagentsMD), 0644); err != nil {
@@ -300,15 +297,10 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("update waves from plan: %w", err)
-	}
 
 	planPath := cast.ToString(params["plan_path"])
 	if planPath == "" {
-		overrides := loadPlanOverrides(projectRoot)
-		planPath = filepath.Join(projectRoot, overrides.resolvedWavesPlanSource())
+		planPath = filepath.Join(projectRoot, DefaultPlanWavesPath)
 	}
 
 	waves, err := ParseWavesFromPlanMarkdown(planPath)
@@ -344,7 +336,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 		}
 
 		for _, taskID := range ids {
-			task, err := store.GetTask(ctx, taskID)
+			task, err := database.GetTask(ctx, taskID)
 			if err != nil || task == nil {
 				continue // skip missing tasks
 			}
@@ -359,7 +351,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 				task.Dependencies = make([]string, len(deps))
 				copy(task.Dependencies, deps)
 
-				if err := store.UpdateTask(ctx, task); err != nil {
+				if err := database.UpdateTask(ctx, task); err != nil {
 					return nil, fmt.Errorf("update task %s: %w", taskID, err)
 				}
 			}
@@ -440,8 +432,6 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 		return nil, fmt.Errorf("scorecard for plans: %w", err)
 	}
 
-	overrides := loadPlanOverrides(projectRoot)
-
 	scores := map[string]float64{
 		"testing":       calculateTestingScore(scorecard),
 		"security":      calculateSecurityScore(scorecard),
@@ -451,8 +441,7 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	byDim := recommendationsByDimension(scorecard.Recommendations)
 
 	// Add a generic documentation recommendation when doc score is below threshold and none exist
-	docThreshold := float64(overrides.resolvedScorecardThreshold("documentation"))
-	if scores["documentation"] < docThreshold && len(byDim["documentation"]) == 0 {
+	if scores["documentation"] < 100 && len(byDim["documentation"]) == 0 {
 		byDim["documentation"] = append(byDim["documentation"], "Improve documentation (README, godoc, .cursor/docs)")
 	}
 
@@ -465,8 +454,7 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 
 	for _, dim := range []string{"testing", "security", "documentation", "completion"} {
 		cfg := scorecardDimensionConfig[dim]
-		threshold := math.Max(cfg.threshold, float64(overrides.resolvedScorecardThreshold(dim)))
-		if scores[dim] >= threshold {
+		if scores[dim] >= cfg.threshold {
 			continue
 		}
 

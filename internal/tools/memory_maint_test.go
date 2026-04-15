@@ -563,7 +563,9 @@ func TestHandleMemoryMaintNative_Dream(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{"action": "dream"}
 
-	result, err := handleMemoryMaintNative(ctx, params)
+	argsJSON, _ := json.Marshal(params)
+
+	result, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err != nil {
 		// Error acceptable (e.g. wisdom engine unavailable)
 		if err.Error() == "" {
@@ -584,7 +586,9 @@ func TestHandleMemoryMaintNative_UnknownAction(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{"action": "unknown_action"}
 
-	_, err := handleMemoryMaintNative(ctx, params)
+	argsJSON, _ := json.Marshal(params)
+
+	_, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err == nil {
 		t.Error("handleMemoryMaintNative() with unknown action should return error")
 	}
@@ -598,7 +602,9 @@ func TestHandleMemoryMaintNative_DefaultAction(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{} // No action specified
 
-	result, err := handleMemoryMaintNative(ctx, params)
+	argsJSON, _ := json.Marshal(params)
+
+	result, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err != nil {
 		t.Errorf("handleMemoryMaintNative() with default action error = %v", err)
 		return

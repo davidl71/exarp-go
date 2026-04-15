@@ -12,7 +12,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 	"github.com/lawlielt/ctxcache"
@@ -79,72 +78,6 @@ func toolRecoveryMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	}
 }
 
-// toolRateLimitMiddleware checks rate limits before executing a tool.
-// Returns an error if the client has exceeded their rate limit.
-func toolRateLimitMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		clientID := "default"
-		if req != nil && req.Params != nil {
-			if err := security.CheckRateLimit(clientID); err != nil {
-				return &mcp.CallToolResult{
-					IsError: true,
-					Content: []mcp.Content{
-						&mcp.TextContent{Text: fmt.Sprintf("rate limit exceeded: %v", err)},
-					},
-				}, nil
-			}
-		}
-		return next(ctx, req)
-	}
-}
-
-// toolSemaphoreMiddleware limits concurrent tool executions using a semaphore.
-// This prevents resource exhaustion from too many parallel tool calls.
-func toolSemaphoreMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-	permits := config.WorkflowToolLimit()
-	if permits <= 0 {
-		// ToolLimit=0 means no limit.
-		return next
-	}
-	semaphore := security.GetToolSemaphore(permits)
-
-	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		if !semaphore.TryAcquire() {
-			return &mcp.CallToolResult{
-				IsError: true,
-				Content: []mcp.Content{
-					&mcp.TextContent{Text: "concurrent tool limit exceeded: please try again later"},
-				},
-			}, nil
-		}
-		defer semaphore.Release()
-
-		return next(ctx, req)
-	}
-}
-
-// toolAccessControlMiddleware checks access control before executing a tool.
-// Returns an error if the tool is not allowed.
-func toolAccessControlMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		toolName := ""
-		if req != nil && req.Params != nil {
-			toolName = req.Params.Name
-		}
-		if toolName != "" {
-			if err := security.CheckToolAccess(toolName); err != nil {
-				return &mcp.CallToolResult{
-					IsError: true,
-					Content: []mcp.Content{
-						&mcp.TextContent{Text: fmt.Sprintf("access denied: %v", err)},
-					},
-				}, nil
-			}
-		}
-		return next(ctx, req)
-	}
-}
-
 // toolHooksMiddleware runs before/after callbacks around each tool invocation.
 func toolHooksMiddleware(hooks *framework.Hooks) func(gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	return func(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
@@ -198,9 +131,6 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 		adapterOpts := []gosdk.AdapterOption{
 			gosdk.WithLogger(logger),
 			gosdk.WithMiddleware(toolRecoveryMiddleware),
-			gosdk.WithMiddleware(toolRateLimitMiddleware),
-			gosdk.WithMiddleware(toolSemaphoreMiddleware),
-			gosdk.WithMiddleware(toolAccessControlMiddleware),
 			gosdk.WithMiddleware(toolContextCacheMiddleware),
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
 		}
@@ -208,34 +138,12 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			adapterOpts = append(adapterOpts, gosdk.WithMiddleware(toolHooksMiddleware(cfg.hooks)))
 		}
 		adapter := gosdk.NewGoSDKAdapter(name, version, adapterOpts...)
-		wrapped := &exarpServer{MCPServer: adapter}
-
 		if cfg.toolFilter != nil {
-			return &filteredServer{MCPServer: wrapped, filter: cfg.toolFilter}, nil
+			return &filteredServer{MCPServer: adapter, filter: cfg.toolFilter}, nil
 		}
-		return wrapped, nil
+		return adapter, nil
 	default:
 		return nil, fmt.Errorf("unknown framework: %s", frameworkType)
-	}
-}
-
-// exarpServer wraps a GoSDKAdapter and adds ServerExtensionReporter so clients
-// can discover which exarp-go capability extensions are enabled.
-type exarpServer struct {
-	framework.MCPServer
-}
-
-// ServerExtensions advertises the exarp-go MCP capability extensions.
-func (s *exarpServer) ServerExtensions() map[string]any {
-	return map[string]any{
-		"davidl71/exarp-go": map[string]any{
-			"projectRootContext":    true,
-			"resourceTemplates":     true,
-			"toolFiltering":         true,
-			"resourceSubscriptions": true,
-			"agentRunner":           true,
-			"fmPlanExecute":         true,
-		},
 	}
 }
 
@@ -254,28 +162,4 @@ func (f *filteredServer) ListTools() []framework.ToolInfo {
 // (workflow-mode tool filter enabled).
 func NewServerFromConfig(cfg *config.Config, opts ...ServerOption) (framework.MCPServer, error) {
 	return NewServer(cfg.Framework, cfg.Name, cfg.Version, opts...)
-}
-
-// UnwrapGoSDKServer unwraps the exarp-go server wrappers and returns the underlying
-// go-sdk *mcp.Server. Returns nil if the server was not created from a GoSDKAdapter.
-// Used by MCP Streamable HTTP mode to wire the real HTTP handler.
-func UnwrapGoSDKServer(s framework.MCPServer) *mcp.Server {
-	// Unwrap filteredServer → exarpServer → *gosdk.GoSDKAdapter
-	type unwrapper interface{ Unwrap() framework.MCPServer }
-	for {
-		switch v := s.(type) {
-		case *filteredServer:
-			s = v.MCPServer
-		case *exarpServer:
-			s = v.MCPServer
-		default:
-			// Try the MCPServer() accessor we added to GoSDKAdapter.
-			type mcpServerer interface{ MCPServer() *mcp.Server }
-			if m, ok := s.(mcpServerer); ok {
-				return m.MCPServer()
-			}
-			_ = unwrapper(nil) // satisfy compiler
-			return nil
-		}
-	}
 }

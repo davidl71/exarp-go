@@ -2,8 +2,6 @@ package tools
 
 import (
 	"testing"
-
-	"github.com/davidl71/exarp-go/internal/models"
 )
 
 func TestNormalizeStatus(t *testing.T) {
@@ -161,44 +159,6 @@ func TestNormalizePriority(t *testing.T) {
 				t.Errorf("NormalizePriority(%q) = %q, want %q", tt.input, got, tt.expected)
 			}
 		})
-	}
-}
-
-func BenchmarkNormalizeStatus(b *testing.B) {
-	inputs := []string{
-		models.StatusTodo, models.StatusInProgress, models.StatusReview,
-		"pending", "in-progress", "DONE", "Custom Status",
-	}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for _, s := range inputs {
-			_ = NormalizeStatus(s)
-		}
-	}
-}
-
-func BenchmarkNormalizeStatusToTitleCase(b *testing.B) {
-	inputs := []string{
-		"todo", "in_progress", "review", "completed", "Custom Status",
-	}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for _, s := range inputs {
-			_ = NormalizeStatusToTitleCase(s)
-		}
-	}
-}
-
-func BenchmarkNormalizePriority(b *testing.B) {
-	inputs := []string{"high", "Low", "urgent", "Custom Priority"}
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for _, s := range inputs {
-			_ = NormalizePriority(s)
-		}
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
@@ -40,8 +39,7 @@ func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 	return graph
 }
 
-func findMissingDependencies(ctx context.Context, store database.TaskStore, tasks []Todo2Task, tg *TaskGraph) []map[string]interface{} {
-	_ = tg // reserved for future graph-aware checks
+func findMissingDependencies(tasks []Todo2Task, tg *TaskGraph) []map[string]interface{} {
 	missing := []map[string]interface{}{}
 	taskMap := make(map[string]bool)
 
@@ -51,41 +49,29 @@ func findMissingDependencies(ctx context.Context, store database.TaskStore, task
 
 	for _, task := range tasks {
 		for _, dep := range task.Dependencies {
-			if taskMap[dep] {
-				continue
+			if !taskMap[dep] {
+				missing = append(missing, map[string]interface{}{
+					"task_id":     task.ID,
+					"missing_dep": dep,
+					"message":     fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep),
+				})
 			}
-			if store != nil {
-				if _, err := store.GetTask(ctx, dep); err == nil {
-					continue
-				}
-			}
-			missing = append(missing, map[string]interface{}{
-				"task_id":     task.ID,
-				"missing_dep": dep,
-				"message":     fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep),
-			})
 		}
 	}
 
 	return missing
 }
 
-// GetDependencyAnalysisFromTasks returns cycles and missing dependencies for the given tasks (in-memory slice only).
-// Dep IDs omitted from the slice but present in the DB are still reported missing; use GetDependencyAnalysisFromTasksWithStore when a TaskStore is available.
+// GetDependencyAnalysisFromTasks returns cycles and missing dependencies for the given tasks.
+// Used by task_discovery findOrphanTasks and handleTaskAnalysisDependencies to share graph logic.
 func GetDependencyAnalysisFromTasks(tasks []Todo2Task) (cycles [][]string, missing []map[string]interface{}, err error) {
-	return GetDependencyAnalysisFromTasksWithStore(context.Background(), nil, tasks)
-}
-
-// GetDependencyAnalysisFromTasksWithStore is like GetDependencyAnalysisFromTasks but resolves dependency targets via
-// store.GetTask when they are absent from the task slice (cross-project_id / legacy rows excluded from ListTasks(nil)).
-func GetDependencyAnalysisFromTasksWithStore(ctx context.Context, store database.TaskStore, tasks []Todo2Task) (cycles [][]string, missing []map[string]interface{}, err error) {
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
 	cycles = DetectCycles(tg)
-	missing = findMissingDependencies(ctx, store, tasks, tg)
+	missing = findMissingDependencies(tasks, tg)
 
 	return cycles, missing, nil
 }
@@ -207,14 +193,14 @@ type ParallelGroup struct {
 	Reason   string   `json:"reason"`
 }
 
-func findParallelizableTasks(tasks []Todo2Task, durationWeight float64, tagFilter map[string]bool) []ParallelGroup {
+func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
 	groups := []ParallelGroup{}
 
 	// Build dependency graph using gonum
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		// Fallback to simple approach if graph building fails
-		return findParallelizableTasksSimple(tasks, durationWeight, tagFilter)
+		return findParallelizableTasksSimple(tasks, durationWeight)
 	}
 
 	taskMap := make(map[string]*Todo2Task)
@@ -222,19 +208,13 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64, tagFilte
 		taskMap[tasks[i].ID] = &tasks[i]
 	}
 
-	// Filter to pending tasks only (Todo); optional tagFilter restricts to matching IDs
+	// Filter to pending tasks only
 	pendingTasks := []Todo2Task{}
 
 	for _, task := range tasks {
-		if !IsPendingStatus(task.Status) {
-			continue
+		if IsPendingStatus(task.Status) {
+			pendingTasks = append(pendingTasks, task)
 		}
-
-		if tagFilter != nil && !tagFilter[task.ID] {
-			continue
-		}
-
-		pendingTasks = append(pendingTasks, task)
 	}
 
 	if len(pendingTasks) == 0 {
@@ -324,14 +304,15 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64, tagFilte
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		return parallelGroupPriorityRank[groups[i].Priority] < parallelGroupPriorityRank[groups[j].Priority]
+		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
+		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
 	})
 
 	return groups
 }
 
 // findParallelizableTasksSimple is a fallback implementation without graph analysis.
-func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64, tagFilter map[string]bool) []ParallelGroup {
+func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
 	groups := []ParallelGroup{}
 
 	taskMap := make(map[string]*Todo2Task)
@@ -343,15 +324,9 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64, ta
 	readyTasks := []string{}
 
 	for _, task := range tasks {
-		if !IsPendingStatus(task.Status) || len(task.Dependencies) != 0 {
-			continue
+		if IsPendingStatus(task.Status) && len(task.Dependencies) == 0 {
+			readyTasks = append(readyTasks, task.ID)
 		}
-
-		if tagFilter != nil && !tagFilter[task.ID] {
-			continue
-		}
-
-		readyTasks = append(readyTasks, task.ID)
 	}
 
 	if len(readyTasks) > 0 {
@@ -382,7 +357,8 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64, ta
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		return parallelGroupPriorityRank[groups[i].Priority] < parallelGroupPriorityRank[groups[j].Priority]
+		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
+		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
 	})
 
 	return groups
@@ -415,22 +391,8 @@ func formatParallelizationAnalysisText(result map[string]interface{}) string {
 	sb.WriteString("========================\n\n")
 
 	if total, ok := result["total_tasks"].(int); ok {
-		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
+		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", total))
 	}
-
-	if ft, ok := result["filter_tag"].(string); ok && ft != "" {
-		sb.WriteString(fmt.Sprintf("Tag filter: %s\n", ft))
-	}
-
-	if fts, ok := result["filter_tags"].(string); ok && fts != "" {
-		sb.WriteString(fmt.Sprintf("Tag filters: %s\n", fts))
-	}
-
-	if sc, ok := result["parallelization_scope_count"].(int); ok {
-		sb.WriteString(fmt.Sprintf("Todo tasks matching tag filter: %d\n", sc))
-	}
-
-	sb.WriteString("\n")
 
 	if groups, ok := result["parallel_groups"].([]ParallelGroup); ok && len(groups) > 0 {
 		sb.WriteString("Parallel Execution Groups:\n\n")
@@ -575,13 +537,19 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		"hierarchy_recommendations": buildHierarchyRecommendations(classifications, pendingTasks),
 	}
 
-	includeRecommendations := ParamBool(params, "include_recommendations", true)
+	includeRecommendations := true
+	if rec, ok := params["include_recommendations"].(bool); ok {
+		includeRecommendations = rec
+	}
 
 	if !includeRecommendations {
 		delete(analysis, "hierarchy_recommendations")
 	}
 
-	outputFormat := ParamOutputFormat(params, "json")
+	outputFormat := "json"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
 
 	if outputFormat == "text" {
 		output := formatHierarchyAnalysisText(analysis)

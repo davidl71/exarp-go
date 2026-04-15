@@ -38,14 +38,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	if v, ok := params["filter_tag"]; ok {
 		filterTag = cast.ToString(v)
 	}
-	if strings.TrimSpace(filterTag) != "" {
-		if norm, ok := models.NormalizeTag(filterTag); ok {
-			filterTag = norm
-		} else {
-			// Force an empty result set for invalid tag inputs rather than broadening the query.
-			filterTag = "#__invalid_tag__"
-		}
-	}
 
 	taskIDs := ParseTaskIDsFromParams(params)
 
@@ -184,53 +176,95 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
 func parseTagsFromParams(params map[string]interface{}) []string {
-	return models.NormalizeTags(ParamStringSliceTrimmedCommaSeparated(params, "tags"))
+	var tags []string
+
+	if t, ok := params["tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok && tagStr != "" {
+				tags = append(tags, strings.TrimSpace(tagStr))
+			}
+		}
+	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
+		for _, tag := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(tag); trimmed != "" {
+				tags = append(tags, trimmed)
+			}
+		}
+	}
+
+	return tags
 }
 
 // parseRemoveTagsFromParams extracts remove_tags from params (comma-separated string or array). Used by update.
 func parseRemoveTagsFromParams(params map[string]interface{}) []string {
-	return models.NormalizeTags(ParamStringSliceTrimmedCommaSeparated(params, "remove_tags"))
+	var tags []string
+
+	if t, ok := params["remove_tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok && tagStr != "" {
+				tags = append(tags, strings.TrimSpace(tagStr))
+			}
+		}
+	} else if tStr := cast.ToString(params["remove_tags"]); tStr != "" {
+		for _, tag := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(tag); trimmed != "" {
+				tags = append(tags, trimmed)
+			}
+		}
+	}
+
+	return tags
 }
 
 // parseRecommendedToolsFromParams extracts recommended_tools from params (comma-separated string or array of tool IDs). Returns nil if not provided.
 func parseRecommendedToolsFromParams(params map[string]interface{}) []string {
-	return ParamStringSliceTrimmedCommaSeparated(params, "recommended_tools")
+	var tools []string
+	if t, ok := params["recommended_tools"].([]interface{}); ok {
+		for _, v := range t {
+			if s, ok := v.(string); ok && s != "" {
+				tools = append(tools, strings.TrimSpace(s))
+			}
+		}
+	} else if tStr := cast.ToString(params["recommended_tools"]); tStr != "" {
+		for _, s := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				tools = append(tools, trimmed)
+			}
+		}
+	}
+	return tools
 }
 
 // parseDependenciesFromParams extracts dependencies from params (comma-separated string or array). Returns nil if not provided.
 func parseDependenciesFromParams(params map[string]interface{}) []string {
-	return ParamTaskDependencyIDs(params, "dependencies")
-}
+	if d, ok := params["dependencies"].([]interface{}); ok {
+		var deps []string
 
-// parseOwnershipFromParams extracts ownership metadata from params.
-// Returns nil if no ownership fields are provided.
-// Params: owned_files (string array or comma-separated), owned_globs, forbidden_files, ownership_confidence, lane.
-func parseOwnershipFromParams(params map[string]interface{}) *models.TaskOwnership {
-	ownedFiles := parseStringSliceFromParams(params, "owned_files")
-	ownedGlobs := parseStringSliceFromParams(params, "owned_globs")
-	forbiddenFiles := parseStringSliceFromParams(params, "forbidden_files")
-	confidence := cast.ToString(params["ownership_confidence"])
-	lane := cast.ToString(params["lane"])
+		for _, dep := range d {
+			if depStr, ok := dep.(string); ok && depStr != "" {
+				deps = append(deps, strings.TrimSpace(depStr))
+			}
+		}
 
-	if len(ownedFiles) == 0 && len(ownedGlobs) == 0 && len(forbiddenFiles) == 0 && confidence == "" && lane == "" {
-		return nil
+		return deps
 	}
 
-	return &models.TaskOwnership{
-		OwnedFiles:          ownedFiles,
-		OwnedGlobs:          ownedGlobs,
-		ForbiddenFiles:      forbiddenFiles,
-		OwnershipConfidence: confidence,
-		Lane:                lane,
+	if dStr := cast.ToString(params["dependencies"]); dStr != "" {
+		var deps []string
+
+		for _, dep := range strings.Split(dStr, ",") {
+			if trimmed := strings.TrimSpace(dep); trimmed != "" {
+				deps = append(deps, trimmed)
+			}
+		}
+
+		return deps
 	}
+
+	return nil
 }
 
-// parseStringSliceFromParams extracts a string slice from params (array or comma-separated string).
-func parseStringSliceFromParams(params map[string]interface{}, key string) []string {
-	return ParamStringSliceTrimmedCommaSeparated(params, key)
-}
-
-// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, local_ai_backend, project_id, or recommended_tools.
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
 // Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional), recommended_tools (optional; MCP tool IDs).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -244,27 +278,15 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
-	newStatus, err := ParamEnum(params, "new_status",
-		[]string{"Todo", "In Progress", "Review", "Done", "Blocked", "Cancelled"},
-		"")
-	if err != nil {
-		return nil, fmt.Errorf("update: %w", err)
-	}
+	newStatus := cast.ToString(params["new_status"])
 	if newStatus != "" {
 		newStatus = normalizeStatus(newStatus)
 	}
 
-	priority, err := ParamEnum(params, "priority",
-		[]string{"low", "medium", "high", "critical"},
-		"")
-	if err != nil {
-		return nil, fmt.Errorf("update: %w", err)
-	}
+	priority := cast.ToString(params["priority"])
 	if priority != "" {
 		priority = normalizePriority(priority)
 	}
-
-	priorityRankVal, hasPriorityRank := ParamIntOK(params, "priority_rank")
 
 	addTags := parseTagsFromParams(params)
 	removeTags := parseRemoveTagsFromParams(params)
@@ -276,14 +298,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	hasLocalAIBackend := strings.TrimSpace(localAIBackend) != ""
 	recommendedTools := parseRecommendedToolsFromParams(params)
 	hasRecommendedTools := len(recommendedTools) > 0
-	ownership := parseOwnershipFromParams(params)
-	hasOwnership := ownership != nil
 
-	projectIDParam := strings.TrimSpace(cast.ToString(params["project_id"]))
-	hasProjectID := projectIDParam != ""
-
-	if newStatus == "" && priority == "" && !hasPriorityRank && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership && !hasProjectID {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, priority_rank, tags, remove_tags, name, long_description, parent_id, project_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, or recommended_tools")
 	}
 
 	useClaim := newStatus == models.StatusInProgress
@@ -298,207 +315,139 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	canUseBatchUpdate := !useClaim &&
-		!hasPriorityRank &&
-		len(addTags) == 0 &&
-		len(removeTags) == 0 &&
-		name == "" &&
-		longDescription == "" &&
-		parentID == "" &&
-		dependencies == nil &&
-		!hasLocalAIBackend &&
-		!hasRecommendedTools &&
-		!hasOwnership &&
-		!hasProjectID
-
 	updatedIDs := []string{}
 	updatedCount := 0
 
 	var skippedLocked []string
 
-	var updateIssues []string
+	for _, id := range taskIDs {
+		var task *models.Todo2Task
 
-	if canUseBatchUpdate && (newStatus != "" || priority != "") {
-		batchUpdates := make([]database.TaskStatusUpdate, 0, len(taskIDs))
-		for _, id := range taskIDs {
-			batchUpdates = append(batchUpdates, database.TaskStatusUpdate{
-				TaskID:   id,
-				Status:   newStatus,
-				Priority: priority,
-			})
-		}
+		if useClaim && agentID != "" {
+			leaseDuration := config.TaskLockLease()
 
-		count, err := database.BatchUpdateTaskStatus(ctx, batchUpdates)
-		if err != nil {
-			updateIssues = append(updateIssues, fmt.Sprintf("batch update: %v", err))
-		} else {
-			updatedCount = count
-			for _, u := range batchUpdates {
-				updatedIDs = append(updatedIDs, u.TaskID)
-			}
-		}
-	} else {
-		for _, id := range taskIDs {
-			var task *models.Todo2Task
-
-			if useClaim && agentID != "" {
-				leaseDuration := config.TaskLockLease()
-
-				claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
-				if err != nil {
-					updateIssues = append(updateIssues, fmt.Sprintf("%s: claim error: %v", id, err))
-					continue
-				}
-
-				if !claimResult.Success {
-					if claimResult.WasLocked {
-						skippedLocked = append(skippedLocked, id)
-					}
-
-					continue
-				}
-
-				task = claimResult.Task
-			} else {
-				var err error
-
-				task, err = store.GetTask(ctx, id)
-				if err != nil {
-					updateIssues = append(updateIssues, fmt.Sprintf("%s: load task: %v", id, err))
-					continue
-				}
-				if task == nil {
-					updateIssues = append(updateIssues, fmt.Sprintf("%s: task not found", id))
-					continue
-				}
-
-				if newStatus != "" {
-					task.Status = newStatus
-				}
-			}
-
-			if priority != "" {
-				task.Priority = priority
-			}
-
-			if hasPriorityRank {
-				task.PriorityRank = priorityRankVal
-			}
-
-			if len(removeTags) > 0 {
-				removeSet := make(map[string]bool)
-				for _, t := range removeTags {
-					removeSet[t] = true
-				}
-
-				filtered := task.Tags[:0]
-
-				for _, t := range task.Tags {
-					if !removeSet[t] {
-						filtered = append(filtered, t)
-					}
-				}
-
-				task.Tags = filtered
-			}
-
-			if len(addTags) > 0 {
-				existing := make(map[string]bool)
-				for _, t := range task.Tags {
-					existing[t] = true
-				}
-
-				for _, t := range addTags {
-					if !existing[t] {
-						task.Tags = append(task.Tags, t)
-						existing[t] = true
-					}
-				}
-			}
-
-			if name != "" {
-				task.Name = name
-				task.Content = name
-			}
-
-			if longDescription != "" {
-				task.LongDescription = longDescription
-			}
-
-			if !useClaim && newStatus != "" {
-				task.Status = newStatus
-			}
-
-			if parentID != "" {
-				task.ParentID = parentID
-			}
-
-			if dependencies != nil {
-				task.Dependencies = dependencies
-			}
-
-			if hasLocalAIBackend {
-				backend := strings.TrimSpace(strings.ToLower(localAIBackend))
-				if backend == "mlx" {
-					backend = ""
-				}
-				if backend == "fm" || backend == "ollama" {
-					if task.Metadata == nil {
-						task.Metadata = make(map[string]interface{})
-					}
-
-					task.Metadata[MetadataKeyPreferredBackend] = backend
-				}
-			}
-
-			if hasRecommendedTools {
-				if task.Metadata == nil {
-					task.Metadata = make(map[string]interface{})
-				}
-				slice := make([]interface{}, len(recommendedTools))
-				for i, t := range recommendedTools {
-					slice[i] = t
-				}
-				task.Metadata[MetadataKeyRecommendedTools] = slice
-			}
-
-			if hasOwnership {
-				models.SetTaskOwnership(task, ownership)
-			}
-
-			if hasProjectID {
-				task.ProjectID = projectIDParam
-			}
-
-			if err := store.UpdateTask(ctx, task); err != nil {
-				updateIssues = append(updateIssues, fmt.Sprintf("%s: save: %v", id, err))
+			claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
+			if err != nil {
 				continue
 			}
 
-			updatedIDs = append(updatedIDs, id)
-			updatedCount++
-		}
-	}
+			if !claimResult.Success {
+				if claimResult.WasLocked {
+					skippedLocked = append(skippedLocked, id)
+				}
 
-	success := true
-	if len(taskIDs) > 0 && updatedCount == 0 && len(updateIssues) > 0 {
-		success = false
+				continue
+			}
+
+			task = claimResult.Task
+		} else {
+			var err error
+
+			task, err = store.GetTask(ctx, id)
+			if err != nil {
+				continue
+			}
+
+			if newStatus != "" {
+				task.Status = newStatus
+			}
+		}
+
+		if priority != "" {
+			task.Priority = priority
+		}
+
+		if len(removeTags) > 0 {
+			removeSet := make(map[string]bool)
+			for _, t := range removeTags {
+				removeSet[t] = true
+			}
+
+			filtered := task.Tags[:0]
+
+			for _, t := range task.Tags {
+				if !removeSet[t] {
+					filtered = append(filtered, t)
+				}
+			}
+
+			task.Tags = filtered
+		}
+
+		if len(addTags) > 0 {
+			existing := make(map[string]bool)
+			for _, t := range task.Tags {
+				existing[t] = true
+			}
+
+			for _, t := range addTags {
+				if !existing[t] {
+					task.Tags = append(task.Tags, t)
+					existing[t] = true
+				}
+			}
+		}
+
+		if name != "" {
+			task.Content = name
+		}
+
+		if longDescription != "" {
+			task.LongDescription = longDescription
+		}
+
+		if !useClaim && newStatus != "" {
+			task.Status = newStatus
+		}
+
+		if parentID != "" {
+			task.ParentID = parentID
+		}
+
+		if dependencies != nil {
+			task.Dependencies = dependencies
+		}
+
+		// Update preferred local AI backend if provided
+		if hasLocalAIBackend {
+			backend := strings.TrimSpace(strings.ToLower(localAIBackend))
+			if backend == "fm" || backend == "mlx" || backend == "ollama" {
+				if task.Metadata == nil {
+					task.Metadata = make(map[string]interface{})
+				}
+
+				task.Metadata[MetadataKeyPreferredBackend] = backend
+			}
+		}
+
+		// Update recommended_tools if provided
+		if hasRecommendedTools {
+			if task.Metadata == nil {
+				task.Metadata = make(map[string]interface{})
+			}
+			slice := make([]interface{}, len(recommendedTools))
+			for i, t := range recommendedTools {
+				slice[i] = t
+			}
+			task.Metadata[MetadataKeyRecommendedTools] = slice
+		}
+
+		if err := store.UpdateTask(ctx, task); err != nil {
+			continue
+		}
+
+		updatedIDs = append(updatedIDs, id)
+		updatedCount++
 	}
 
 	result := map[string]interface{}{
-		"success":       success,
+		"success":       true,
 		"method":        "store",
 		"updated_count": updatedCount,
 		"task_ids":      updatedIDs,
 	}
 	if len(skippedLocked) > 0 {
 		result["skipped_locked"] = skippedLocked
-	}
-	if len(updateIssues) > 0 {
-		result["update_issues"] = updateIssues
-		if !success {
-			result["message"] = "no tasks updated; see update_issues"
-		}
 	}
 
 	if newStatus == models.StatusReview && updatedCount > 0 {
@@ -515,26 +464,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 		if len(approvalRequests) > 0 {
 			result["approval_requests"] = approvalRequests
-			result["review_instructions"] = "Use each approval_request with your human review process; record outcomes via task_workflow action=apply_approval_result."
-		}
-	}
-
-	// Suggest follow-up tasks when task is completed (Done)
-	if newStatus == models.StatusDone && updatedCount > 0 {
-		for _, id := range updatedIDs {
-			task, err := store.GetTask(ctx, id)
-			if err != nil || task == nil {
-				continue
-			}
-
-			// Try to suggest follow-ups using LLM
-			suggestions, sugErr := SuggestFollowUps(ctx, task)
-			if sugErr == nil && len(suggestions) > 0 {
-				result["followup_suggestions"] = suggestions
-				result["followup_instructions"] = "Use task_workflow create action to create follow-up tasks from suggestions"
-				break // Only suggest for one task
-			}
-			break // Only check first task
+			result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
 		}
 	}
 
@@ -553,6 +483,16 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tasks := make([]Todo2Task, len(list))
+	for i, t := range list {
+		tasks[i] = *t
+	}
+
 	// Apply filters
 	var status, priority, filterTag, taskID string
 
@@ -569,21 +509,6 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	if v, ok := params["filter_tag"]; ok {
 		filterTag = cast.ToString(v)
 	}
-	if strings.TrimSpace(filterTag) != "" {
-		if norm, ok := models.NormalizeTag(filterTag); ok {
-			filterTag = norm
-		} else {
-			filterTag = "#__invalid_tag__"
-		}
-	}
-
-	filterName := strings.TrimSpace(cast.ToString(params["name"]))
-	if filterName == "" {
-		filterName = strings.TrimSpace(cast.ToString(params["name_contains"]))
-	}
-	if filterName == "" {
-		filterName = strings.TrimSpace(cast.ToString(params["filter_name"]))
-	}
 
 	if v, ok := params["task_id"]; ok {
 		taskID = cast.ToString(v)
@@ -593,65 +518,18 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		limit = cast.ToInt(l)
 	}
 
-	// Default to open tasks only (Todo + In Progress) when no status filter is given.
-	// When querying a specific task_id (used by `task show`), include closed tasks too.
-	openOnly := status == "" && taskID == ""
+	// Default to open tasks only (Todo + In Progress) when no status filter is given
+	openOnly := status == ""
 	if openOnly {
 		status = "" // keep empty so we filter by open set below
 	}
 
 	showAll := strings.EqualFold(status, "all")
 
-	order := cast.ToString(params["order"])
-	wantsExecutionOrder := order == "execution" || order == "dependency"
-
-	// Prefer pushing common filters down into the TaskStore/DB layer to reduce allocations
-	// and row decoding work. Execution-order sorting currently requires the full task set.
-	var list []*Todo2Task
-	if taskID != "" {
-		t, err := store.GetTask(ctx, taskID)
-		if err != nil {
-			return nil, err
-		}
-		list = []*Todo2Task{t}
-	} else if wantsExecutionOrder {
-		// Full task set is needed to compute dependency order.
-		list, err = store.ListTasks(ctx, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tasks: %w", err)
-		}
-	} else {
-		var filters database.TaskFilters
-		includeMetadata := ParamBool(params, "include_metadata", false)
-		filters.IncludeMetadata = &includeMetadata
-		if openOnly {
-			filters.Statuses = models.OpenStatuses()
-		} else if status != "" && !showAll {
-			filters.Status = &status
-		}
-		if priority != "" {
-			filters.Priority = &priority
-		}
-		if filterTag != "" {
-			filters.Tag = &filterTag
-		}
-		if filterName != "" {
-			filters.NameContains = &filterName
-		}
-
-		list, err = store.ListTasks(ctx, &filters)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tasks: %w", err)
-		}
-	}
-
 	// Filter tasks
-	filtered := make([]*Todo2Task, 0, len(list))
+	filtered := []Todo2Task{}
 
-	for _, task := range list {
-		if task == nil {
-			continue
-		}
+	for _, task := range tasks {
 		if taskID != "" && task.ID != taskID {
 			continue
 		}
@@ -660,44 +538,24 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			continue
 		}
 
-		// When execution-order sorting is requested we load full task set above; apply filters here.
-		if wantsExecutionOrder {
-			if status != "" && !showAll && task.Status != status {
-				continue
-			}
-			if openOnly && !models.IsOpenStatus(task.Status) {
-				continue
-			}
-			if priority != "" && task.Priority != priority {
-				continue
-			}
-			if filterTag != "" {
-				found := false
-				for _, tag := range task.Tags {
-					if tag == filterTag {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-			if filterName != "" && !taskMatchesNameFilter(task, filterName) {
-				continue
-			}
+		if openOnly && task.Status != models.StatusTodo && task.Status != models.StatusInProgress {
+			continue
 		}
 
-		// Filter by owned file (check ownership metadata)
-		if ownedFile := cast.ToString(params["owned_file"]); ownedFile != "" {
-			ownedFiles := models.GetOwnedFiles(task)
+		if priority != "" && task.Priority != priority {
+			continue
+		}
+
+		if filterTag != "" {
 			found := false
-			for _, f := range ownedFiles {
-				if f == ownedFile || strings.HasSuffix(f, ownedFile) {
+
+			for _, tag := range task.Tags {
+				if tag == filterTag {
 					found = true
 					break
 				}
 			}
+
 			if !found {
 				continue
 			}
@@ -707,19 +565,10 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Optional: sort by execution order (dependency order)
-	if wantsExecutionOrder {
-		// BacklogExecutionOrder currently operates on []Todo2Task (values), so only
-		// materialize the slice when ordering is requested.
-		tasks := make([]Todo2Task, 0, len(list))
-		for _, t := range list {
-			if t != nil {
-				tasks = append(tasks, *t)
-			}
-		}
-
+	if order := cast.ToString(params["order"]); order == "execution" || order == "dependency" {
 		orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 		if err == nil {
-			filteredMap := make(map[string]*Todo2Task, len(filtered))
+			filteredMap := make(map[string]Todo2Task)
 			for _, t := range filtered {
 				filteredMap[t.ID] = t
 			}
@@ -729,7 +578,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				orderedSet[id] = true
 			}
 
-			orderedFiltered := make([]*Todo2Task, 0, len(filtered))
+			orderedFiltered := make([]Todo2Task, 0, len(filtered))
 
 			for _, id := range orderedIDs {
 				if t, ok := filteredMap[id]; ok {
@@ -754,44 +603,25 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	// Format output
 	outputFormat := cast.ToString(params["output_format"])
 	if outputFormat == "" {
-		outputFormat = "json"
+		outputFormat = "text"
 	}
 
 	if outputFormat == "json" {
-		includeMetadata := ParamBool(params, "include_metadata", false)
-		includeFullLongDescription := ParamBool(params, "include_full_long_description", false)
-		includeLocks := ParamBool(params, "include_locks", false)
-
-		taskIDs := make([]string, 0, len(filtered))
-		for i := range filtered {
-			taskIDs = append(taskIDs, filtered[i].ID)
-		}
-		var activeLocks map[string]database.LockStatus
-		if includeLocks && len(taskIDs) > 0 {
-			activeLocks, _ = database.GetActiveLockMapForTasks(ctx, taskIDs)
-		}
 		taskMaps := make([]map[string]interface{}, len(filtered))
 		for i := range filtered {
-			t := filtered[i]
+			t := &filtered[i]
 			m := map[string]interface{}{"id": t.ID, "content": t.Content, "status": t.Status}
 			if t.Priority != "" {
 				m["priority"] = t.Priority
 			}
-			m["priority_rank"] = t.PriorityRank
-			m["dependencies"] = append([]string(nil), t.Dependencies...)
-			m["version"] = t.Version
 			if len(t.Tags) > 0 {
-				// Clone to avoid leaking references to internal slices.
-				m["tags"] = append([]string(nil), t.Tags...)
+				m["tags"] = t.Tags
 			}
 			if t.LongDescription != "" {
-				ld := t.LongDescription
-				// When listing many tasks, truncate long_description to keep responses compact.
-				// When querying a specific task_id (e.g. CLI `task show`), return the full long_description.
-				if !includeFullLongDescription && taskID == "" && len(ld) > 120 {
-					ld = ld[:117] + "..."
-				}
-				m["long_description"] = ld
+				m["long_description"] = t.LongDescription
+			}
+			if len(t.Dependencies) > 0 {
+				m["dependencies"] = t.Dependencies
 			}
 			if t.ParentID != "" {
 				m["parent_id"] = t.ParentID
@@ -805,65 +635,22 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if t.CompletedAt != "" {
 				m["completed_at"] = t.CompletedAt
 			}
-			if includeMetadata && len(t.Metadata) > 0 {
+			if len(t.Metadata) > 0 {
 				m["metadata"] = t.Metadata
 			}
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
-			}
-			// Include ownership metadata if present
-			if own := models.GetTaskOwnership(t); own != nil {
-				ownershipMap := make(map[string]interface{})
-				if len(own.OwnedFiles) > 0 {
-					ownershipMap["owned_files"] = append([]string(nil), own.OwnedFiles...)
-				}
-				if len(own.OwnedGlobs) > 0 {
-					ownershipMap["owned_globs"] = append([]string(nil), own.OwnedGlobs...)
-				}
-				if len(own.ForbiddenFiles) > 0 {
-					ownershipMap["forbidden_files"] = append([]string(nil), own.ForbiddenFiles...)
-				}
-				if own.OwnershipConfidence != "" {
-					ownershipMap["ownership_confidence"] = own.OwnershipConfidence
-				}
-				if own.Lane != "" {
-					ownershipMap["lane"] = own.Lane
-				}
-				if len(ownershipMap) > 0 {
-					m["ownership"] = ownershipMap
-				}
-			}
-			if includeLocks {
-				if lock, ok := activeLocks[t.ID]; ok {
-					m["active_claim"] = lockToMap(lock)
-				}
-			}
-			if taskID != "" {
-				if runs, err := database.ListTaskExecutionRuns(ctx, t.ID, "", 5); err == nil && len(runs) > 0 {
-					items := make([]map[string]interface{}, 0, len(runs))
-					for j := range runs {
-						items = append(items, runToMap(&runs[j]))
-					}
-					m["recent_runs"] = items
-				}
-				if verifications, err := database.ListTaskVerifications(ctx, t.ID, "", 5); err == nil && len(verifications) > 0 {
-					m["recent_verifications"] = verificationListToMaps(verifications)
-				}
-				if progressEntries, err := database.ListTaskProgressEntries(ctx, t.ID, "", 5); err == nil && len(progressEntries) > 0 {
-					m["recent_progress"] = progressListToMaps(progressEntries)
-				}
 			}
 
 			taskMaps[i] = m
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
 		AddTokenEstimateToResult(out)
-		// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
-		compact := ParamBool(params, "compact", true)
+		compact := cast.ToBool(params["compact"])
 		return FormatResultOptionalCompact(out, "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
-	const colID = 22
+	const colID = 18
 
 	const colStatus = 12
 
@@ -892,7 +679,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(list), len(filtered)))
+	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
 
 	sepLen := colID + colStatus + colPriority + colContent + 3*3 // 3 " | " separators
 	if sepLen < 80 {
@@ -904,7 +691,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	sb.WriteString(strings.Repeat("-", sepLen) + "\n")
 
 	for _, task := range filtered {
-		id := pad(task.ID, colID)
+		id := pad(truncate(task.ID, colID), colID)
 		status := pad(truncate(task.Status, colStatus), colStatus)
 		priority := pad(truncate(task.Priority, colPriority), colPriority)
 
@@ -920,37 +707,10 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, id, colStatus, status, colPriority, priority, content))
 	}
 
-	// When showing a single task (e.g. task show), append recommended_tools and ownership lines
+	// When showing a single task (e.g. task show), append recommended_tools line
 	if len(filtered) == 1 {
 		if rt := GetRecommendedTools(filtered[0].Metadata); len(rt) > 0 {
 			sb.WriteString("\nRecommended tools: " + strings.Join(rt, ", ") + "\n")
-		}
-		if own := models.GetTaskOwnership(filtered[0]); own != nil {
-			sb.WriteString("\nOwnership:\n")
-			if own.Lane != "" {
-				sb.WriteString(fmt.Sprintf("  Lane: %s\n", own.Lane))
-			}
-			if own.OwnershipConfidence != "" {
-				sb.WriteString(fmt.Sprintf("  Confidence: %s\n", own.OwnershipConfidence))
-			}
-			if len(own.OwnedFiles) > 0 {
-				sb.WriteString("  Owned files:\n")
-				for _, f := range own.OwnedFiles {
-					sb.WriteString(fmt.Sprintf("    - %s\n", f))
-				}
-			}
-			if len(own.OwnedGlobs) > 0 {
-				sb.WriteString("  Owned globs:\n")
-				for _, g := range own.OwnedGlobs {
-					sb.WriteString(fmt.Sprintf("    - %s\n", g))
-				}
-			}
-			if len(own.ForbiddenFiles) > 0 {
-				sb.WriteString("  Forbidden files:\n")
-				for _, f := range own.ForbiddenFiles {
-					sb.WriteString(fmt.Sprintf("    - %s\n", f))
-				}
-			}
 		}
 	}
 
@@ -959,50 +719,5 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}, nil
 }
 
-// handleTaskWorkflowShow is a Cursor-friendly alias for fetching one task by ID.
-// It delegates to list with task_id set, and forces full long_description output.
-func handleTaskWorkflowShow(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID := strings.TrimSpace(cast.ToString(params["task_id"]))
-	if taskID == "" {
-		taskID = strings.TrimSpace(cast.ToString(params["id"]))
-	}
-	if taskID == "" {
-		return nil, fmt.Errorf("show action requires task_id (or id)")
-	}
-
-	// Clone params to avoid surprising the caller by mutating their map.
-	next := make(map[string]interface{}, len(params)+2)
-	for k, v := range params {
-		next[k] = v
-	}
-	next["action"] = "list"
-	next["task_id"] = taskID
-
-	// For a single task, show full detail by default.
-	if _, ok := next["output_format"]; !ok {
-		next["output_format"] = "json"
-	}
-	if _, ok := next["include_full_long_description"]; !ok {
-		next["include_full_long_description"] = true
-	}
-	if _, ok := next["include_metadata"]; !ok {
-		next["include_metadata"] = true
-	}
-
-	return handleTaskWorkflowList(ctx, next)
-}
-
 // handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON.
 // The "external" param (sync with external sources, e.g. infer_task_progress) is a future nice-to-have; if passed, it is ignored and SQLite↔JSON sync is performed.
-
-// taskMatchesNameFilter returns true if needle is empty or task title/content contains needle (case-insensitive).
-// Used when list loads the full task set (e.g. execution order); keep in sync with database.NameContains semantics.
-func taskMatchesNameFilter(task *Todo2Task, needle string) bool {
-	if needle == "" || task == nil {
-		return true
-	}
-
-	n := strings.ToLower(needle)
-
-	return strings.Contains(strings.ToLower(task.Name), n) || strings.Contains(strings.ToLower(task.Content), n)
-}

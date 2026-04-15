@@ -76,9 +76,6 @@ func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 		"task":      formatTaskForResource(task),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
-	if workflowContract := tools.BuildWorkflowContract(task, nil, nil); len(workflowContract) > 0 {
-		result["workflow_contract"] = workflowContract
-	}
 
 	jsonData, err := json.Marshal(result)
 	if err != nil {
@@ -300,18 +297,14 @@ func handleSuggestedTasks(ctx context.Context, uri string) ([]byte, string, erro
 	taskMaps := make([]map[string]interface{}, len(suggested))
 
 	for i, d := range suggested {
-		m := map[string]interface{}{
+		taskMaps[i] = map[string]interface{}{
 			"id":       d.ID,
 			"content":  d.Content,
 			"priority": d.Priority,
 			"status":   d.Status,
 			"level":    d.Level,
-			"tags":     cloneStringSlice(d.Tags),
+			"tags":     d.Tags,
 		}
-		if d.Lane != "" {
-			m["lane"] = d.Lane
-		}
-		taskMaps[i] = m
 	}
 
 	result := map[string]interface{}{
@@ -323,111 +316,6 @@ func handleSuggestedTasks(ctx context.Context, uri string) ([]byte, string, erro
 	jsonData, err := json.Marshal(result)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal suggested tasks: %w", err)
-	}
-
-	return jsonData, "application/json", nil
-}
-
-// handleReadyTasks handles the stdio://tasks/ready resource.
-// Returns dependency-ready tasks using the same payload as stdio://suggested-tasks.
-func handleReadyTasks(ctx context.Context, uri string) ([]byte, string, error) {
-	return handleSuggestedTasks(ctx, uri)
-}
-
-// handleTaskRuns handles the stdio://task-runs/{task_id} resource.
-// Returns recent execution runs for a task.
-func handleTaskRuns(ctx context.Context, uri string) ([]byte, string, error) {
-	taskID, err := parseURIVariableByIndexWithValidation(uri, 3, "task ID", "stdio://task-runs/{task_id}")
-	if err != nil {
-		return nil, "", err
-	}
-	runs, err := database.ListTaskExecutionRuns(ctx, taskID, "", 10)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to load task runs: %w", err)
-	}
-	items := make([]map[string]interface{}, 0, len(runs))
-	for i := range runs {
-		items = append(items, map[string]interface{}{
-			"run_id":        runs[i].RunID,
-			"task_id":       runs[i].TaskID,
-			"agent_id":      runs[i].AgentID,
-			"host":          runs[i].Host,
-			"status":        runs[i].Status,
-			"summary":       runs[i].Summary,
-			"started_at":    runs[i].StartedAt.Format(time.RFC3339),
-			"ended_at":      runs[i].EndedAt.Format(time.RFC3339),
-			"files_touched": cloneStringSlice(runs[i].FilesTouched),
-			"commands_run":  cloneStringSlice(runs[i].CommandsRun),
-		})
-	}
-	result := map[string]interface{}{
-		"task_id":   taskID,
-		"runs":      items,
-		"count":     len(items),
-		"timestamp": time.Now().Format(time.RFC3339),
-	}
-	jsonData, err := json.Marshal(result)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to marshal task runs: %w", err)
-	}
-	return jsonData, "application/json", nil
-}
-
-// handleActiveWork handles the stdio://active-work resource.
-// Returns active claims and active execution runs for execution-cockpit discovery.
-func handleActiveWork(ctx context.Context, uri string) ([]byte, string, error) {
-	activeLocks, err := database.GetActiveLocks(ctx)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to load active claims: %w", err)
-	}
-	activeRuns, err := database.ListTaskExecutionRuns(ctx, "", "running", 25)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to load active runs: %w", err)
-	}
-
-	claimMaps := make([]map[string]interface{}, 0, len(activeLocks))
-	for _, lock := range activeLocks {
-		claimMaps = append(claimMaps, map[string]interface{}{
-			"task_id":        lock.TaskID,
-			"assignee":       lock.Assignee,
-			"assigned_at":    lock.AssignedAt.Format(time.RFC3339),
-			"lock_until":     lock.LockUntil.Format(time.RFC3339),
-			"time_remaining": lock.TimeRemaining.Round(time.Second).String(),
-			"status":         "active",
-		})
-	}
-
-	runMaps := make([]map[string]interface{}, 0, len(activeRuns))
-	for i := range activeRuns {
-		runMaps = append(runMaps, map[string]interface{}{
-			"run_id":        activeRuns[i].RunID,
-			"task_id":       activeRuns[i].TaskID,
-			"agent_id":      activeRuns[i].AgentID,
-			"host":          activeRuns[i].Host,
-			"status":        activeRuns[i].Status,
-			"summary":       activeRuns[i].Summary,
-			"started_at":    activeRuns[i].StartedAt.Format(time.RFC3339),
-			"files_touched": cloneStringSlice(activeRuns[i].FilesTouched),
-			"commands_run":  cloneStringSlice(activeRuns[i].CommandsRun),
-		})
-	}
-
-	result := map[string]interface{}{
-		"active_claims": claimMaps,
-		"active_runs":   runMaps,
-		"timestamp":     time.Now().Format(time.RFC3339),
-	}
-	if projectRoot, err := tools.FindProjectRoot(); err == nil {
-		if orchestration, err := tools.BuildExecutionOrchestrationSummary(ctx, projectRoot, activeLocks, activeRuns); err == nil {
-			for key, value := range orchestration {
-				result[key] = value
-			}
-		}
-	}
-
-	jsonData, err := json.Marshal(result)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to marshal active work: %w", err)
 	}
 
 	return jsonData, "application/json", nil
@@ -452,13 +340,13 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 		"long_description": task.LongDescription,
 		"status":           task.Status,
 		"priority":         task.Priority,
-		"tags":             cloneStringSlice(task.Tags),
-		"dependencies":     cloneStringSlice(task.Dependencies),
+		"tags":             task.Tags,
+		"dependencies":     task.Dependencies,
 		"completed":        task.Completed,
-		"metadata":         cloneMapStringAny(task.Metadata),
+		"metadata":         task.Metadata,
 	}
 	if rt := tools.GetRecommendedTools(task.Metadata); len(rt) > 0 {
-		result["recommended_tools"] = cloneStringSlice(rt)
+		result["recommended_tools"] = rt
 	}
 
 	// Query assignee from database if available
@@ -467,53 +355,15 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 	db, err := database.GetDB()
 	if err == nil {
 		var assignee sql.NullString
-		var lockUntil sql.NullInt64
 
 		err := db.QueryRowContext(ctx, `
-			SELECT assignee, lock_until FROM tasks WHERE id = ?
-		`, task.ID).Scan(&assignee, &lockUntil)
+			SELECT assignee FROM tasks WHERE id = ?
+		`, task.ID).Scan(&assignee)
 		if err == nil && assignee.Valid && assignee.String != "" {
+			// Format assignee with task ID context
 			result["assignee"] = fmt.Sprintf("%s (task: %s)", assignee.String, task.ID)
-			if lockUntil.Valid {
-				result["active_claim"] = map[string]interface{}{
-					"assignee":   assignee.String,
-					"lock_until": time.Unix(lockUntil.Int64, 0).Format(time.RFC3339),
-					"status":     "active",
-				}
-			}
 		}
-	}
-
-	if runs, err := database.ListTaskExecutionRuns(ctx, task.ID, "", 3); err == nil && len(runs) > 0 {
-		runSummaries := make([]map[string]interface{}, 0, len(runs))
-		for i := range runs {
-			runSummaries = append(runSummaries, map[string]interface{}{
-				"run_id":     runs[i].RunID,
-				"status":     runs[i].Status,
-				"summary":    runs[i].Summary,
-				"started_at": runs[i].StartedAt.Format(time.RFC3339),
-			})
-		}
-		result["recent_runs"] = runSummaries
 	}
 
 	return result
-}
-
-func cloneStringSlice(in []string) []string {
-	if len(in) == 0 {
-		return []string{}
-	}
-	return append([]string(nil), in...)
-}
-
-func cloneMapStringAny(in map[string]interface{}) map[string]interface{} {
-	if in == nil {
-		return nil
-	}
-	out := make(map[string]interface{}, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
 }

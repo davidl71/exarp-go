@@ -1,4 +1,3 @@
-// Package fixtures provides test fixtures for MCP testing.
 package fixtures
 
 import (
@@ -12,12 +11,12 @@ import (
 
 // MockServer is a mock implementation of MCPServer for testing.
 type MockServer struct {
-	name              string
-	tools             map[string]*mockTool
-	prompts           map[string]*mockPrompt
-	resources         map[string]*mockResource
-	resourceTemplates map[string]*mockResource
-	mu                sync.RWMutex
+	name           string
+	tools          map[string]*mockTool
+	prompts        map[string]*mockPrompt
+	resources      map[string]*mockResource
+	mu             sync.RWMutex
+	registerErrors []error
 }
 
 type mockTool struct {
@@ -44,11 +43,10 @@ type mockResource struct {
 // NewMockServer creates a new mock server.
 func NewMockServer(name string) *MockServer {
 	return &MockServer{
-		name:              name,
-		tools:             make(map[string]*mockTool),
-		prompts:           make(map[string]*mockPrompt),
-		resources:         make(map[string]*mockResource),
-		resourceTemplates: make(map[string]*mockResource),
+		name:      name,
+		tools:     make(map[string]*mockTool),
+		prompts:   make(map[string]*mockPrompt),
+		resources: make(map[string]*mockResource),
 	}
 }
 
@@ -133,34 +131,6 @@ func (m *MockServer) RegisterResource(uri, name, description, mimeType string, h
 	return nil
 }
 
-// RegisterResourceTemplate registers a resource template with the mock server.
-func (m *MockServer) RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if uriTemplate == "" {
-		return fmt.Errorf("resource template URI cannot be empty")
-	}
-
-	if handler == nil {
-		return fmt.Errorf("resource template handler cannot be nil")
-	}
-
-	if _, exists := m.resourceTemplates[uriTemplate]; exists {
-		return fmt.Errorf("resource template %q already registered", uriTemplate)
-	}
-
-	m.resourceTemplates[uriTemplate] = &mockResource{
-		URI:         uriTemplate,
-		Name:        name,
-		Description: description,
-		MimeType:    mimeType,
-		Handler:     handler,
-	}
-
-	return nil
-}
-
 // Run starts the server with the given transport (no-op for mock).
 func (m *MockServer) Run(ctx context.Context, transport framework.Transport) error {
 	// Mock server doesn't actually run
@@ -225,24 +195,6 @@ func (m *MockServer) ResourceCount() int {
 	defer m.mu.RUnlock()
 
 	return len(m.resources)
-}
-
-// ResourceTemplateCount returns the number of registered resource templates.
-func (m *MockServer) ResourceTemplateCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	return len(m.resourceTemplates)
-}
-
-// GetResourceTemplate returns a registered resource template.
-func (m *MockServer) GetResourceTemplate(uri string) (*mockResource, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	resource, exists := m.resourceTemplates[uri]
-
-	return resource, exists
 }
 
 // CallTool calls a tool handler (for testing).

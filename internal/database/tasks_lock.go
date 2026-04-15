@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -35,7 +34,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 	}
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			result.Error = fmt.Errorf("failed to get database: %w", err)
 			return result.Error
@@ -123,13 +122,12 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				assigned_at = ?,
 				lock_until = ?,
 				status = ?,
-				status_enum = ?,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? 
 			  AND version = ?
-			  AND (assignee = '' OR lock_until = 0 OR lock_until < ?)
-		`, agentID, now, leaseUntil, StatusInProgress, taskStatusEnumInt(StatusInProgress), taskID, version, now)
+			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
+		`, agentID, now, leaseUntil, StatusInProgress, taskID, version, now)
 		if err != nil {
 			result.Error = fmt.Errorf("failed to update task: %w", err)
 			return result.Error
@@ -146,8 +144,6 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			result.Error = fmt.Errorf("task was modified by another agent (version mismatch)")
 			return result.Error
 		}
-
-		taskData.Version = version + 1
 
 		// Load full task details (tags, dependencies)
 		fullTask, err := loadTaskWithRelations(txCtx, tx, taskID)
@@ -193,7 +189,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -239,9 +235,9 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 		// Release lock
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
-				assignee = '',
-				assigned_at = 0,
-				lock_until = 0,
+				assignee = NULL,
+				assigned_at = NULL,
+				lock_until = NULL,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND assignee = ?
@@ -272,7 +268,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -343,16 +339,10 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 	})
 }
 
-const (
-	maxConsecutiveRenewalFailures = 5
-)
-
 // RunLeaseRenewal starts a background goroutine that renews the task lease every renewInterval
 // until ctx is cancelled. Call this when holding a task longer than leaseDuration (e.g. long-running work).
 // renewInterval should be less than leaseDuration (e.g. renew every 20 min for a 30 min lease).
-// The goroutine stops when ctx.Done() or after maxConsecutiveRenewalFailures failures.
-// Logs warnings on each renewal failure and stops the goroutine if failures exceed the threshold.
-// Release the task with ReleaseTask when work is done.
+// The goroutine stops when ctx.Done(); release the task with ReleaseTask when work is done.
 func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration, renewInterval time.Duration) {
 	if renewInterval <= 0 || leaseDuration <= 0 {
 		return
@@ -362,25 +352,12 @@ func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration,
 		ticker := time.NewTicker(renewInterval)
 		defer ticker.Stop()
 
-		consecutiveFailures := 0
-
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := RenewLease(ctx, taskID, agentID, leaseDuration); err != nil {
-					consecutiveFailures++
-					logging.Warn("lease renewal failed for task %s: %v (attempt %d/%d)",
-						taskID, err, consecutiveFailures, maxConsecutiveRenewalFailures)
-					if consecutiveFailures >= maxConsecutiveRenewalFailures {
-						logging.Warn("lease renewal failed %d times for task %s, stopping renewal goroutine",
-							maxConsecutiveRenewalFailures, taskID)
-						return
-					}
-					continue
-				}
-				consecutiveFailures = 0
+				_ = RenewLease(ctx, taskID, agentID, leaseDuration)
 			}
 		}
 	}()
@@ -397,7 +374,7 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 	var cleaned int
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -415,11 +392,22 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 
 		now := time.Now().Unix()
 
-		result, err := tx.ExecContext(txCtx, releaseAgentLockSet+`
-WHERE assignee <> ''
-  AND lock_until > 0
-  AND lock_until < ?
-`, now)
+		// Find and release expired locks
+		result, err := tx.ExecContext(txCtx, `
+			UPDATE tasks SET
+				assignee = NULL,
+				assigned_at = NULL,
+				lock_until = NULL,
+				status = CASE 
+					WHEN status = 'In Progress' THEN 'Todo'
+					ELSE status
+				END,
+				version = version + 1,
+				updated_at = strftime('%s', 'now')
+			WHERE assignee IS NOT NULL
+			  AND lock_until IS NOT NULL
+			  AND lock_until < ?
+		`, now)
 		if err != nil {
 			return fmt.Errorf("failed to cleanup expired locks: %w", err)
 		}
@@ -435,6 +423,105 @@ WHERE assignee <> ''
 	})
 
 	return cleaned, err
+}
+
+// BatchClaimTasks atomically claims multiple tasks (all or nothing)
+// Uses state-level locking to ensure atomic batch assignment.
+func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leaseDuration time.Duration) ([]string, []string, error) {
+	ctx = ensureContext(ctx)
+
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var claimed []string
+
+	var failed []string
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		now := time.Now().Unix()
+		leaseUntil := now + int64(leaseDuration.Seconds())
+
+		// Check all tasks are available (SELECT FOR UPDATE for each)
+		for _, taskID := range taskIDs {
+			var currentAssignee sql.NullString
+
+			var lockUntil sql.NullInt64
+
+			var version int64
+
+			var status string
+
+			err = tx.QueryRowContext(txCtx, `
+				SELECT assignee, lock_until, version, status
+				FROM tasks
+				WHERE id = ?
+			`, taskID).Scan(&currentAssignee, &lockUntil, &version, &status)
+
+			if errors.Is(err, sql.ErrNoRows) {
+				failed = append(failed, taskID)
+				continue
+			}
+
+			if err != nil {
+				return fmt.Errorf("failed to query task %s: %w", taskID, err)
+			}
+
+			// Check if available
+			if currentAssignee.Valid && currentAssignee.String != "" {
+				if lockUntil.Valid && lockUntil.Int64 > now {
+					failed = append(failed, taskID)
+					continue
+				}
+			}
+
+			if status != StatusTodo && status != StatusInProgress {
+				failed = append(failed, taskID)
+				continue
+			}
+
+			// Claim task
+			_, err = tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					assignee = ?,
+					assigned_at = ?,
+					lock_until = ?,
+					status = ?,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ? AND version = ?
+			`, agentID, now, leaseUntil, StatusInProgress, taskID, version)
+			if err != nil {
+				return fmt.Errorf("failed to claim task %s: %w", taskID, err)
+			}
+
+			claimed = append(claimed, taskID)
+		}
+
+		// Commit only if all tasks were claimed
+		if len(failed) > 0 {
+			return fmt.Errorf("failed to claim %d tasks", len(failed))
+		}
+
+		return tx.Commit()
+	})
+
+	return claimed, failed, err
 }
 
 // Helper function to load task with relations (tags, dependencies).

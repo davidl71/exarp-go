@@ -11,7 +11,7 @@ import (
 // ─── Contents ───────────────────────────────────────────────────────────────
 //   GoScorecardResultToProto
 //   BriefingDataToMap — BriefingDataToMap converts proto.BriefingData to map for JSON output (same shape as legacy briefing map).
-//   ProtoToScorecardMap — ProtoToScorecardMap converts proto.ScorecardData to map for JSON (same shape as GoScorecardToMap).
+//   ProtoToScorecardMap — ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
 //   ProtoToProjectOverviewData — ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
 //   ParseTaskWorkflowRequest — ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
 //   TaskWorkflowRequestToParams — TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
@@ -96,7 +96,7 @@ func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
 }
 
 // ─── ProtoToScorecardMap ────────────────────────────────────────────────────
-// ProtoToScorecardMap converts proto.ScorecardData to map for JSON (same shape as GoScorecardToMap).
+// ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
 func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
 	if pb == nil {
 		return make(map[string]interface{})
@@ -231,29 +231,6 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
-	// Enum-first: prefer enums over legacy strings.
-	if req.ActionEnum != proto.TaskWorkflowAction_TASK_WORKFLOW_ACTION_UNSPECIFIED {
-		if s := taskWorkflowActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-	if req.OutputFormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
-		if s := outputFormatEnumToString(req.OutputFormatEnum); s != "" {
-			params["output_format"] = s
-		}
-	}
-
-	// Back-compat for proto-backed callers:
-	// - create: allow content to act as a shorthand for name/title.
-	// - add_comment: content/comment_type are passed through by ProtobufToParams.
-	if action, _ := params["action"].(string); action == "create" {
-		if _, hasName := params["name"]; !hasName {
-			if c, ok := params["content"].(string); ok && c != "" {
-				params["name"] = c
-			}
-		}
-	}
-
 	return params
 }
 
@@ -290,12 +267,6 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	if req.ActionEnum != proto.HealthAction_HEALTH_ACTION_UNSPECIFIED {
-		if s := healthActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-
 	return params
 }
 
@@ -330,12 +301,6 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 	})
 	if err != nil {
 		return make(map[string]interface{})
-	}
-
-	if req.ActionEnum != proto.SecurityAction_SECURITY_ACTION_UNSPECIFIED {
-		if s := securityActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
 	}
 
 	return params
@@ -446,12 +411,6 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
-	if req.GetActionEnum() != proto.WorkflowModeAction_WORKFLOW_MODE_ACTION_UNSPECIFIED {
-		if s := workflowModeActionEnumToString(req.GetActionEnum()); s != "" {
-			params["action"] = s
-		}
-	}
-
 	return params
 }
 
@@ -493,16 +452,6 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 	if b := req.GetLocalAiBackend(); b != "" {
 		params["local_ai_backend"] = b
 	}
-	if req.GetLocalAiBackendEnum() != proto.LocalLLMBackend_LOCAL_LLM_BACKEND_UNSPECIFIED {
-		if s := localLLMBackendEnumToString(req.GetLocalAiBackendEnum()); s != "" {
-			params["local_ai_backend"] = s
-		}
-	}
-	if req.GetSummaryLevelEnum() != proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED {
-		if s := localLLMSummaryLevelEnumToString(req.GetSummaryLevelEnum()); s != "" {
-			params["summary_level"] = s
-		}
-	}
 	return params
 }
 
@@ -539,22 +488,6 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 	})
 	if err != nil {
 		return make(map[string]interface{})
-	}
-
-	if req.ActionEnum != proto.SessionAction_SESSION_ACTION_UNSPECIFIED {
-		if s := sessionActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-	if req.SubActionEnum != proto.SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED {
-		if s := sessionHandoffSubActionEnumToString(req.SubActionEnum); s != "" {
-			params["sub_action"] = s
-		}
-	}
-	if req.DirectionEnum != proto.SessionSyncDirection_SESSION_SYNC_DIRECTION_UNSPECIFIED {
-		if s := sessionSyncDirectionEnumToString(req.DirectionEnum); s != "" {
-			params["direction"] = s
-		}
 	}
 
 	return params

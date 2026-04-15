@@ -28,12 +28,8 @@ import (
 func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
 	displayName := planDisplayName(planTitle)
 	info, _ := getProjectInfo(projectRoot)
-	overrides := loadPlanOverrides(projectRoot)
 
-	overview := overrides.Overview
-	if overview == "" {
-		overview = getStr(info, "description")
-	}
+	overview := getStr(info, "description")
 	if overview == "" {
 		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
 	}
@@ -48,9 +44,8 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	}
 
 	snippet := getPlanningSnippet(projectRoot)
-	actions, _ := getNextActions(projectRoot, overrides.resolvedMaxNextActions())
+	actions, _ := getNextActions(projectRoot)
 	risks, _ := getRisksAndBlockers(projectRoot)
-	agentWarnings := overrides.agentPathWarnings(projectRoot)
 
 	// Todos for frontmatter (Cursor-buildable: id, content, status so Cursor displays them as Todos)
 	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
@@ -141,39 +136,33 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("tag_hints: [planning]\n")
 	// Referenced by / Agents in frontmatter so Cursor UI can show "Referenced by N" (same as body block below)
 	sb.WriteString("referenced_by:\n")
-	for _, ref := range overrides.resolvedReferencedBy() {
-		sb.WriteString(fmt.Sprintf("  - %s\n", ref))
-	}
+	sb.WriteString("  - .cursor/agents/wave-task-runner.md\n")
+	sb.WriteString("  - .cursor/agents/wave-verifier.md\n")
+	sb.WriteString("  - .cursor/rules/plan-execution.mdc\n")
 	sb.WriteString("agents:\n")
-	for _, ag := range overrides.resolvedAgents() {
-		sb.WriteString(fmt.Sprintf("  - name: %s\n", ag.Name))
-		sb.WriteString(fmt.Sprintf("    path: %s\n", ag.Path))
-		sb.WriteString(fmt.Sprintf("    role: %s\n", ag.Role))
-	}
+	sb.WriteString("  - name: wave-task-runner\n")
+	sb.WriteString("    path: .cursor/agents/wave-task-runner.md\n")
+	sb.WriteString("    role: Run one task per wave from this plan\n")
+	sb.WriteString("  - name: wave-verifier\n")
+	sb.WriteString("    path: .cursor/agents/wave-verifier.md\n")
+	sb.WriteString("    role: Verify wave outcomes and update status\n")
 	sb.WriteString("---\n\n")
 	sb.WriteString("*Regenerate with: `exarp-go -tool report -args '{\"action\":\"plan\"}'`. Do not edit frontmatter in Cursor; it may strip fields and break Build.*\n\n")
 	sb.WriteString(fmt.Sprintf("# %s Plan\n\n", displayName))
 	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", planDate))
 	sb.WriteString("**Status:** draft\n\n")
 	sb.WriteString(fmt.Sprintf("**Last updated:** %s\n\n", planDate))
-	// Referenced by links in body
-	refLinks := make([]string, 0, len(overrides.resolvedReferencedBy()))
-	for _, ref := range overrides.resolvedReferencedBy() {
-		base := filepath.Base(ref)
-		refLinks = append(refLinks, fmt.Sprintf("[%s](%s)", base, ref))
-	}
-	sb.WriteString("**Referenced by:** " + strings.Join(refLinks, ", ") + "\n\n")
+	sb.WriteString("**Referenced by:** [wave-task-runner](.cursor/agents/wave-task-runner.md), [wave-verifier](.cursor/agents/wave-verifier.md), [plan-execution](.cursor/rules/plan-execution.mdc)\n\n")
 	sb.WriteString("**Tag hints:** `#planning`\n\n")
 	sb.WriteString("## Agents\n\n")
 	sb.WriteString("| Agent | Role |\n")
 	sb.WriteString("|-------|------|\n")
-	for _, ag := range overrides.resolvedAgents() {
-		sb.WriteString(fmt.Sprintf("| [%s](%s) | %s |\n", ag.Name, ag.Path, ag.Role))
-	}
-	sb.WriteString("\n---\n\n")
+	sb.WriteString("| [wave-task-runner](.cursor/agents/wave-task-runner.md) | Run one task per wave from this plan |\n")
+	sb.WriteString("| [wave-verifier](.cursor/agents/wave-verifier.md) | Verify wave outcomes and update status |\n\n")
+	sb.WriteString("---\n\n")
 	sb.WriteString("## Scope\n\n")
 	sb.WriteString("**Purpose:** " + overview + "\n\n")
-	sb.WriteString("**Success criteria:** " + overrides.resolvedSuccessCriteria() + "\n\n")
+	sb.WriteString("**Success criteria:** Clear milestones and quality gates; backlog aligned with execution order.\n\n")
 	sb.WriteString("---\n\n")
 
 	// 1. Technical Foundation
@@ -186,8 +175,8 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 		sb.WriteString("- **Codebase:** " + formatCodebaseSummary(metrics) + "\n")
 	}
 
-	sb.WriteString("- **Storage:** " + overrides.resolvedStorageNote() + "\n")
-	sb.WriteString("- **Invariants:** " + overrides.resolvedInvariantsNote() + "\n\n")
+	sb.WriteString("- **Storage:** Todo2 (SQLite primary, JSON fallback)\n")
+	sb.WriteString("- **Invariants:** Use Makefile targets; prefer report/task_workflow over direct file edits\n\n")
 
 	if path, ok := snippet["critical_path"].([]string); ok && len(path) > 0 {
 		sb.WriteString("**Critical path (longest dependency chain):** ")
@@ -422,14 +411,6 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("- [docs/BACKLOG_EXECUTION_PLAN.md](docs/BACKLOG_EXECUTION_PLAN.md) — full wave breakdown\n")
 	sb.WriteString("- *(Add other plan or doc links as needed.)*\n")
 
-	// Warnings (missing agent paths, etc.)
-	if len(agentWarnings) > 0 {
-		sb.WriteString("\n---\n\n> **Plan warnings:**\n")
-		for _, w := range agentWarnings {
-			sb.WriteString(fmt.Sprintf("> - %s\n", w))
-		}
-	}
-
 	return sb.String(), nil
 }
 
@@ -497,24 +478,22 @@ func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string
 	}
 	frontmatterEnd := firstDash + 4 + secondDash + len("\n---\n")
 
-	// Locate the milestones section via a line scanner — tolerates any section ordering.
-	// bodyBefore = everything up to (not including) the milestones heading.
-	// bodyAfter  = everything from the next ## heading after milestones onward.
-	// If the milestones section is missing, fall back to full regeneration.
-	bodyBefore, bodyAfter, found := splitAroundSection(content[frontmatterEnd:], "Milestones")
-	if !found {
-		return generatePlanMarkdown(ctx, projectRoot, planTitle)
+	// Locate "## 3. Iterative Milestones" and "## 4. Recommended Execution Order"
+	marker3 := "## 3. Iterative Milestones"
+	marker4 := "## 4. Recommended Execution Order"
+	idx3 := strings.Index(content, marker3)
+	idx4 := strings.Index(content, marker4)
+	if idx3 < 0 || idx4 < 0 || idx4 <= idx3 {
+		return "", fmt.Errorf("plan file missing ## 3 or ## 4 section")
 	}
+
+	bodyBefore := content[frontmatterEnd:idx3]
+	bodyAfter := content[idx4:]
 
 	// Recompute todoEntries and waves from Todo2 (same as generatePlanMarkdown)
 	displayName := planDisplayName(planTitle)
 	info, _ := getProjectInfo(projectRoot)
-	overrides := loadPlanOverrides(projectRoot)
-
-	overview := overrides.Overview
-	if overview == "" {
-		overview = getStr(info, "description")
-	}
+	overview := getStr(info, "description")
 	if overview == "" {
 		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
 	}
@@ -527,7 +506,7 @@ func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string
 		taskByID[t.ID] = t
 	}
 
-	actions, _ := getNextActions(projectRoot, overrides.resolvedMaxNextActions())
+	actions, _ := getNextActions(projectRoot)
 	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
 	for _, a := range actions {
 		id := getStr(a, "task_id")
@@ -598,15 +577,16 @@ func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string
 	fm.WriteString(fmt.Sprintf("last_updated: %q\n", planDate))
 	fm.WriteString("tag_hints: [planning]\n")
 	fm.WriteString("referenced_by:\n")
-	for _, ref := range overrides.resolvedReferencedBy() {
-		fm.WriteString(fmt.Sprintf("  - %s\n", ref))
-	}
+	fm.WriteString("  - .cursor/agents/wave-task-runner.md\n")
+	fm.WriteString("  - .cursor/agents/wave-verifier.md\n")
+	fm.WriteString("  - .cursor/rules/plan-execution.mdc\n")
 	fm.WriteString("agents:\n")
-	for _, ag := range overrides.resolvedAgents() {
-		fm.WriteString(fmt.Sprintf("  - name: %s\n", ag.Name))
-		fm.WriteString(fmt.Sprintf("    path: %s\n", ag.Path))
-		fm.WriteString(fmt.Sprintf("    role: %s\n", ag.Role))
-	}
+	fm.WriteString("  - name: wave-task-runner\n")
+	fm.WriteString("    path: .cursor/agents/wave-task-runner.md\n")
+	fm.WriteString("    role: Run one task per wave from this plan\n")
+	fm.WriteString("  - name: wave-verifier\n")
+	fm.WriteString("    path: .cursor/agents/wave-verifier.md\n")
+	fm.WriteString("    role: Verify wave outcomes and update status\n")
 	fm.WriteString("---\n\n")
 
 	// Build new "## 3. Iterative Milestones" section with checkboxes

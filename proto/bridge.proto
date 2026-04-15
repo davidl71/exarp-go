@@ -4,31 +4,72 @@ package exarp.bridge;
 
 option go_package = "github.com/davidl71/exarp-go/proto";
 
-// ToolRequest represents a request to execute a tool through a bridge process.
-// This schema is primarily used for Go↔Python bridge communication.
+// ToolRequest represents a request to execute a Python tool via bridge
 message ToolRequest {
+  // Name of the tool to execute
   string tool_name = 1;
-  bytes args_json = 2; // JSON-encoded args payload
-  bool output_json = 3; // whether the caller expects JSON output
+  
+  // Tool arguments as JSON string (for flexibility during migration)
+  // Future: Can be replaced with tool-specific protobuf messages
+  string arguments_json = 2;
+  
+  // Project root directory path
+  string project_root = 3;
+  
+  // Timeout in seconds (0 = use default)
+  int32 timeout_seconds = 4;
+  
+  // Request ID for tracking/correlation
+  string request_id = 5;
 }
 
-// ToolResponse represents the tool execution result returned by the bridge.
+// ToolResponse represents the response from a Python tool execution
 message ToolResponse {
+  // Whether the tool execution was successful
   bool success = 1;
-  string error = 2;
-  bytes result_json = 3; // JSON-encoded tool result payload
+  
+  // Result text/output from the tool
+  string result = 2;
+  
+  // Error message if execution failed
+  string error = 3;
+  
+  // Execution time in milliseconds
+  int64 execution_time_ms = 4;
+  
+  // Request ID (echoed from request)
+  string request_id = 5;
+  
+  // Exit code from the tool process
+  int32 exit_code = 6;
 }
 
-// ResourceRequest represents a request to fetch a resource through a bridge.
+// ResourceRequest represents a request to execute a Python resource handler
 message ResourceRequest {
+  // Resource URI to fetch
   string uri = 1;
+  
+  // Project root directory path
+  string project_root = 2;
+  
+  // Request ID for tracking
+  string request_id = 3;
 }
 
-// ResourceResponse represents a resource fetch result returned by the bridge.
+// ResourceResponse represents the response from a Python resource handler
 message ResourceResponse {
+  // Whether the resource fetch was successful
   bool success = 1;
-  string error = 2;
-  bytes content = 3;
-  string mime_type = 4;
+  
+  // Resource content (binary data)
+  bytes content = 2;
+  
+  // MIME type of the resource
+  string mime_type = 3;
+  
+  // Error message if fetch failed
+  string error = 4;
+  
+  // Request ID (echoed from request)
+  string request_id = 5;
 }
-

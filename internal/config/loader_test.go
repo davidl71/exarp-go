@@ -182,11 +182,6 @@ func TestFindProjectRoot(t *testing.T) {
 		t.Fatalf("Failed to change directory: %v", err)
 	}
 
-	// Isolate from PROJECT_ROOT env
-	oldProjectRoot := os.Getenv("PROJECT_ROOT")
-	os.Unsetenv("PROJECT_ROOT")
-	defer os.Setenv("PROJECT_ROOT", oldProjectRoot)
-
 	// Find project root
 	root, err := FindProjectRoot()
 	if err != nil {

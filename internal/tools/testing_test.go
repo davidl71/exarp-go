@@ -131,7 +131,6 @@ func TestHandleTestingCoverage(t *testing.T) {
 }
 
 func TestHandleTestingValidate(t *testing.T) {
-	t.Skip("TODO: error message changed from 'only supported for Go projects'; update expectations to match current validation behaviour")
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)

@@ -14,7 +14,7 @@ import (
 
 // LangHealth holds per-language health check results and score.
 type LangHealth struct {
-	Lang            string   `json:"lang"`                // "cpp", "python", "rust", "go", "typescript", "swift"
+	Lang            string   `json:"lang"`              // "cpp", "python", "rust", "go", "typescript", "swift"
 	LangRoot        string   `json:"lang_root,omitempty"` // subdir where detected, e.g. "native", "agents/go"
 	Detected        bool     `json:"detected"`
 	BuildPasses     bool     `json:"build_passes"`
@@ -169,8 +169,7 @@ func isSkipDir(path, projectRoot string) bool {
 	parts := strings.Split(filepath.ToSlash(rel), "/")
 	for _, p := range parts {
 		switch p {
-		case ".git", "vendor", "node_modules", "build", "third_party", "__pycache__", "target", ".venv", "venv",
-			".bfg-report", ".cursor", ".opencode", "docs/archive", "out":
+		case ".git", "vendor", "node_modules", "build", "third_party", "__pycache__", "target", ".venv", "venv":
 			return true
 		}
 		if strings.HasPrefix(p, ".") && p != "." && p != ".." {
@@ -187,19 +186,9 @@ func walkSkipDir(path string, info os.FileInfo, projectRoot string) error {
 	return nil
 }
 
-// langFileStats holds per-language file counts from a single directory walk.
-type langFileStats struct {
-	Cpp        int
-	Python     int
-	Rust       int
-	Go         int
-	TypeScript int
-	Swift      int
-}
-
-// collectLangFileStats walks dir once and counts source files for all supported languages.
-func collectLangFileStats(dir string) langFileStats {
-	var s langFileStats
+// countCppFilesIn counts C/C++ files under dir (absolute path). Used for detection and per-dir file count.
+func countCppFilesIn(dir string) int {
+	var n int
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -213,29 +202,129 @@ func collectLangFileStats(dir string) langFileStats {
 		ext := strings.ToLower(filepath.Ext(path))
 		switch ext {
 		case ".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx":
-			s.Cpp++
-		case ".py":
-			s.Python++
-		case ".rs":
-			s.Rust++
-		case ".go":
-			s.Go++
-		case ".ts", ".tsx", ".js", ".jsx":
-			s.TypeScript++
-		case ".swift":
-			s.Swift++
+			n++
 		}
 		return nil
 	})
-	return s
+	return n
 }
 
-func countCppFilesIn(dir string) int        { return collectLangFileStats(dir).Cpp }
-func countPythonFilesIn(dir string) int     { return collectLangFileStats(dir).Python }
-func countRustFilesIn(dir string) int       { return collectLangFileStats(dir).Rust }
-func countGoFilesIn(dir string) int         { return collectLangFileStats(dir).Go }
-func countTypeScriptFilesIn(dir string) int { return collectLangFileStats(dir).TypeScript }
-func countSwiftFilesIn(dir string) int      { return collectLangFileStats(dir).Swift }
+func countPythonFilesIn(dir string) int {
+	var n int
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if err := walkSkipDir(path, info, dir); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".py") {
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+func countRustFilesIn(dir string) int {
+	var n int
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if err := walkSkipDir(path, info, dir); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".rs") {
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+func countGoFilesIn(dir string) int {
+	var n int
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if err := walkSkipDir(path, info, dir); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".go") {
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+func countTypeScriptFilesIn(dir string) int {
+	var n int
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if err := walkSkipDir(path, info, dir); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(path))
+		switch ext {
+		case ".ts", ".tsx", ".js", ".jsx":
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+func countSwiftFilesIn(dir string) int {
+	var n int
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if err := walkSkipDir(path, info, dir); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".swift") {
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+// CountCppFiles returns the number of C/C++ source and header files under projectRoot.
+func CountCppFiles(projectRoot string) int {
+	return countCppFilesIn(projectRoot)
+}
+
+// CountPythonFiles returns the number of .py files under projectRoot.
+func CountPythonFiles(projectRoot string) int {
+	return countPythonFilesIn(projectRoot)
+}
+
+// CountRustFiles returns the number of .rs files under projectRoot.
+func CountRustFiles(projectRoot string) int {
+	return countRustFilesIn(projectRoot)
+}
 
 func workDir(projectRoot, langRoot string) string {
 	if langRoot == "" {
@@ -486,45 +575,25 @@ func CollectMultilangHealth(ctx context.Context, projectRoot string) []LangHealt
 
 // MultilangCacheSignature returns a stable string for cache key: detected languages, their roots, and file counts.
 // When files are added/removed, the signature changes so the cache is invalidated.
-// Calls collectLangFileStats once per unique dir to avoid redundant walks on shared roots.
 func MultilangCacheSignature(projectRoot string) string {
-	type langEntry struct {
-		label string
-		dir   string
-		pick  func(langFileStats) int
-	}
-
-	var entries []langEntry
+	var parts []string
 	if found, root := DetectCppProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"cpp:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Cpp }})
+		parts = append(parts, "cpp:"+root+":"+strconv.Itoa(countCppFilesIn(workDir(projectRoot, root))))
 	}
 	if found, root := DetectPythonProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"py:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Python }})
+		parts = append(parts, "py:"+root+":"+strconv.Itoa(countPythonFilesIn(workDir(projectRoot, root))))
 	}
 	if found, root := DetectRustProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"rs:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Rust }})
+		parts = append(parts, "rs:"+root+":"+strconv.Itoa(countRustFilesIn(workDir(projectRoot, root))))
 	}
 	if found, root := DetectGoProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"go:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Go }})
+		parts = append(parts, "go:"+root+":"+strconv.Itoa(countGoFilesIn(workDir(projectRoot, root))))
 	}
 	if found, root := DetectTypeScriptProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"ts:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.TypeScript }})
+		parts = append(parts, "ts:"+root+":"+strconv.Itoa(countTypeScriptFilesIn(workDir(projectRoot, root))))
 	}
 	if found, root := DetectSwiftProjectRoot(projectRoot); found {
-		entries = append(entries, langEntry{"swift:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Swift }})
-	}
-
-	// Walk each unique dir once
-	statsByDir := make(map[string]langFileStats)
-	for _, e := range entries {
-		if _, seen := statsByDir[e.dir]; !seen {
-			statsByDir[e.dir] = collectLangFileStats(e.dir)
-		}
-	}
-
-	parts := make([]string, 0, len(entries))
-	for _, e := range entries {
-		parts = append(parts, e.label+":"+strconv.Itoa(e.pick(statsByDir[e.dir])))
+		parts = append(parts, "swift:"+root+":"+strconv.Itoa(countSwiftFilesIn(workDir(projectRoot, root))))
 	}
 	return strings.Join(parts, ",")
 }

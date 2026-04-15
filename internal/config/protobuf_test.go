@@ -172,9 +172,9 @@ func TestProtobufDurationConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Convert duration to protobuf and back
-			pb := durationToProto(tt.duration)
-			converted := durationFromProto(pb)
+			// Convert duration to seconds and back
+			seconds := durationToSeconds(tt.duration)
+			converted := secondsToDuration(seconds)
 
 			// Durations should match exactly (no precision loss for whole seconds)
 			if converted != tt.duration {

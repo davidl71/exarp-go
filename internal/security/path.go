@@ -1,8 +1,9 @@
-// Package security provides file path validation and sanitization.
+// path.go — File path validation and sanitization (delegates to mcp-go-core).
 package security
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/projectroot"
@@ -16,8 +17,21 @@ var GetProjectRoot = projectroot.FindGoMod
 // ValidatePath re-exported from mcp-go-core for backward compatibility.
 var ValidatePath = security.ValidatePath
 
-// ValidatePathExists re-exported from mcp-go-core.
-var ValidatePathExists = security.ValidatePathExists
+// ValidatePathExists ensures a path is valid AND exists
+// This is a local extension not in mcp-go-core.
+func ValidatePathExists(path, projectRoot string) (string, error) {
+	absPath, err := ValidatePath(path, projectRoot)
+	if err != nil {
+		return "", err
+	}
+
+	// Check if path exists
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("path does not exist: %s", path)
+	}
+
+	return absPath, nil
+}
 
 // ValidatePathWithinRoot is a convenience function that validates a path is within root
 // and returns the relative path from root.

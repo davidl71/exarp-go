@@ -5,22 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func durationToProto(d time.Duration) *durationpb.Duration {
-	if d <= 0 {
-		return nil
-	}
-	return durationpb.New(d)
+// durationToSeconds converts Go time.Duration to protobuf int64 (seconds).
+func durationToSeconds(d time.Duration) int64 {
+	return int64(d.Seconds())
 }
 
-func durationFromProto(pb *durationpb.Duration) time.Duration {
-	if pb == nil {
-		return 0
-	}
-	return pb.AsDuration()
+// secondsToDuration converts protobuf int64 (seconds) to Go time.Duration.
+func secondsToDuration(seconds int64) time.Duration {
+	return time.Duration(seconds) * time.Second
 }
 
 // mapToJSON converts a map to JSON string.

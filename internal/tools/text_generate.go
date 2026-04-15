@@ -1,18 +1,17 @@
-// text_generate.go — MCP "text_generate" tool: model-routed text generation (auto/fm/ollama/...).
+// text_generate.go — MCP "text_generate" tool: model-routed text generation (auto/fm/ollama/mlx).
 package tools
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // handleTextGenerate implements the unified text_generate tool.
 // provider=fm uses DefaultFMProvider(); provider=ollama uses DefaultOllamaTextGenerator(); provider=insight uses DefaultReportInsight();
-// provider=localai uses DefaultLocalAIProvider().
+// provider=mlx uses DefaultMLXProvider(); provider=localai uses DefaultLocalAIProvider().
 // provider=auto (or task_type/task_description provided) uses ResolveModelForTask + ModelRouter for model selection (T-207).
 func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
@@ -46,10 +45,8 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 	// Model selection (T-207): when provider=auto or task hints provided, use recommend + router
 	useModelSelection := provider == "auto" || taskType != "" || taskDesc != ""
 
-	agentRole := strings.TrimSpace(strings.ToLower(ParamString(params, "agent_role")))
-
 	if useModelSelection {
-		modelType, _ := ResolveModelForTask(taskDesc, taskType, optimizeFor, agentRole)
+		modelType, _ := ResolveModelForTask(taskDesc, taskType, optimizeFor)
 
 		text, err := DefaultModelRouter.Generate(ctx, modelType, prompt, maxTokens, temperature)
 		if err != nil {
@@ -68,12 +65,16 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultOllamaTextGenerator()
 	case "insight":
 		gen = DefaultReportInsight()
+	case "mlx":
+		gen = DefaultMLXProvider()
 	case "localai":
 		gen = DefaultLocalAIProvider()
 	case "gateway":
 		gen = DefaultGatewayProvider()
+	case "llamacpp":
+		gen = DefaultLlamaCppProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"localai\", \"gateway\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"gateway\", \"llamacpp\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

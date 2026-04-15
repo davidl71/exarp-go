@@ -1,4 +1,4 @@
-// Package queue provides Asynq producer for enqueuing wave task_execute jobs to Redis.
+// producer.go — Asynq producer: enqueues wave task_execute jobs to Redis.
 package queue
 
 import (

@@ -50,40 +50,49 @@ func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 	return jsonData, "application/json", nil
 }
 
-type promptFilter func(string) map[string]string
-
-func handlePromptsByFilter(ctx context.Context, uri string, filterType string, getMapping promptFilter) ([]byte, string, error) {
+// handlePromptsByMode handles the stdio://prompts/mode/{mode} resource
+// Returns prompts filtered by workflow mode.
+func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
+	// Parse mode from URI: stdio://prompts/mode/{mode}
 	parts := strings.Split(uri, "/")
 	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/%s/{value})", uri, filterType)
+		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/mode/{mode})", uri)
 	}
 
-	filterValue := parts[3]
-	mapping := getMapping(filterValue)
+	mode := parts[3]
 
-	matchingPrompts := make([]string, 0)
-	for promptName, promptValue := range mapping {
-		if promptValue == filterValue {
+	// Get mode mapping
+	modeMap := getPromptModeMapping()
+
+	// Find prompts matching this mode
+	matchingPrompts := []string{}
+
+	for promptName, promptMode := range modeMap {
+		if promptMode == mode {
 			matchingPrompts = append(matchingPrompts, promptName)
 		}
 	}
 
+	// Build response
 	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
 	for _, name := range matchingPrompts {
 		template, err := prompts.GetPromptTemplate(name)
 		if err != nil {
 			continue
 		}
+
 		description := extractPromptDescription(template)
+
 		promptList = append(promptList, map[string]interface{}{
 			"name":        name,
 			"description": description,
-			filterType:    filterValue,
+			"mode":        mode,
 		})
 	}
 
 	result := map[string]interface{}{
-		filterType:  filterValue,
+		"mode":      mode,
 		"prompts":   promptList,
 		"count":     len(promptList),
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -97,31 +106,117 @@ func handlePromptsByFilter(ctx context.Context, uri string, filterType string, g
 	return jsonData, "application/json", nil
 }
 
-// handlePromptsByMode handles the stdio://prompts/mode/{mode} resource
-// Returns prompts filtered by workflow mode.
-func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
-	return handlePromptsByFilter(ctx, uri, "mode", func(_ string) map[string]string {
-		return getPromptModeMapping()
-	})
-}
-
 // handlePromptsByPersona handles the stdio://prompts/persona/{persona} resource
 // Returns prompts filtered by persona.
 func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, error) {
-	return handlePromptsByFilter(ctx, uri, "persona", func(_ string) map[string]string {
-		return getPromptPersonaMapping()
-	})
+	// Parse persona from URI: stdio://prompts/persona/{persona}
+	parts := strings.Split(uri, "/")
+	if len(parts) < 4 {
+		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/persona/{persona})", uri)
+	}
+
+	persona := parts[3]
+
+	// Get persona mapping
+	personaMap := getPromptPersonaMapping()
+
+	// Find prompts matching this persona
+	matchingPrompts := []string{}
+
+	for promptName, promptPersona := range personaMap {
+		if promptPersona == persona {
+			matchingPrompts = append(matchingPrompts, promptName)
+		}
+	}
+
+	// Build response
+	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
+	for _, name := range matchingPrompts {
+		template, err := prompts.GetPromptTemplate(name)
+		if err != nil {
+			continue
+		}
+
+		description := extractPromptDescription(template)
+
+		promptList = append(promptList, map[string]interface{}{
+			"name":        name,
+			"description": description,
+			"persona":     persona,
+		})
+	}
+
+	result := map[string]interface{}{
+		"persona":   persona,
+		"prompts":   promptList,
+		"count":     len(promptList),
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
 }
 
 // handlePromptsByCategory handles the stdio://prompts/category/{category} resource
 // Returns prompts filtered by category.
 func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
-	return handlePromptsByFilter(ctx, uri, "category", func(_ string) map[string]string {
-		return getPromptCategoryMapping()
-	})
-}
+	// Parse category from URI: stdio://prompts/category/{category}
+	parts := strings.Split(uri, "/")
+	if len(parts) < 4 {
+		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/category/{category})", uri)
+	}
 
-// handlePromptsList handles the stdio://prompts resource - returns all prompts
+	category := parts[3]
+
+	// Get category mapping
+	categoryMap := getPromptCategoryMapping()
+
+	// Find prompts matching this category
+	matchingPrompts := []string{}
+
+	for promptName, promptCategory := range categoryMap {
+		if promptCategory == category {
+			matchingPrompts = append(matchingPrompts, promptName)
+		}
+	}
+
+	// Build response
+	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
+	for _, name := range matchingPrompts {
+		template, err := prompts.GetPromptTemplate(name)
+		if err != nil {
+			continue
+		}
+
+		description := extractPromptDescription(template)
+
+		promptList = append(promptList, map[string]interface{}{
+			"name":        name,
+			"description": description,
+			"category":    category,
+		})
+	}
+
+	result := map[string]interface{}{
+		"category":  category,
+		"prompts":   promptList,
+		"count":     len(promptList),
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
+}
 
 // Helper functions
 

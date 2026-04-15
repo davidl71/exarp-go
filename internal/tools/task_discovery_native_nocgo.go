@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -33,12 +34,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan comments
 	if action == "comments" || action == "all" {
-		filePatterns := []string{
-			"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx",
-			"**/*.rs", "**/*.java", "**/*.cpp", "**/*.c", "**/*.h", "**/*.hpp",
-			"**/*.toml",
-		}
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
+		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.rs", "**/*.java", "**/*.cpp", "**/*.c"}
 		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
 			if err := json.Unmarshal([]byte(patterns), &parsed); err == nil {
@@ -49,15 +45,14 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if _, has := params["include_fixme"]; has {
 			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
-		commentTasks := scanCommentsBasic(projectRoot, filePatterns, ignorePaths, includeFIXME)
+		commentTasks := scanCommentsBasic(projectRoot, filePatterns, includeFIXME)
 		discoveries = append(discoveries, commentTasks...)
 	}
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
-		markdownTasks := scanMarkdownBasic(projectRoot, docPath, ignorePaths)
+		markdownTasks := scanMarkdownBasic(projectRoot, docPath)
 		discoveries = append(discoveries, markdownTasks...)
 	}
 
@@ -70,15 +65,14 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Scan git repository for JSON files
 	if action == "git_json" || action == "all" {
 		jsonPattern := cast.ToString(params["json_pattern"])
-		gitJSONTasks := scanGitJSON(ctx, projectRoot, jsonPattern)
+		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
 	// Scan planning documents for task/epic links (regex-based fallback)
 	if action == "planning_links" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
-		planningLinks := scanPlanningDocsBasic(projectRoot, docPath, ignorePaths)
+		planningLinks := scanPlanningDocsBasic(projectRoot, docPath)
 		discoveries = append(discoveries, planningLinks...)
 	}
 
@@ -130,7 +124,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		result["tasks_created"] = createdTasks
 	}
 
-	// Optionally write result to output_path (parity with CGO build; default out/task_discovery_report.json when not set)
+	// Optionally write result to output_path (parity with CGO build; default docs/task_discovery_report.json when not set)
 	outputPath := DefaultReportOutputPath(projectRoot, "task_discovery_report.json", params)
 	fullPath := outputPath
 	if !filepath.IsAbs(fullPath) {
@@ -147,22 +141,21 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 }
 
 // scanCommentsBasic scans code files for TODO/FIXME comments (basic version without AI enhancement)
-func scanCommentsBasic(projectRoot string, patterns []string, ignorePaths []string, includeFIXME bool) []map[string]interface{} {
+func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	// Build regex pattern
 	var todoPattern *regexp.Regexp
 	if includeFIXME {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)(?:\([^)]+\))?[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)[\s:]+(.+)`)
 	} else {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO(?:\([^)]+\))?[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO[\s:]+(.+)`)
 	}
 
 	// File extension mapping for pattern matching
 	extMap := map[string]bool{
 		".go": true, ".py": true, ".js": true, ".ts": true, ".tsx": true, ".jsx": true,
 		".rs": true, ".java": true, ".cpp": true, ".c": true, ".h": true, ".hpp": true,
-		".toml": true,
 	}
 
 	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
@@ -172,7 +165,13 @@ func scanCommentsBasic(projectRoot string, patterns []string, ignorePaths []stri
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			// Skip common ignore directories: vendor, build outputs, archive
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
+				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "target") ||
+				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -256,7 +255,7 @@ func scanCommentsBasic(projectRoot string, patterns []string, ignorePaths []stri
 }
 
 // scanMarkdownBasic scans markdown files for task lists (basic version)
-func scanMarkdownBasic(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
+func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -272,7 +271,9 @@ func scanMarkdownBasic(projectRoot string, docPath string, ignorePaths []string)
 		}
 
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -318,7 +319,7 @@ func scanMarkdownBasic(projectRoot string, docPath string, ignorePaths []string)
 }
 
 // scanPlanningDocsBasic scans markdown files for planning document structure and task/epic links (regex-based)
-func scanPlanningDocsBasic(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
+func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -335,7 +336,9 @@ func scanPlanningDocsBasic(projectRoot string, docPath string, ignorePaths []str
 		}
 
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -399,7 +402,7 @@ func findOrphanTasksBasic(ctx context.Context, projectRoot string) []map[string]
 		taskMap[task.ID] = true
 	}
 
-	cycles, missing, err := GetDependencyAnalysisFromTasksWithStore(ctx, store, tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
 	if err != nil {
 		return orphans
 	}
@@ -439,9 +442,7 @@ func findOrphanTasksBasic(ctx context.Context, projectRoot string) []map[string]
 			}
 		}
 		if parentID != "" && !taskMap[parentID] {
-			if _, perr := store.GetTask(ctx, parentID); perr != nil {
-				issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
-			}
+			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
 		}
 
 		if len(task.Dependencies) > 0 && len(task.Tags) == 0 && task.Priority == "" {
@@ -462,3 +463,151 @@ func findOrphanTasksBasic(ctx context.Context, projectRoot string) []map[string]
 
 	return orphans
 }
+
+// createTasksFromDiscoveries is in task_discovery_common.go (shared with CGO build).
+
+// scanGitJSON scans git repository for JSON files containing tasks
+// Finds JSON files committed in git and extracts tasks from them
+func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	// Default pattern: look for .todo2/state.todo2.json files
+	if jsonPattern == "" {
+		jsonPattern = "**/.todo2/state.todo2.json"
+	}
+
+	// Use git to find JSON files
+	// First, try git ls-files to find tracked JSON files
+	ctx := context.Background()
+	cmd := exec.CommandContext(ctx, "git", "ls-files", "*.json", "**/*.json")
+	cmd.Dir = projectRoot
+	output, err := cmd.Output()
+	if err != nil {
+		// Git not available or not a git repo - return empty
+		return discoveries
+	}
+
+	// Parse git output to get list of JSON files
+	jsonFiles := []string{}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	defaultPattern := "**/.todo2/state.todo2.json"
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Use default pattern if not specified
+		patternToUse := jsonPattern
+		if patternToUse == "" {
+			patternToUse = defaultPattern
+		}
+
+		// Filter by pattern
+		matched := false
+		if patternToUse == defaultPattern {
+			// Default: only match state.todo2.json files
+			matched = strings.Contains(line, "state.todo2.json")
+		} else {
+			// Custom pattern: try exact match first
+			matched, _ = filepath.Match(patternToUse, line)
+			if !matched {
+				// Try with ** prefix for glob matching
+				if strings.HasPrefix(patternToUse, "**/") {
+					pattern := strings.TrimPrefix(patternToUse, "**/")
+					matched, _ = filepath.Match(pattern, filepath.Base(line))
+				}
+				// Also try simple contains match for flexibility
+				if !matched && strings.Contains(line, strings.TrimPrefix(patternToUse, "**/")) {
+					matched = true
+				}
+			}
+		}
+
+		if matched {
+			jsonFiles = append(jsonFiles, line)
+		}
+	}
+
+	// For each JSON file, extract tasks
+	for _, jsonFile := range jsonFiles {
+		fullPath := filepath.Join(projectRoot, jsonFile)
+
+		// Try to read file from git history (all commits)
+		// Use git log to find all versions of this file
+		cmd = exec.CommandContext(ctx, "git", "log", "--all", "--pretty=format:%H", "--", jsonFile)
+		cmd.Dir = projectRoot
+		commitOutput, err := cmd.Output()
+		if err != nil {
+			// If git log fails, try reading current file
+			tasks, _, err := LoadJSONStateFromFile(fullPath)
+			if err == nil {
+				for _, task := range tasks {
+					discoveries = append(discoveries, map[string]interface{}{
+						"type":      "JSON_TASK",
+						"text":      task.Content,
+						"task_id":   task.ID,
+						"status":    task.Status,
+						"priority":  task.Priority,
+						"file":      jsonFile,
+						"source":    "git_json",
+						"completed": task.Completed,
+					})
+				}
+			}
+			continue
+		}
+
+		// Process each commit that modified this file
+		commits := strings.Split(strings.TrimSpace(string(commitOutput)), "\n")
+		processedTasks := make(map[string]bool) // Track unique task IDs to avoid duplicates
+
+		for _, commit := range commits {
+			commit = strings.TrimSpace(commit)
+			if commit == "" {
+				continue
+			}
+
+			// Get file content from this commit
+			cmd = exec.CommandContext(ctx, "git", "show", commit+":"+jsonFile)
+			cmd.Dir = projectRoot
+			fileContent, err := cmd.Output()
+			if err != nil {
+				continue
+			}
+
+			// Parse JSON and extract tasks
+			tasks, _, err := LoadJSONStateFromContent(fileContent)
+			if err != nil {
+				continue
+			}
+
+			// Add tasks to discoveries (avoid duplicates)
+			for _, task := range tasks {
+				// Use task ID + commit as unique key to track tasks across commits
+				uniqueKey := fmt.Sprintf("%s:%s", task.ID, commit)
+				if processedTasks[uniqueKey] {
+					continue
+				}
+				processedTasks[uniqueKey] = true
+
+				discoveries = append(discoveries, map[string]interface{}{
+					"type":      "JSON_TASK",
+					"text":      task.Content,
+					"task_id":   task.ID,
+					"status":    task.Status,
+					"priority":  task.Priority,
+					"file":      jsonFile,
+					"commit":    commit[:8], // Short commit hash
+					"source":    "git_json",
+					"completed": task.Completed,
+				})
+			}
+		}
+	}
+
+	return discoveries
+}
+
+// LoadJSONStateFromFile and LoadJSONStateFromContent are now in todo2_json.go

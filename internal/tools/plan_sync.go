@@ -210,7 +210,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("sync_from_plan: %w", err)
 	}
 
-	dryRun := ParamBool(params, "dry_run", false)
+	dryRun, _ := params["dry_run"].(bool)
 
 	store := NewDefaultTaskStore(projectRoot)
 
@@ -292,8 +292,17 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		}
 	}
 
+	if (len(created) > 0 || len(updated) > 0) && !dryRun {
+		if err := SyncTodo2Tasks(projectRoot); err != nil {
+			return nil, fmt.Errorf("sync_from_plan: sync to JSON: %w", err)
+		}
+	}
+
 	// Bidirectional: write plan file back so checkboxes and frontmatter match Todo2 status (default true)
-	writePlan := ParamBool(params, "write_plan", true)
+	writePlan := true
+	if w, ok := params["write_plan"].(bool); ok {
+		writePlan = w
+	}
 
 	if writePlan && !dryRun && len(todos) > 0 {
 		statusByID := make(map[string]string)

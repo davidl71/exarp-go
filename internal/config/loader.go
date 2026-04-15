@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/projectroot"
 	configpb "github.com/davidl71/exarp-go/proto"
 	"google.golang.org/protobuf/proto"
+	"gopkg.in/yaml.v3"
 )
 
 // LoadConfig loads configuration from .exarp/config.pb only (protobuf mandatory).
@@ -31,6 +33,32 @@ func LoadConfig(projectRoot string) (*FullConfig, error) {
 
 	// No config file: use defaults
 	cfg := GetDefaults()
+	applyEnvOverrides(cfg)
+
+	if err := ValidateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	return cfg, nil
+}
+
+// LoadConfigYAML loads configuration from .exarp/config.yaml only (for convert/import).
+// Use LoadConfig for normal runtime loading (protobuf mandatory).
+func LoadConfigYAML(projectRoot string) (*FullConfig, error) {
+	cfg := GetDefaults()
+	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+
+	data, err := os.ReadFile(yamlPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
+	}
+
+	var fileConfig FullConfig
+	if err := yaml.Unmarshal(data, &fileConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse config file %s: %w", yamlPath, err)
+	}
+
+	cfg = mergeConfig(cfg, &fileConfig)
 	applyEnvOverrides(cfg)
 
 	if err := ValidateConfig(cfg); err != nil {
@@ -92,64 +120,12 @@ func LoadConfigProtobuf(projectRoot string) (*FullConfig, error) {
 	// Merge file config with defaults (file config takes precedence)
 	cfg = mergeConfig(cfg, fileConfig)
 
-	// Load and apply config override files
-	cfg, err = applyConfigOverrides(projectRoot, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("config override failed: %w", err)
-	}
-
 	// Apply environment variable overrides
 	applyEnvOverrides(cfg)
 
 	// Validate configuration
 	if err := ValidateConfig(cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return cfg, nil
-}
-
-// applyConfigOverrides loads and applies config override files.
-// Override files are applied in alphabetical order, with later files taking precedence.
-// Common override files: config.local.pb, config.dev.pb, config.prod.pb
-func applyConfigOverrides(projectRoot string, cfg *FullConfig) (*FullConfig, error) {
-	overridePatterns := []string{
-		"config.local.pb",
-		"config.*.pb",
-	}
-
-	exarpDir := filepath.Join(projectRoot, ".exarp")
-
-	for _, pattern := range overridePatterns {
-		matches, err := filepath.Glob(filepath.Join(exarpDir, pattern))
-		if err != nil {
-			continue
-		}
-
-		for _, match := range matches {
-			// Skip the base config file
-			if filepath.Base(match) == "config.pb" {
-				continue
-			}
-
-			data, err := os.ReadFile(match)
-			if err != nil {
-				continue
-			}
-
-			var pbConfig configpb.FullConfig
-			if err := proto.Unmarshal(data, &pbConfig); err != nil {
-				continue
-			}
-
-			overrideConfig, err := FromProtobuf(&pbConfig)
-			if err != nil {
-				continue
-			}
-
-			// Merge override into config (override takes precedence)
-			cfg = mergeConfig(cfg, overrideConfig)
-		}
 	}
 
 	return cfg, nil
@@ -169,6 +145,19 @@ func GetConfigFormat(projectRoot string) (string, error) {
 	}
 
 	return "none", nil
+}
+
+// detectConfigFormat detects the format of a config file based on its extension.
+func detectConfigFormat(configPath string) (string, error) {
+	ext := strings.ToLower(filepath.Ext(configPath))
+	switch ext {
+	case ".yaml", ".yml":
+		return "yaml", nil
+	case ".pb":
+		return "protobuf", nil
+	default:
+		return "", fmt.Errorf("unknown config file format: %s (expected .yaml, .yml, or .pb)", ext)
+	}
 }
 
 // mergeConfig merges fileConfig into defaults, with fileConfig taking precedence.
@@ -313,10 +302,6 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 
 	if fileConfig.Tasks.DefaultPriority != "" {
 		merged.Tasks.DefaultPriority = fileConfig.Tasks.DefaultPriority
-	}
-
-	if len(fileConfig.Tasks.Keybindings) > 0 {
-		merged.Tasks.Keybindings = cloneStringSliceMap(fileConfig.Tasks.Keybindings)
 	}
 
 	if len(fileConfig.Tasks.DefaultTags) > 0 {
@@ -485,6 +470,12 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 	if fileConfig.Tools.Ollama.DefaultModel != "" {
 		merged.Tools.Ollama.DefaultModel = fileConfig.Tools.Ollama.DefaultModel
 	}
+	if fileConfig.Tools.MLX.DefaultModel != "" {
+		merged.Tools.MLX.DefaultModel = fileConfig.Tools.MLX.DefaultModel
+	}
+	if fileConfig.Tools.MLX.DefaultMaxTokens > 0 {
+		merged.Tools.MLX.DefaultMaxTokens = fileConfig.Tools.MLX.DefaultMaxTokens
+	}
 
 	// Workflow
 	if fileConfig.Workflow.DefaultMode != "" {
@@ -519,26 +510,6 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 	}
 	if fileConfig.Project.Root != "" {
 		merged.Project.Root = fileConfig.Project.Root
-	}
-	if fileConfig.Project.Todo2Path != "" {
-		merged.Project.Todo2Path = fileConfig.Project.Todo2Path
-	}
-	if fileConfig.Project.ExarpPath != "" {
-		merged.Project.ExarpPath = fileConfig.Project.ExarpPath
-	}
-	if len(fileConfig.Project.Features.MCPServers) > 0 {
-		merged.Project.Features.MCPServers = fileConfig.Project.Features.MCPServers
-	}
-	merged.Project.Features.SQLiteEnabled = fileConfig.Project.Features.SQLiteEnabled
-	merged.Project.Features.JSONFallback = fileConfig.Project.Features.JSONFallback
-	if len(fileConfig.Project.SkipChecks) > 0 {
-		merged.Project.SkipChecks = fileConfig.Project.SkipChecks
-	}
-	if len(fileConfig.Project.CustomTools) > 0 {
-		merged.Project.CustomTools = fileConfig.Project.CustomTools
-	}
-	if len(fileConfig.Project.TaskDiscoveryIgnorePaths) > 0 {
-		merged.Project.TaskDiscoveryIgnorePaths = fileConfig.Project.TaskDiscoveryIgnorePaths
 	}
 
 	return &merged

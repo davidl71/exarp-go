@@ -112,6 +112,7 @@ func CanonicalTagRules() map[string]string {
 		"protobuf-integration":   "mcp",
 
 		// Domain: LLM/AI
+		"mlx":                     "llm",
 		"apple-foundation-models": "llm",
 		"apple-silicon":           "llm",
 		"npu":                     "llm",
@@ -365,10 +366,7 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		},
 	}
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TAG_ANALYSIS_RESULT.json", params)
 	if outputPath != "" {
 		if err := saveAnalysisResult(outputPath, result); err != nil {

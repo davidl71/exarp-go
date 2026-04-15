@@ -1,5 +1,6 @@
 // Package utils provides process and file utilities.
-// process.go verifies agent process exists (for stale lock detection).
+// process.go: verify agent process exists (for stale lock detection and T-319).
+
 package utils
 
 import (

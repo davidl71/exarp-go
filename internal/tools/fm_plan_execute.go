@@ -18,13 +18,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-var (
-	fmCodeFenceOpenRe  = regexp.MustCompile("(?s)^```\\w*\\n?")
-	fmCodeFenceCloseRe = regexp.MustCompile("\\n?```\\s*$")
-	fmNumberedListRe   = regexp.MustCompile(`^\d+[.)]\s*`)
-	fmBulletListRe     = regexp.MustCompile(`^[-*]\s*`)
-)
-
 const (
 	defaultMaxSubtasks  = 5
 	defaultPlanTokens   = 512
@@ -52,17 +45,23 @@ func handleFMPlanAndExecute(ctx context.Context, args json.RawMessage) ([]framew
 	}
 
 	maxSubtasks := defaultMaxSubtasks
-	if n := ParamInt(params, "max_subtasks", 0); n > 0 && n <= 20 {
+	if n, ok := params["max_subtasks"].(float64); ok && n > 0 && n <= 20 {
+		maxSubtasks = int(n)
+	} else if n, ok := params["max_subtasks"].(int); ok && n > 0 && n <= 20 {
 		maxSubtasks = n
 	}
 
 	planTokens := defaultPlanTokens
-	if n := ParamInt(params, "plan_max_tokens", 0); n > 0 {
+	if n, ok := params["plan_max_tokens"].(float64); ok && n > 0 {
+		planTokens = int(n)
+	} else if n, ok := params["plan_max_tokens"].(int); ok && n > 0 {
 		planTokens = n
 	}
 
 	workerTokens := defaultWorkerTokens
-	if n := ParamInt(params, "worker_max_tokens", 0); n > 0 {
+	if n, ok := params["worker_max_tokens"].(float64); ok && n > 0 {
+		workerTokens = int(n)
+	} else if n, ok := params["worker_max_tokens"].(int); ok && n > 0 {
 		workerTokens = n
 	}
 
@@ -126,8 +125,8 @@ func parseSubtasks(planOut string, max int) []string {
 	}
 	// Strip markdown code block if present
 	if strings.HasPrefix(planOut, "```") {
-		planOut = fmCodeFenceOpenRe.ReplaceAllString(planOut, "")
-		planOut = fmCodeFenceCloseRe.ReplaceAllString(planOut, "")
+		planOut = regexp.MustCompile("(?s)^```\\w*\\n?").ReplaceAllString(planOut, "")
+		planOut = regexp.MustCompile("\\n?```\\s*$").ReplaceAllString(planOut, "")
 		planOut = strings.TrimSpace(planOut)
 		if err := json.Unmarshal([]byte(planOut), &arr); err == nil && len(arr) > 0 {
 			if len(arr) > max {
@@ -141,8 +140,12 @@ func parseSubtasks(planOut string, max int) []string {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		// Remove leading "1. ", "2. ", "- ", "* "
-		line = fmNumberedListRe.ReplaceAllString(line, "")
-		line = fmBulletListRe.ReplaceAllString(line, "")
+		for _, re := range []*regexp.Regexp{
+			regexp.MustCompile(`^\d+[.)]\s*`),
+			regexp.MustCompile(`^[-*]\s*`),
+		} {
+			line = re.ReplaceAllString(line, "")
+		}
 		line = strings.TrimSpace(line)
 		if line != "" {
 			arr = append(arr, line)

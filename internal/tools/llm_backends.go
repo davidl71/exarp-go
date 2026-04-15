@@ -1,27 +1,31 @@
-// llm_backends.go — LLM backend discovery map for stdio://models and tool hints.
-// fm_available follows DefaultFMProvider().Supported() (cached Ollama /api/tags probe on the stock chain).
-// ollama_reachable is the explicit probe; Generate can still fail if Ollama stops after a successful probe.
+// Package tools: LLM backend status for discovery (stdio://models, tool hints).
+// Exposes which LLM backends are available so clients can choose the right tool.
 
 package tools
 
 import (
 	"os"
+	"runtime"
 	"strings"
 )
 
 // LLMBackendStatus returns a map describing available LLM backends for discovery.
 // Used by stdio://models and by clients that need to know what is available
-// (FM, Ollama, LocalAI, Gateway) without calling each tool.
+// (FM, Ollama, MLX, LocalAI, Gateway) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":      FMAvailable(),
-		"ollama_reachable":  OllamaReachableForFM(),
-		"localai_available": LocalAIAvailable(),
-		"gateway_available": GatewayAvailable(),
-		"ollama_tool":       "ollama",
-		"localai_tool":      "text_generate",
-		"gateway_tool":      "text_generate",
-		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router.",
+		"fm_available":       FMAvailable(),
+		"mlx_available":      MLAvailable(),
+		"localai_available":  LocalAIAvailable(),
+		"gateway_available":  GatewayAvailable(),
+		"llamacpp_available": LlamaCppAvailable(),
+		"ollama_tool":        "ollama",
+		"mlx_tool":           "mlx",
+		"apple_fm_tool":      "apple_foundation_models",
+		"localai_tool":       "text_generate",
+		"gateway_tool":       "text_generate",
+		"llamacpp_tool":      "llamacpp",
+		"hint":               "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|llamacpp|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router. Separate tools (apple_foundation_models, ollama, mlx, llamacpp) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
 	}
 }
 
@@ -37,3 +41,15 @@ func GatewayAvailable() bool {
 	return strings.TrimSpace(os.Getenv("OPENAI_GATEWAY_BASE_URL")) != ""
 }
 
+// MLAvailable reports whether MLX is potentially available.
+// MLX (bridge) runs on Apple Silicon; returns true only for darwin/arm64.
+// Does not verify MLX is actually installed—Generate may still fail.
+func MLAvailable() bool {
+	return runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
+}
+
+// LlamaCppAvailable reports whether llama.cpp is compiled in.
+// True only when built with the llamacpp build tag and CGO enabled.
+func LlamaCppAvailable() bool {
+	return DefaultLlamaCppProvider() != nil
+}

@@ -24,7 +24,7 @@ import (
 //   buildTaskBatchTagPromptMatchOnly — buildTaskBatchTagPromptMatchOnly builds a short prompt for quick FM inference: pick 0-3 tags only from allowed list (no free-form).
 //   filterSuggestionsToAllowed — filterSuggestionsToAllowed keeps only tags that are in the allowed set (for match_existing_only).
 //   llmTagProfile — llmTagProfile holds timing profile for the LLM tag inference phase.
-//   enrichTaskTagSuggestionsWithLLM — enrichTaskTagSuggestionsWithLLM runs Apple FM and Ollama on batches of tasks and merges suggested tags into analysis.TagSuggestions.
+//   enrichTaskTagSuggestionsWithLLM — enrichTaskTagSuggestionsWithLLM runs Apple FM, Ollama, or MLX on batches of tasks and merges suggested tags into analysis.TagSuggestions.
 //   modelTypeToMethodString — modelTypeToMethodString maps ModelType to the profiling method string used in tag enrichment.
 //   enrichTagsWithOllama — enrichTagsWithOllama uses Ollama to infer additional tags, in batches (same smart prompt as Apple FM).
 //   matchDiscoveredTagsToTasks — matchDiscoveredTagsToTasks matches discovered tags from files to related tasks.
@@ -241,9 +241,9 @@ type llmTagProfile struct {
 }
 
 // ─── enrichTaskTagSuggestionsWithLLM ────────────────────────────────────────
-// enrichTaskTagSuggestionsWithLLM runs Apple FM and Ollama on batches of tasks and merges suggested tags into analysis.TagSuggestions.
+// enrichTaskTagSuggestionsWithLLM runs Apple FM, Ollama, or MLX on batches of tasks and merges suggested tags into analysis.TagSuggestions.
 // Uses tag cache everywhere as quick hints. When matchExistingOnly is true, uses a constrained prompt and filters output to allowed tags only.
-// When useTinyTagModel is true, tries Ollama with tinyllama first (faster) before larger models.
+// When useTinyTagModel is true, tries Ollama with tinyllama first, then MLX with TinyLlama (faster small models) before Apple FM.
 // Returns method, processed count, and profile (LLM total ms, batch count, per-batch ms) for profiling.
 func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, analysis *TagAnalysis, batchSizeParam int, matchExistingOnly bool, useTinyTagModel bool) (method string, processed int, profile llmTagProfile) {
 	batchSize := effectiveLLMBatchSize(batchSizeParam)
@@ -335,7 +335,7 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 
 	llmStart := time.Now()
 
-	// When useTinyTagModel: try Ollama (tinyllama) for faster inference first.
+	// When useTinyTagModel: try Ollama(tinyllama) then MLX(TinyLlama) for faster inference
 	if useTinyTagModel {
 		ollama := DefaultOllama()
 		if ollama != nil {
@@ -403,11 +403,86 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 				return "ollama", processed, profile
 			}
 		}
+		// Try MLX with TinyLlama (reset profile so we only report MLX times)
+		profile = llmTagProfile{}
+		mlxProcessed := 0
+
+		for start := 0; start < len(items); start += batchSize {
+			select {
+			case <-totalCtx.Done():
+				profile.TotalMs = time.Since(llmStart).Milliseconds()
+				profile.Batches = len(profile.PerBatchMs)
+
+				if mlxProcessed > 0 {
+					return "mlx", processed, profile
+				}
+
+				goto fallthroughTiny
+			default:
+			}
+
+			end := start + batchSize
+			if end > len(items) {
+				end = len(items)
+			}
+
+			batch := items[start:end]
+			batchStart := time.Now()
+
+			var prompt string
+
+			if matchExistingOnly {
+				allowedList := make([]string, 0, len(allowedSet))
+				for tag := range allowedSet {
+					allowedList = append(allowedList, tag)
+				}
+
+				sort.Strings(allowedList)
+				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+			} else {
+				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+			}
+
+			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+			raw, err := InvokeMLXTool(batchCtx, map[string]interface{}{
+				"action":      "generate",
+				"model":       mlxTinyTagModel,
+				"prompt":      prompt,
+				"max_tokens":  llmTagMaxTokens,
+				"temperature": 0.2,
+			})
+
+			batchCancel()
+
+			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+
+			if err != nil {
+				continue
+			}
+
+			response, err := parseGeneratedTextFromMLXResponse(raw)
+			if err != nil || response == "" {
+				continue
+			}
+
+			mergeSuggestions(parseTaskTagResponse(response))
+
+			mlxProcessed++
+		}
+
+		if mlxProcessed > 0 {
+			profile.TotalMs = time.Since(llmStart).Milliseconds()
+			profile.Batches = len(profile.PerBatchMs)
+
+			return "mlx", processed, profile
+		}
+
+	fallthroughTiny:
+		// Tiny path failed; fall through to ModelRouter (FM → Ollama → MLX)
 	}
 
-	// Use DefaultModelRouter for tag enrichment (FM and Ollama backends).
-	role := dominantAgentRole(tasks)
-	requirements := ModelRequirements{PreferSpeed: useTinyTagModel, AgentRole: role}
+	// Use DefaultModelRouter for tag enrichment: FM chain, then Ollama, then MLX.
+	requirements := ModelRequirements{PreferSpeed: useTinyTagModel}
 	model := DefaultModelRouter.SelectModel("general", requirements)
 	method = modelTypeToMethodString(model)
 
@@ -471,6 +546,8 @@ func modelTypeToMethodString(m ModelType) string {
 		return "apple_fm"
 	case ModelOllamaLlama, ModelOllamaCode:
 		return "ollama"
+	case ModelMLX:
+		return "mlx"
 	default:
 		return "model_router"
 	}

@@ -10,7 +10,7 @@ func loggingToProtobuf(l *LoggingConfig) *configpb.LoggingConfig {
 		return &configpb.LoggingConfig{
 			Level:             l.Level,
 			ToolLevel:         l.ToolLevel,
-			FrameworkLevel:    l.FrameworkLevel,
+			FrameworkLevel:   l.FrameworkLevel,
 			Format:            l.Format,
 			IncludeTimestamps: l.IncludeTimestamps,
 			IncludeCaller:     l.IncludeCaller,
@@ -32,7 +32,7 @@ func loggingFromProtobuf(pb *configpb.LoggingConfig) LoggingConfig {
 	return LoggingConfig{
 		Level:             pb.GetLevel(),
 		ToolLevel:         pb.GetToolLevel(),
-		FrameworkLevel:    pb.GetFrameworkLevel(),
+		FrameworkLevel:   pb.GetFrameworkLevel(),
 		Format:            pb.GetFormat(),
 		IncludeTimestamps: pb.GetIncludeTimestamps(),
 		IncludeCaller:     pb.GetIncludeCaller(),

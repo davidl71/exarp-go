@@ -12,8 +12,8 @@ func registerCoreTools(server framework.MCPServer) error {
 	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
 		"action": map[string]interface{}{
 			"type":    "string",
-			"enum":    []string{"list", "show", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split", "import_sqlite"},
-			"default": "list",
+			"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "add_comment", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
+			"default": "sync",
 		},
 		"dry_run": map[string]interface{}{
 			"type":    "boolean",
@@ -38,8 +38,7 @@ func registerCoreTools(server framework.MCPServer) error {
 			"default": false,
 		},
 		"filter_tag": map[string]interface{}{
-			"type":     "string",
-			"examples": []string{"execution", "mcp", "tui"},
+			"type": "string",
 		},
 		"task_ids": map[string]interface{}{
 			"type": "string",
@@ -51,99 +50,13 @@ func registerCoreTools(server framework.MCPServer) error {
 		"task_id": map[string]interface{}{
 			"type": "string",
 		},
-		"run_id": map[string]interface{}{
-			"type":        "string",
-			"description": "Execution run ID for show_run/end_run/verify/add_progress",
-		},
-		"children": map[string]interface{}{
-			"type":        "string",
-			"description": "For split: JSON array of child task definitions [{\"name\":\"Task A\",\"dependencies\":[\"T-1\"]}]",
-		},
-		"dependency_mode": map[string]interface{}{
-			"type":        "string",
-			"description": "For split: 'parallel' or 'serial' child dependency mode",
-		},
-		"summary": map[string]interface{}{
-			"type":        "string",
-			"description": "For start_run/end_run/add_progress: short summary",
-		},
-		"files_touched": map[string]interface{}{
-			"type":        "string",
-			"description": "For end_run: JSON array or comma-separated list of touched files",
-		},
-		"commands_run": map[string]interface{}{
-			"type":        "string",
-			"description": "For end_run: JSON array or comma-separated list of commands executed",
-		},
-		"notes": map[string]interface{}{
-			"type":        "string",
-			"description": "For start_run/end_run: free-form notes",
-		},
-		"kind": map[string]interface{}{
-			"type":        "string",
-			"description": "For verify: verification kind such as lint, compile, test, or manual",
-		},
-		"command": map[string]interface{}{
-			"type":        "string",
-			"description": "For verify: command that was run",
-		},
-		"details": map[string]interface{}{
-			"type":        "string",
-			"description": "For verify: verification details or output summary",
-		},
-		"remaining_work": map[string]interface{}{
-			"type":        "string",
-			"description": "For add_progress: remaining work after this slice",
-		},
-		"files": map[string]interface{}{
-			"type":        "string",
-			"description": "For add_progress: JSON array or comma-separated list of files touched in this slice",
-		},
-		"agent_id": map[string]interface{}{
-			"type":        "string",
-			"description": "Optional agent identifier for claim/start_run/agent_status actions",
-		},
-		"lease_minutes": map[string]interface{}{
-			"type":        "number",
-			"description": "For claim/batch_claim: task lock duration in minutes",
-		},
-		"import_sources": map[string]interface{}{
-			"type":        "string",
-			"description": "For import_sqlite: JSON array of paths (todo2.db files and/or project directories with .todo2/todo2.db). Example: [\"../svc/a\",\"../svc/b/.todo2/todo2.db\"]",
-		},
-		"import_scan_mode": map[string]interface{}{
-			"type":        "string",
-			"default":     "none",
-			"enum":        []string{"none", "immediate", "recursive"},
-			"description": "For import_sqlite: when a source is a directory, none=only that dir's .todo2/todo2.db; immediate=also each child dir with a DB; recursive=walk for **/.todo2/todo2.db",
-		},
-		"import_on_conflict": map[string]interface{}{
-			"type":        "string",
-			"default":     "fail",
-			"enum":        []string{"fail", "skip"},
-			"description": "For import_sqlite: if task id exists in target DB with different content — fail aborts with report; skip omits those tasks",
-		},
-		"import_default_project_id": map[string]interface{}{
-			"type":        "string",
-			"description": "For import_sqlite: if set, fills empty project_id on imported tasks; otherwise uses parent folder name of the source project",
-		},
-		"import_sync_json": map[string]interface{}{
-			"type":        "boolean",
-			"default":     true,
-			"description": "For import_sqlite: after successful import, reconcile SQLite with state.todo2.json",
-		},
-		"import_max_depth": map[string]interface{}{
-			"type":        "integer",
-			"default":     0,
-			"description": "For import_sqlite with immediate or recursive: max depth of project dirs under each source (0=unlimited). Depth 0 = source's own .todo2; depth 1 = one path segment below source (e.g. source/svc/.todo2)",
-		},
 		"form_id": map[string]interface{}{
 			"type":        "string",
-			"description": "For request_approval/sync_approvals: optional form/template ID echoed in approval_request.form_id",
+			"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
 		},
 		"result": map[string]interface{}{
 			"type":        "string",
-			"description": "For apply_approval_result: approved or rejected",
+			"description": "For apply_approval_result: 'approved' or 'rejected' (from gotoHuman decision)",
 		},
 		"feedback": map[string]interface{}{
 			"type":        "string",
@@ -181,9 +94,8 @@ func registerCoreTools(server framework.MCPServer) error {
 			"description": "For sub_action=list: order results by 'execution' or 'dependency' (backlog dependency order)",
 		},
 		"output_format": map[string]interface{}{
-			"type":        "string",
-			"default":     "json",
-			"description": "MCP clients should use json (default). Use text for human table output (e.g. CLI).",
+			"type":    "string",
+			"default": "text",
 		},
 		"compact": map[string]interface{}{
 			"type":        "boolean",
@@ -204,12 +116,7 @@ func registerCoreTools(server framework.MCPServer) error {
 		},
 		"tasks": map[string]interface{}{
 			"type":        "string",
-			"description": "JSON array of tasks for batch create. Each element: {name, priority?, priority_rank?, tags?, long_description?, dependencies?}. priority_rank: integer, lower sorts earlier within the same named priority. Example: [{\"name\":\"Task A\",\"priority\":\"high\",\"priority_rank\":10}]",
-		},
-		"priority_rank": map[string]interface{}{
-			"type":        "integer",
-			"default":     0,
-			"description": "For create/update: numeric sort order within the same priority band (low/medium/high/critical). Lower values order first in list, next-claimable, and backlog ordering.",
+			"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
 		},
 		"auto_estimate": map[string]interface{}{
 			"type":        "boolean",
@@ -235,7 +142,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=list|show|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split|import_sqlite. show is an alias for list+task_id. list JSON includes priority_rank, dependencies, version. update accepts priority_rank alone (0 is valid); on failure check update_issues. sync=SQLite↔JSON; import_sqlite merges other .todo2/todo2.db (dry_run, import_scan_mode, import_on_conflict).]",
+		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning|add_comment. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries, add result/note comments. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
 		framework.ToolSchema{
 			Type:       "object",
 			Properties: taskWorkflowProps,
@@ -248,7 +155,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_discovery
 	if err := server.RegisterTool(
 		"task_discovery",
-		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs/docs. create_tasks=true to auto-create. ignore_paths to exclude dirs.]",
+		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs and docs. Use when scanning for undocumented work. create_tasks=true to auto-create.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -259,10 +166,6 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"file_patterns": map[string]interface{}{
 					"type": "string",
-				},
-				"ignore_paths": map[string]interface{}{
-					"type":        "string",
-					"description": "Comma-separated paths to ignore (e.g., '.cache,vendor,third_party')",
 				},
 				"include_fixme": map[string]interface{}{
 					"type":    "boolean",
@@ -279,14 +182,8 @@ func registerCoreTools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"create_tasks": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "Automatically create discovered tasks in Todo2",
-				},
-				"use_llm": map[string]interface{}{
-					"type":        "boolean",
-					"default":     true,
-					"description": "Use Apple FM for semantic enhancement (Darwin/arm64 only). Set false to skip LLM calls.",
+					"type":    "boolean",
+					"default": false,
 				},
 			},
 		},
@@ -298,18 +195,13 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: action=duplicates|tags|discover_tags|dependencies|execution_plan|complexity|conflicts|noise. Analyze task backlog for sprint planning, dedup, and execution waves.]",
+		"[HINT: action=duplicates|tags|discover_tags|dependencies|execution_plan|complexity|conflicts|noise. Analyze task backlog. Use when planning sprints, detecting duplicates, or generating execution waves. Related: task_workflow.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
-					"type": "string",
-					"enum": []string{
-						"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary",
-						"suggest_dependencies", "suggest_deps", "parallelization", "fix_missing_deps", "validate",
-						"execution_plan", "complexity", "conflicts", "noise", "infer_ownership", "hotspots",
-						"next_batch", "stale", "completable",
-					},
+					"type":    "string",
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "suggest_dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts", "noise"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -411,29 +303,20 @@ func registerCoreTools(server framework.MCPServer) error {
 				"use_tiny_tag_model": map[string]interface{}{
 					"type":        "boolean",
 					"default":     false,
-					"description": "For action=tags with use_llm_semantic: try Ollama with tinyllama for faster tag inference before Apple FM.",
+					"description": "For action=tags with use_llm_semantic: try Ollama with tinyllama then MLX with TinyLlama (1.1B) for faster tag inference before Apple FM.",
 				},
 				"filter_tag": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=noise: filter to tasks with this tag (default: discovered when empty). For action=execution_plan: restrict backlog to tasks with this tag. For action=parallelization: restrict to Todo tasks with this tag (dependency graph still uses all tasks).",
+					"description": "For action=noise: filter to tasks with this tag (default: discovered when empty). For action=execution_plan: restrict backlog to tasks with this tag.",
 				},
 				"filter_tags": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated). For action=parallelization: same for Todo tasks in parallel groups.",
+					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated).",
 				},
 				"include_planning_docs": map[string]interface{}{
 					"type":        "boolean",
 					"default":     false,
 					"description": "For action=suggest_dependencies: when true, also extract dependency hints from .cursor/plans and docs/*plan*.md (Depends on: T-XXX, milestone order).",
-				},
-				"include_todo": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "For action=conflicts: include Todo tasks in file and ownership conflict detection (preflight); dependency overlaps remain In Progress only",
-				},
-				"include_statuses": map[string]interface{}{
-					"type":        "string",
-					"description": "For action=conflicts: comma-separated statuses; if any token is Todo (case-insensitive), enables the same preflight expansion as include_todo",
 				},
 			},
 		},
@@ -445,24 +328,14 @@ func registerCoreTools(server framework.MCPServer) error {
 	// session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: action=prime|handoff|prompts|assignee|restore. Call prime at session start; handoff to save/resume context; restore for point-in-time snapshots.]",
+		"[HINT: action=prime|handoff|prompts|assignee. Session management. Call prime at start; handoff to save/resume context across sessions. Returns suggested_next tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"prime", "handoff", "prompts", "assignee", "restore"},
+					"enum":    []string{"prime", "handoff", "prompts", "assignee"},
 					"default": "prime",
-				},
-				"point_in_time_snapshot": map[string]interface{}{
-					"type":        "string",
-					"description": "Base64-encoded gzip snapshot to restore (used with action=restore)",
-				},
-				"restore_strategy": map[string]interface{}{
-					"type":        "string",
-					"enum":        []string{"merge", "replace"},
-					"default":     "merge",
-					"description": "merge: add missing tasks; replace: overwrite all tasks with snapshot",
 				},
 				"include_hints": map[string]interface{}{
 					"type":    "boolean",
@@ -487,38 +360,8 @@ func registerCoreTools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "When true and client supports elicitation, prompt user for include_tasks/include_hints preferences at prime time",
 				},
-				"context_threshold_pct": map[string]interface{}{
-					"type":        "number",
-					"description": "Auto-compaction ledger: if current context usage (current_tokens/budget_tokens) is >= this percentage, auto-write a thoughts/ledgers/CONTINUITY_{ts}.md ledger. Range 1-100. Omit or 0 to disable.",
-					"examples":    []interface{}{50, 75, 90},
-				},
-				"current_tokens": map[string]interface{}{
-					"type":        "integer",
-					"description": "Current estimated token usage of the session. Used with context_threshold_pct. Falls back to this response's token_estimate if omitted.",
-				},
-				"budget_tokens": map[string]interface{}{
-					"type":        "integer",
-					"description": "Total token budget for the session. Used with context_threshold_pct. Falls back to config default if omitted.",
-				},
-				"inject_ledger": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "When true, inject the latest CONTINUITY ledger from thoughts/ledgers/ into the prime result as latest_ledger. Useful after context compaction.",
-				},
-				"ledger_summary": map[string]interface{}{
-					"type":        "string",
-					"description": "Optional freeform notes to append to the auto-written compaction ledger (used with context_threshold_pct).",
-				},
-				"client": map[string]interface{}{
-					"type":        "string",
-					"enum":        []string{"claude-code", "cursor", "opencode", "generic"},
-					"description": "MCP client identity â adjusts session prime output (suppresses noise for specific clients)",
-					"examples":    []string{"claude-code", "cursor", "opencode"},
-				},
 				"override_mode": map[string]interface{}{
-					"type":        "string",
-					"description": "Override the detected workflow mode",
-					"examples":    []string{"planning", "daily_checkin", "deep_work"},
+					"type": "string",
 				},
 				"task_id": map[string]interface{}{
 					"type": "string",
@@ -551,7 +394,6 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"modified_task_ids": map[string]interface{}{
 					"type":        "array",
-					"items":       map[string]interface{}{"type": "string"},
 					"description": "Optional list of task IDs modified this session; stored as task_journal (handoff end)",
 				},
 				"limit": map[string]interface{}{
@@ -627,19 +469,19 @@ func registerCoreTools(server framework.MCPServer) error {
 	// report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: action=overview|scorecard|briefing|execution_briefing|prd|plan. Project reports, status, and .plan.md generation.]",
+		"[HINT: action=overview|scorecard|briefing|prd|plan. Project reports and plans. Use for project status, scorecard, or generating .plan.md files. Related: task_analysis.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"overview", "scorecard", "briefing", "execution_briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
+					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
 					"default":     "overview",
-					"description": "execution_briefing: summarize active claims/runs; plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
+					"description": "plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
-					"default": "json",
+					"default": "text",
 				},
 				"compact": map[string]interface{}{
 					"type":        "boolean",
@@ -663,11 +505,6 @@ func registerCoreTools(server framework.MCPServer) error {
 					"type":        "boolean",
 					"default":     false,
 					"description": "For action=plan: when true, repair existing plan file (restore frontmatter and ## 3. Iterative Milestones) without overwriting rest of body",
-				},
-				"force": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "For action=plan: when true, force full regeneration even if plan file already exists (overrides auto-repair behaviour)",
 				},
 				"plan_path": map[string]interface{}{
 					"type":        "string",
@@ -740,22 +577,14 @@ func registerCoreTools(server framework.MCPServer) error {
 	// health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: action=server|git|docs|dod|cicd|tools|database|ctags. Project health and component status checks.]",
+		"[HINT: action=server|git|docs|dod|cicd|tools|ctags. Check project health and component status. Use when diagnosing issues or before releases. action=ctags reports if universal-ctags and tags file are present.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools", "database", "ctags"},
+					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools", "ctags"},
 					"default": "server",
-				},
-				"operation": map[string]interface{}{
-					"type": "string",
-					"enum": []string{"status", "checkpoint", "vacuum", "analyze"},
-				},
-				"checkpoint_mode": map[string]interface{}{
-					"type": "string",
-					"enum": []string{"PASSIVE", "FULL", "RESTART", "TRUNCATE"},
 				},
 				"agent_name": map[string]interface{}{
 					"type": "string",

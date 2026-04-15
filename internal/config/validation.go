@@ -3,7 +3,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -27,11 +26,6 @@ func ValidateConfig(cfg *FullConfig) error {
 	// Validate database
 	if err := validateDatabase(cfg.Database); err != nil {
 		return fmt.Errorf("database validation failed: %w", err)
-	}
-
-	// Validate cloud
-	if err := validateCloud(cfg.Cloud); err != nil {
-		return fmt.Errorf("cloud validation failed: %w", err)
 	}
 
 	// Validate security
@@ -226,18 +220,6 @@ func validateTasks(tasks TasksConfig) error {
 		return fmt.Errorf("stale_threshold_hours (%d) must be non-negative", tasks.StaleThresholdHours)
 	}
 
-	for action, bindings := range tasks.Keybindings {
-		if strings.TrimSpace(action) == "" {
-			return fmt.Errorf("keybindings contains an empty action")
-		}
-		for _, binding := range bindings {
-			normalized := strings.ToLower(strings.TrimSpace(binding))
-			if normalized == "" {
-				return fmt.Errorf("keybindings for %s contains an empty binding", action)
-			}
-		}
-	}
-
 	// Validate min description length
 	if tasks.MinDescriptionLength < 0 {
 		return fmt.Errorf("min_description_length (%d) must be non-negative", tasks.MinDescriptionLength)
@@ -248,19 +230,6 @@ func validateTasks(tasks TasksConfig) error {
 
 // validateDatabase validates database configuration.
 func validateDatabase(db DatabaseConfig) error {
-	// Validate backend if specified
-	if db.Backend != "" {
-		validBackends := map[string]bool{
-			"sqlite":   true,
-			"mysql":    true,
-			"postgres": true,
-			"rqlite":   true,
-		}
-		if !validBackends[db.Backend] {
-			return fmt.Errorf("backend (%s) must be one of: sqlite, mysql, postgres, rqlite", db.Backend)
-		}
-	}
-
 	// SQLite path should not be empty if using SQLite
 	if db.SQLitePath == "" {
 		return fmt.Errorf("sqlite_path cannot be empty")
@@ -313,28 +282,6 @@ func validateDatabase(db DatabaseConfig) error {
 	// Backup retention should be non-negative
 	if db.BackupRetentionDays < 0 {
 		return fmt.Errorf("backup_retention_days (%d) must be non-negative", db.BackupRetentionDays)
-	}
-
-	return nil
-}
-
-// validateCloud validates cloud configuration.
-func validateCloud(cloud CloudConfig) error {
-	if !cloud.Enabled {
-		return nil
-	}
-
-	validProviders := map[string]bool{"firestore": true, "dynamodb": true}
-	if !validProviders[cloud.Provider] {
-		return fmt.Errorf("provider (%s) must be one of: firestore, dynamodb", cloud.Provider)
-	}
-
-	if cloud.Provider == "firestore" && cloud.ProjectID == "" {
-		return fmt.Errorf("project_id is required when cloud provider is firestore")
-	}
-
-	if cloud.CollectionName == "" {
-		return fmt.Errorf("collection_name is required when cloud is enabled")
 	}
 
 	return nil

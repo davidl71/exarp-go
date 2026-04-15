@@ -12,7 +12,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
@@ -20,13 +19,12 @@ import (
 // aggregateProjectDataProto returns overview data as proto for type-safe report formatting.
 func aggregateProjectDataProto(ctx context.Context, projectRoot string, includePlanning bool) (*proto.ProjectOverviewData, error) {
 	pb := &proto.ProjectOverviewData{}
-	var healthWarning string
 
 	if projectInfo, err := getProjectInfo(projectRoot); err == nil {
 		pb.Project = ProjectInfoToProto(projectInfo)
 	}
 
-	if isGoProjectRoot(projectRoot) {
+	if IsGoProject() {
 		opts := &ScorecardOptions{FastMode: true}
 
 		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
@@ -43,8 +41,6 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 				ProductionReady: scorecard.Score >= float64(config.MinCoverage()),
 				Scores:          scores,
 			}
-		} else {
-			healthWarning = fmt.Sprintf("scorecard generation failed: %v", err)
 		}
 	}
 
@@ -89,7 +85,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 		}
 	}
 
-	if actions, err := getNextActions(projectRoot, 0); err == nil {
+	if actions, err := getNextActions(projectRoot); err == nil {
 		for _, a := range actions {
 			hours := 0.0
 			if h, ok := a["estimated_hours"].(float64); ok {
@@ -121,25 +117,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 		}
 	}
 
-	if healthWarning != "" {
-		if pb.Project == nil {
-			pb.Project = &proto.ProjectInfo{}
-		}
-		if pb.Project.Description != "" {
-			pb.Project.Description += " | "
-		}
-		pb.Project.Description += "Health warning: " + healthWarning
-	}
-
 	return pb, nil
-}
-
-func isGoProjectRoot(projectRoot string) bool {
-	if projectRoot == "" {
-		return false
-	}
-	_, err := os.Stat(filepath.Join(projectRoot, "go.mod"))
-	return err == nil
 }
 
 func getStr(m map[string]interface{}, key string) string {
@@ -291,24 +269,26 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		return nil
 	})
 
-	// Keep these metadata counts aligned with the current native registries.
-	// Resources remain a fixed count here because tools cannot import internal/resources
-	// without a package cycle.
-	const expectedResourceCount = 27
-
 	metrics := map[string]interface{}{
-		"go_files":     goFiles,
-		"go_lines":     0, // Could count lines if needed
-		"python_files": pythonFiles,
-		"python_lines": 0, // Could count lines if needed
-		"cpp_files":    cppFiles,
-		"rust_files":   rustFiles,
-		"total_files":  totalFiles,
-		"total_lines":  0, // Could count lines if needed
-		"tools":        ExpectedToolCountBase,
-		"prompts":      len(prompts.ListAllPromptNames()),
-		"resources":    expectedResourceCount,
+		"go_files":      goFiles,
+		"go_lines":      0, // Could count lines if needed
+		"python_files":  pythonFiles,
+		"python_lines":  0, // Could count lines if needed
+		"cpp_files":     cppFiles,
+		"rust_files":    rustFiles,
+		"total_files":   totalFiles,
+		"total_lines":   0,  // Could count lines if needed
+		"tools":         28, // From registry (28 base + 1 conditional Apple FM)
+		"prompts":       35, // From templates.go (19 original + 16 migrated from Python)
+		"resources":     21, // From resources/handlers.go
 	}
+
+	// Count tools, prompts, resources from registry
+	// These would need to be exported from registry.go or counted differently
+	// For now, use values matching MIGRATION_STATUS_CURRENT.md
+	metrics["tools"] = 28
+	metrics["prompts"] = 34
+	metrics["resources"] = 21
 
 	return metrics, err
 }
@@ -391,47 +371,22 @@ func getProjectPhases() map[string]interface{} {
 func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	risks := []map[string]interface{}{}
 
+	// Check for incomplete tasks with high priority
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
-	if err != nil {
-		return risks, nil
-	}
-
-	tasks := tasksFromPtrs(list)
-
-	// Build task map for dependency-blocked detection.
-	taskMap := make(map[string]Todo2Task, len(tasks))
-	for _, t := range tasks {
-		taskMap[t.ID] = t
-	}
-
-	for _, task := range tasks {
-		if !IsPendingStatus(task.Status) {
-			continue
+	if err == nil {
+		tasks := tasksFromPtrs(list)
+		for _, task := range tasks {
+			if IsPendingStatus(task.Status) && task.Priority == models.PriorityCritical {
+				risks = append(risks, map[string]interface{}{
+					"type":        "blocker",
+					"description": task.Content,
+					"task_id":     task.ID,
+					"priority":    task.Priority,
+				})
+			}
 		}
-
-		isCritical := task.Priority == models.PriorityCritical
-		isHigh := task.Priority == models.PriorityHigh
-
-		// Dependency-blocked: has unresolved deps and is not otherwise ready.
-		isBlocked := len(task.Dependencies) > 0 && !isTaskReady(task, taskMap)
-
-		if !isCritical && !isHigh && !isBlocked {
-			continue
-		}
-
-		riskType := "risk"
-		if isCritical || isBlocked {
-			riskType = "blocker"
-		}
-
-		risks = append(risks, map[string]interface{}{
-			"type":        riskType,
-			"description": task.Content,
-			"task_id":     task.ID,
-			"priority":    task.Priority,
-			"blocked":     isBlocked,
-		})
 	}
 
 	return risks, nil
@@ -449,11 +404,7 @@ func isTaskReady(task Todo2Task, taskMap map[string]Todo2Task) bool {
 }
 
 // getNextActions identifies next priority actions (dependency-aware: only suggests ready tasks).
-// limit controls how many actions are returned (0 = use default of 10).
-func getNextActions(projectRoot string, limit int) ([]map[string]interface{}, error) {
-	if limit <= 0 {
-		limit = 10
-	}
+func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 	actions := []map[string]interface{}{}
 
 	store := NewDefaultTaskStore(projectRoot)
@@ -484,7 +435,7 @@ func getNextActions(projectRoot string, limit int) ([]map[string]interface{}, er
 					"priority":        task.Priority,
 					"estimated_hours": estimatedHours,
 				})
-				if len(actions) >= limit {
+				if len(actions) >= 10 {
 					break
 				}
 			}
@@ -498,8 +449,9 @@ func getNextActions(projectRoot string, limit int) ([]map[string]interface{}, er
 		taskMap[t.ID] = t
 	}
 
+	const maxNext = 10
 	for _, taskID := range orderedIDs {
-		if len(actions) >= limit {
+		if len(actions) >= maxNext {
 			break
 		}
 

@@ -18,6 +18,7 @@ var toolsWithNoBridge = map[string]bool{
 	"report":    true,
 	"recommend": true,
 	"security":  true,
+	"scan_dependency_security": true, // alias for security action=scan (multilang)
 	"testing":   true,
 	"lint":      true,
 	"ollama":    true,
@@ -26,7 +27,7 @@ var toolsWithNoBridge = map[string]bool{
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
 // See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md and docs/PYTHON_BRIDGE_MIGRATION_NEXT.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "infer_task_progress", "report", "recommend", "security", "testing", "lint", "ollama"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "infer_task_progress", "report", "recommend", "security", "scan_dependency_security", "testing", "lint", "ollama"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
@@ -402,6 +403,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"recommend":           "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":              "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
 		"ollama":              "Hybrid: native uses HTTP client; Python bridge may differ.",
+		"mlx":                 "Native-only; models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.",
 	}
 
 	for tool, reason := range knownDifferences {

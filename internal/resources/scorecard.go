@@ -50,12 +50,12 @@ func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
 
 // convertScorecardToResourceFormat converts GoScorecardResult to resource JSON format
 // Matches Python generate_project_scorecard() output format
-// Reuses helper functions from internal/tools/scorecard_insights.go.
+// Reuses helper functions from internal/tools/scorecard_mlx.go.
 func convertScorecardToResourceFormat(scorecard *tools.GoScorecardResult) map[string]interface{} {
 	// Use the existing goScorecardToMap function which already calculates component scores
 	scorecardMap := tools.GoScorecardToMap(scorecard)
 
-	// Extract blockers (using helper from scorecard_insights.go)
+	// Extract blockers (using helper from scorecard_mlx.go)
 	blockers := tools.ExtractBlockers(scorecard)
 
 	// Determine production readiness (score >= 70 and no critical blockers)

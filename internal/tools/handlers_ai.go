@@ -74,39 +74,53 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 // handleWorkflowMode handles the workflow_mode tool
 // Uses native Go implementation (migrated from Python bridge).
 func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.WorkflowModeRequest { return &proto.WorkflowModeRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseWorkflowModeRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := WorkflowModeRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action": "focus",
-	})
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = WorkflowModeRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action": "focus",
+		})
+	}
 
+	// Use native Go implementation
 	return handleWorkflowModeNative(ctx, params)
 }
 
 // handleLint handles the lint tool.
 func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.LintRequest { return &proto.LintRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseLintRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	linter := strings.TrimSpace(req.Linter)
-	if linter == "" {
-		linter = "auto"
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = LintRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action": "run",
+			"linter": "auto",
+		})
 	}
 
-	path := strings.TrimSpace(req.Path)
-	if path != "" {
-		if _, err := ValidatePathAgainstMCPRoots(ctx, path); err != nil {
-			return nil, fmt.Errorf("path validation failed: %w", err)
-		}
+	// Extract parameters
+	linter := "auto"
+	if l := strings.TrimSpace(cast.ToString(params["linter"])); l != "" {
+		linter = l
 	}
 
-	fix := req.Fix
+	path := ""
+	if p := cast.ToString(params["path"]); p != "" {
+		path = p
+	}
+
+	fix := cast.ToBool(params["fix"])
 
 	// Check if this is a native linter - use native Go implementation
 	nativeLinters := map[string]bool{
@@ -175,16 +189,20 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	req, err := decodeArgsToProto(args, func() *proto.EstimationRequest { return &proto.EstimationRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseEstimationRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := EstimationRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":   "estimate",
-		"priority": "medium",
-	})
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = EstimationRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":   "estimate",
+			"priority": "medium",
+		})
+	}
 
 	result, err := handleEstimationNative(ctx, projectRoot, params)
 	if err != nil {
@@ -211,30 +229,9 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 
 	var params GitToolsParams
 	if req != nil {
-		action := req.Action
-		if req.ActionEnum != proto.GitToolsAction_GIT_TOOLS_ACTION_UNSPECIFIED {
-			if s := gitToolsActionEnumToString(req.ActionEnum); s != "" {
-				action = s
-			}
-		}
-
-		format := req.Format
-		if req.FormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
-			if s := outputFormatEnumToString(req.FormatEnum); s != "" {
-				format = s
-			}
-		}
-
-		conflictStrat := req.ConflictStrategy
-		if req.GetConflictStrategyEnum() != proto.GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED {
-			if s := gitMergeConflictStrategyEnumToString(req.GetConflictStrategyEnum()); s != "" {
-				conflictStrat = s
-			}
-		}
-
 		// Convert protobuf request to GitToolsParams struct
 		params = GitToolsParams{
-			Action:           action,
+			Action:           req.Action,
 			TaskID:           req.TaskId,
 			Branch:           req.Branch,
 			Limit:            int(req.Limit),
@@ -242,12 +239,12 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 			Commit2:          req.Commit2,
 			Time1:            req.Time1,
 			Time2:            req.Time2,
-			Format:           format,
+			Format:           req.Format,
 			OutputPath:       req.OutputPath,
 			MaxCommits:       int(req.MaxCommits),
 			SourceBranch:     req.SourceBranch,
 			TargetBranch:     req.TargetBranch,
-			ConflictStrategy: conflictStrat,
+			ConflictStrategy: req.ConflictStrategy,
 			Author:           req.Author,
 			DryRun:           req.DryRun,
 		}
@@ -291,17 +288,22 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 // handleSession handles the session tool
 // Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go.
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.SessionRequest { return &proto.SessionRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseSessionRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := SessionRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":    "prime",
-		"direction": "both",
-	})
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = SessionRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":    "prime",
+			"direction": "both",
+		})
+	}
 
+	// Use native Go implementation only (prime, handoff, prompts, assignee)
 	return handleSessionNative(ctx, params)
 }
 
@@ -325,15 +327,17 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 
 // handleOllama handles the ollama tool via DefaultOllama (native only; no bridge fallback).
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.OllamaRequest { return &proto.OllamaRequest{} })
+	req, params, err := ParseOllamaRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := OllamaRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"model": "llama3.2",
-	})
+	if req != nil {
+		params = OllamaRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"model": "llama3.2",
+		})
+	}
 
 	result, err := DefaultOllama().Invoke(ctx, params)
 	if err != nil {
@@ -343,6 +347,23 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
+// handleMlx handles the mlx tool. Native-only: models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.
+func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	req, params, err := ParseMlxRequest(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	if req != nil {
+		params = MlxRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"model": "mlx-community/Phi-3.5-mini-instruct-4bit",
+		})
+	}
+
+	return handleMlxNative(ctx, params)
+}
+
 // mcp-generic-tools: Context management tools
 
 // Phase 3 Migration: Unified tools
@@ -350,25 +371,26 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 // handlePromptAnalyze, handleRecommendModel, handleRecommendWorkflow) were removed in favor of
 // unified handlers below that use action parameters.
 
-// handleContext handles the context tool (unified wrapper).
-// Summarize/batch use DefaultFMProvider() (FM chain, typically Ollama); budget/count are local.
+// handleContext handles the context tool (unified wrapper)
+// Uses native Go with Apple Foundation Models for summarization when available.
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Use ParseContextRequest (not strict protojson alone): MCP clients send `items` as a JSON array,
-	// but ContextRequest.items is a string field in proto; framework.ParseRequest preserves compatibility.
+	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
 	if req != nil {
 		params = ContextRequestToParams(req)
+		// Set defaults for protobuf request
 		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":     "summarize",
 			"level":      "brief",
 			"max_tokens": 512,
 		})
 
-		if !req.GetCombine() {
+		if !req.Combine {
 			params["combine"] = true // Default is true
 		}
 	}
@@ -382,7 +404,11 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Route to native Go implementations when available
 	switch action {
 	case "summarize":
-		// Delegates to DefaultFMProvider() (FM chain: e.g. Ollama → stub); errors surface if no backend can generate.
+		// Native summarization requires Apple Foundation Models
+		if !FMAvailable() {
+			return nil, fmt.Errorf("context summarize requires Apple Foundation Models (darwin/arm64 with CGO); use action=budget or action=batch for other operations")
+		}
+
 		result, err := handleContextSummarizeNative(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("context summarize: %w", err)
@@ -411,15 +437,8 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 
 		return result, nil
 
-	case "count":
-		result, err := handleContextCount(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("context count: %w", err)
-		}
-		return result, nil
-
 	default:
-		return nil, fmt.Errorf("unknown context action %q; use summarize, budget, batch, or count", action)
+		return nil, fmt.Errorf("unknown context action %q; use summarize, budget, or batch", action)
 	}
 }
 

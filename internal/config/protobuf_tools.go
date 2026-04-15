@@ -14,6 +14,7 @@ func toolsToProtobuf(t *ToolsConfig) *configpb.ToolsConfig {
 			Report:    reportToProtobuf(&t.Report),
 			Linting:   lintingToProtobuf(&t.Linting),
 			Testing:   testingToProtobuf(&t.Testing),
+			Mlx:       mlxToProtobuf(&t.MLX),
 			Ollama:    ollamaToProtobuf(&t.Ollama),
 			Context:   contextToProtobuf(&t.Context),
 		}
@@ -33,6 +34,7 @@ func toolsFromProtobuf(pb *configpb.ToolsConfig) (ToolsConfig, error) {
 		Report:    reportFromProtobuf(pb.GetReport()),
 		Linting:   lintingFromProtobuf(pb.GetLinting()),
 		Testing:   testingFromProtobuf(pb.GetTesting()),
+		MLX:       mlxFromProtobuf(pb.GetMlx()),
 		Ollama:    ollamaFromProtobuf(pb.GetOllama()),
 		Context:   contextFromProtobuf(pb.GetContext()),
 	}, nil
@@ -95,7 +97,7 @@ func lintingToProtobuf(l *LintingConfig) *configpb.LintingConfig {
 			DefaultLinter: l.DefaultLinter,
 			AutoFix:       l.AutoFix,
 			IncludeHints:  l.IncludeHints,
-			Timeout:       durationToProto(l.Timeout),
+			Timeout:       durationToSeconds(l.Timeout),
 		}
 	})
 }
@@ -108,7 +110,7 @@ func lintingFromProtobuf(pb *configpb.LintingConfig) LintingConfig {
 		DefaultLinter: pb.GetDefaultLinter(),
 		AutoFix:       pb.GetAutoFix(),
 		IncludeHints:  pb.GetIncludeHints(),
-		Timeout:       durationFromProto(pb.GetTimeout()),
+		Timeout:       secondsToDuration(pb.GetTimeout()),
 	}
 }
 
@@ -132,6 +134,29 @@ func testingFromProtobuf(pb *configpb.TestingConfig) TestingConfig {
 		MinCoverage:      int(pb.GetMinCoverage()),
 		CoverageFormat:   pb.GetCoverageFormat(),
 		Verbose:          pb.GetVerbose(),
+	}
+}
+
+func mlxToProtobuf(m *MLXConfig) *configpb.MLXConfig {
+	return ptrToProto(m, func(m *MLXConfig) *configpb.MLXConfig {
+		return &configpb.MLXConfig{
+			DefaultModel:       m.DefaultModel,
+			DefaultMaxTokens:   int32(m.DefaultMaxTokens),
+			DefaultTemperature: m.DefaultTemperature,
+			Verbose:            m.Verbose,
+		}
+	})
+}
+
+func mlxFromProtobuf(pb *configpb.MLXConfig) MLXConfig {
+	if pb == nil {
+		return MLXConfig{}
+	}
+	return MLXConfig{
+		DefaultModel:       pb.GetDefaultModel(),
+		DefaultMaxTokens:   int(pb.GetDefaultMaxTokens()),
+		DefaultTemperature: pb.GetDefaultTemperature(),
+		Verbose:            pb.GetVerbose(),
 	}
 }
 

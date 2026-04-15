@@ -137,18 +137,17 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 
 	statusFilter := cast.ToString(params["status_filter"])
 
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task store: %w", err)
-	}
-
+	// Get tasks from database
 	var tasks []*database.Todo2Task
+
+	var err error
 
 	if statusFilter != "" {
 		filters := &database.TaskFilters{Status: &statusFilter}
-		tasks, err = store.ListTasks(ctx, filters)
+		tasks, err = database.ListTasks(ctx, filters)
 	} else {
-		tasks, err = store.ListTasks(ctx, &database.TaskFilters{})
+		// Get all pending tasks
+		tasks, err = database.ListTasks(ctx, &database.TaskFilters{})
 	}
 
 	if err != nil {
@@ -203,7 +202,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 
 	result := map[string]interface{}{
 		"success":     true,
-		"method":      "store+database",
+		"method":      "native_go",
 		"assignments": assignments,
 		"total":       len(assignments),
 		"filters": map[string]interface{}{

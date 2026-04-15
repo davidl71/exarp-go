@@ -18,7 +18,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-// handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review.
+// handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review (T-111).
+// The client can send each to gotoHuman via request-human-review-with-form.
 func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	formID := cast.ToString(params["form_id"])
 
@@ -55,13 +56,13 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 	result := map[string]interface{}{
 		"review_count":      len(approvalRequests),
 		"approval_requests": approvalRequests,
-		"instructions":      "Use each approval_request with your human review process; record outcomes via task_workflow action=apply_approval_result.",
+		"instructions":      "Call @gotoHuman request-human-review-with-form for each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md.",
 	}
 
 	return framework.FormatResult(result, "")
 }
 
-// handleTaskWorkflowApplyApprovalResult updates a task when a human approves or rejects review.
+// handleTaskWorkflowApplyApprovalResult updates a task when human approves or rejects in gotoHuman (T-112).
 // Params: task_id (required), result (required: "approved" or "rejected"), feedback (optional, for rejection).
 func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
@@ -113,7 +114,8 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 	return out, nil
 }
 
-// handleTaskWorkflowRequestApproval builds an approval request payload for a Todo2 task.
+// handleTaskWorkflowRequestApproval builds a gotoHuman approval request payload for a Todo2 task.
+// The client (e.g. Cursor) should call @gotoHuman request-human-review-with-form with the returned payload.
 func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
@@ -134,7 +136,7 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 
 	req := BuildApprovalRequestFromTask(task, formID)
 	payload, _ := json.Marshal(req)
-	instructions := "Use approval_request with your human review process; record the outcome via task_workflow action=apply_approval_result."
+	instructions := "Call @gotoHuman request-human-review-with-form with formId and fieldData from approval_request. Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
 	result := map[string]interface{}{
 		"task_id":          taskID,
 		"approval_request": req,
@@ -268,6 +270,65 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("task_id is required for resolve action")
 	}
 
+	if db, err := database.GetDB(); err == nil && db != nil {
+		task, err := database.GetTask(ctx, taskID)
+		if err != nil {
+			return nil, fmt.Errorf("task %s not found: %w", taskID, err)
+		}
+
+		clarificationText := cast.ToString(params["clarification_text"])
+		decision := cast.ToString(params["decision"])
+
+		if clarificationText != "" {
+			if task.LongDescription == "" {
+				task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+			} else {
+				task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
+			}
+		}
+
+		if decision != "" {
+			if task.Metadata == nil {
+				task.Metadata = make(map[string]interface{})
+			}
+
+			task.Metadata["clarification_decision"] = decision
+		}
+
+		moveToTodo := true
+		if _, ok := params["move_to_todo"]; ok {
+			moveToTodo = cast.ToBool(params["move_to_todo"])
+		}
+
+		if moveToTodo {
+			task.Status = models.StatusTodo
+		}
+
+		if err := database.UpdateTask(ctx, task); err != nil {
+			return nil, fmt.Errorf("failed to update task: %w", err)
+		}
+
+		var syncErr error
+		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+			syncErr = SyncTodo2Tasks(projectRoot)
+			if syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after clarification resolve failed: %v\n", syncErr)
+			}
+		}
+
+		result := map[string]interface{}{
+			"success": true,
+			"method":  "database",
+			"task_id": taskID,
+			"message": "Clarification resolved",
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
+		}
+
+		return framework.FormatResult(result, "")
+	}
+
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
@@ -312,7 +373,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 
 	result := map[string]interface{}{
 		"success": true,
-		"method":  "store",
+		"method":  "file",
 		"task_id": taskID,
 		"message": "Clarification resolved",
 	}
@@ -329,6 +390,78 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	var decisions []map[string]interface{}
 	if err := json.Unmarshal([]byte(decisionsJSON), &decisions); err != nil {
 		return nil, fmt.Errorf("failed to parse decisions_json: %w", err)
+	}
+
+	if db, err := database.GetDB(); err == nil && db != nil {
+		resolved := 0
+
+		for _, decision := range decisions {
+			taskID := cast.ToString(decision["task_id"])
+			if taskID == "" {
+				continue
+			}
+
+			task, err := database.GetTask(ctx, taskID)
+			if err != nil {
+				continue
+			}
+
+			clarificationText := cast.ToString(decision["clarification_text"])
+			decisionText := cast.ToString(decision["decision"])
+
+			if clarificationText != "" {
+				if task.LongDescription == "" {
+					task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+				} else {
+					task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
+				}
+			}
+
+			if decisionText != "" {
+				if task.Metadata == nil {
+					task.Metadata = make(map[string]interface{})
+				}
+
+				task.Metadata["clarification_decision"] = decisionText
+			}
+
+			moveToTodo := true
+			if _, ok := decision["move_to_todo"]; ok {
+				moveToTodo = cast.ToBool(decision["move_to_todo"])
+			}
+
+			if moveToTodo {
+				task.Status = models.StatusTodo
+			}
+
+			if err := database.UpdateTask(ctx, task); err == nil {
+				resolved++
+			}
+		}
+
+		var syncErr error
+
+		if resolved > 0 {
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after batch clarification failed: %v\n", syncErr)
+				}
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":  true,
+			"method":   "database",
+			"resolved": resolved,
+			"total":    len(decisions),
+			"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
+		}
+
+		return framework.FormatResult(result, "")
 	}
 
 	store, err := getTaskStore(ctx)
@@ -386,7 +519,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 	result := map[string]interface{}{
 		"success":  true,
-		"method":   "store",
+		"method":   "file",
 		"resolved": resolved,
 		"total":    len(decisions),
 		"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
@@ -438,17 +571,13 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 	}
 
 	var deleted, failed []string
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("delete: %w", err)
-	}
 
 	for _, id := range ids {
 		if id == "" {
 			continue
 		}
 
-		if err := store.DeleteTask(ctx, id); err != nil {
+		if err := database.DeleteTask(ctx, id); err != nil {
 			failed = append(failed, id+": "+err.Error())
 			continue
 		}
@@ -456,7 +585,37 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 		deleted = append(deleted, id)
 	}
 
-	result := map[string]interface{}{"success": len(failed) == 0, "method": "store", "deleted": deleted, "failed": failed}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
+		return framework.FormatResult(result, "")
+	}
+
+	if len(deleted) > 0 {
+		jsonTasks, jsonErr := loadTodo2TasksFromJSON(projectRoot)
+		if jsonErr == nil {
+			deletedSet := make(map[string]bool)
+			for _, id := range deleted {
+				deletedSet[id] = true
+			}
+			filtered := make([]Todo2Task, 0, len(jsonTasks))
+			for _, t := range jsonTasks {
+				if !deletedSet[t.ID] {
+					filtered = append(filtered, t)
+				}
+			}
+			if saveErr := saveTodo2TasksToJSON(projectRoot, filtered); saveErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to remove deleted tasks from JSON: %v\n", saveErr)
+			}
+		}
+	}
+
+	if err := SyncTodo2Tasks(projectRoot); err != nil {
+		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
+		return framework.FormatResult(result, "")
+	}
+
+	result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "synced": true}
 
 	return framework.FormatResult(result, "")
 }
@@ -464,19 +623,23 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 // handleTaskWorkflowAddComment adds a comment to a task (result, note, research_with_links, manualsetup).
 // Params: task_id (required), content (required), comment_type (optional, default "result").
 func handleTaskWorkflowAddComment(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, err := RequireParam(params, "task_id")
-	if err != nil {
-		return nil, fmt.Errorf("add_comment: %w", err)
+	taskID := strings.TrimSpace(cast.ToString(params["task_id"]))
+	if taskID == "" {
+		return nil, fmt.Errorf("add_comment requires task_id")
 	}
-	content, err := RequireParam(params, "content")
-	if err != nil {
-		return nil, fmt.Errorf("add_comment: %w", err)
+	content := cast.ToString(params["content"])
+	if content == "" {
+		return nil, fmt.Errorf("add_comment requires content")
 	}
-	commentType, err := ParamEnum(params, "comment_type",
-		[]string{models.CommentTypeResult, models.CommentTypeNote, models.CommentTypeResearch, models.CommentTypeManual},
-		models.CommentTypeResult)
-	if err != nil {
-		return nil, fmt.Errorf("add_comment: %w", err)
+	commentType := strings.TrimSpace(strings.ToLower(cast.ToString(params["comment_type"])))
+	if commentType == "" {
+		commentType = models.CommentTypeResult
+	}
+	switch commentType {
+	case models.CommentTypeResult, models.CommentTypeNote, models.CommentTypeResearch, models.CommentTypeManual:
+		// valid
+	default:
+		return nil, fmt.Errorf("add_comment comment_type must be one of: result, note, research_with_links, manualsetup")
 	}
 
 	store, err := getTaskStore(ctx)

@@ -10,37 +10,36 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
+// RunMigrations runs all pending migrations using findProjectRoot() to locate migration files.
+func RunMigrations() error {
+	return RunMigrationsFromDir("")
+}
+
 // RunMigrationsFromDir runs all pending migrations.
-// When migrationsDirFromConfig is non-empty it must be a valid directory (EXARP_MIGRATIONS_DIR / cfg).
-// When empty, migrations are resolved in order: EXARP_GO_ROOT/migrations, paths next to the binary,
-// project <root>/migrations if present, else built-in embedded SQL from the binary.
-func RunMigrationsFromDir(migrationsDirFromConfig string) error {
+// If migrationsDir is non-empty, migration files are read from that directory.
+// Otherwise findProjectRoot() is used to find project root and migrations are read from <root>/migrations.
+func RunMigrationsFromDir(migrationsDir string) error {
 	if DB == nil {
 		return fmt.Errorf("database not initialized")
 	}
-	dir, useEmbed, _, err := ResolveMigrationsSource(migrationsDirFromConfig)
-	if err != nil {
-		return err
-	}
-	return runPendingMigrations(dir, useEmbed)
-}
 
-func runPendingMigrations(dir string, useEmbed bool) error {
 	// Create schema_migrations table if it doesn't exist
 	if err := createMigrationsTable(); err != nil {
 		return fmt.Errorf("failed to create migrations table: %w", err)
 	}
 
+	// Get list of migration files
 	var migrations []Migration
 
 	var err error
-
-	if useEmbed {
-		migrations, err = getMigrationFilesFromEmbed()
+	if migrationsDir != "" {
+		migrations, err = getMigrationFilesFromDir(migrationsDir)
 	} else {
-		migrations, err = getMigrationFilesFromDir(dir)
+		migrations, err = getMigrationFiles()
 	}
 
 	if err != nil {
@@ -73,6 +72,72 @@ type Migration struct {
 	Filename    string
 	SQL         string
 	Description string
+}
+
+// getMigrationFiles reads all migration files from the migrations directory.
+func getMigrationFiles() ([]Migration, error) {
+	var migrations []Migration
+
+	// Find project root (look for .todo2 directory)
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	migrationsDir := filepath.Join(projectRoot, "migrations")
+
+	if err := os.MkdirAll(migrationsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create migrations directory: %w", err)
+	}
+
+	entries, err := os.ReadDir(migrationsDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read migrations directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+
+		filename := entry.Name()
+
+		parts := strings.SplitN(filename, "_", 2)
+		if len(parts) < 1 {
+			continue
+		}
+
+		version, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue // Skip files that don't start with a number
+		}
+
+		// Read migration SQL
+		migrationPath := filepath.Join(migrationsDir, filename)
+
+		sql, err := os.ReadFile(migrationPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
+		}
+
+		// Extract description from filename
+		description := strings.TrimSuffix(parts[1], ".sql")
+		description = strings.ReplaceAll(description, "_", " ")
+
+		migrations = append(migrations, Migration{
+			Version:     version,
+			Filename:    filename,
+			SQL:         string(sql),
+			Description: description,
+		})
+	}
+
+	// Sort by version
+	sort.Slice(migrations, func(i, j int) bool {
+		return migrations[i].Version < migrations[j].Version
+	})
+
+	return migrations, nil
 }
 
 // getMigrationFilesFromDir reads migration files from the given directory.
@@ -109,7 +174,8 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
 		}
 
-		description := migrationDescriptionFromParts(parts)
+		description := strings.TrimSuffix(parts[1], ".sql")
+		description = strings.ReplaceAll(description, "_", " ")
 		migrations = append(migrations, Migration{
 			Version:     version,
 			Filename:    filename,
@@ -125,13 +191,10 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 	return migrations, nil
 }
 
-func migrationDescriptionFromParts(parts []string) string {
-	if len(parts) < 2 {
-		return ""
-	}
-	description := strings.TrimSuffix(parts[1], ".sql")
-	description = strings.ReplaceAll(description, "_", " ")
-	return description
+// findProjectRoot finds the exarp project root using the canonical resolver.
+// Checks PROJECT_ROOT env first, then walks up from cwd for .exarp/.todo2 markers.
+func findProjectRoot() (string, error) {
+	return projectroot.Find()
 }
 
 // getAppliedMigrations returns a map of applied migration versions.
@@ -163,7 +226,7 @@ func getAppliedMigrations() (map[int]bool, error) {
 // ALTERs (assignee, lock_until) from running. SQLite stops at the first error when
 // Exec runs multiple statements, and a failed Exec can leave the tx unusable.
 func applyMigration(migration Migration) error {
-	runPerStatement := migration.Version == 2 || migration.Version == 3 || migration.Version == 6 || migration.Version == 8 || migration.Version == 11 || migration.Version == 18
+	runPerStatement := migration.Version == 2 || migration.Version == 3 || migration.Version == 6 || migration.Version == 8
 	if runPerStatement {
 		for _, stmt := range splitMigrationSQL(migration.SQL) {
 			_, err := DB.Exec(stmt)

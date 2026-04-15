@@ -1,4 +1,3 @@
-// Package main provides test planning links functionality.
 package main
 
 import (

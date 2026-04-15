@@ -580,20 +580,18 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 
 // BacklogTaskDetail holds task info for execution-order output.
 type BacklogTaskDetail struct {
-	ID           string   `json:"id"`
-	Content      string   `json:"content"`
-	Priority     string   `json:"priority"`
-	PriorityRank int      `json:"priority_rank,omitempty"`
-	Status       string   `json:"status"`
-	Level        int      `json:"level"`
-	Tags         []string `json:"tags,omitempty"`
-	Lane         string   `json:"lane,omitempty"` // ownership.lane from task metadata (execution / focus lane)
+	ID       string   `json:"id"`
+	Content  string   `json:"content"`
+	Priority string   `json:"priority"`
+	Status   string   `json:"status"`
+	Level    int      `json:"level"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
-// IsBacklogStatus returns true if status is Todo, In Progress, Cancelled, or Blocked.
-// These are "open" statuses that are not yet Done or in Review.
+// IsBacklogStatus returns true if status is Todo or In Progress.
 func IsBacklogStatus(status string) bool {
-	return models.IsOpenStatus(NormalizeStatusToTitleCase(status))
+	s := NormalizeStatusToTitleCase(status)
+	return s == models.StatusTodo || s == models.StatusInProgress
 }
 
 // priorityOrderForSort returns sort key for priority (lower = higher priority).
@@ -614,7 +612,7 @@ func priorityOrderForSort(priority string) int {
 }
 
 // BacklogExecutionOrder returns backlog tasks (Todo + In Progress) in dependency order.
-// Uses full task set for graph so levels are correct; sorts backlog by level asc, then priority tier, then priority_rank asc, then ID.
+// Uses full task set for graph so levels are correct; sorts backlog by level asc, then priority, then ID.
 // If backlogFilter is non-nil, only tasks whose ID is in backlogFilter are included in the backlog.
 // Returns ordered IDs, waves (level -> task IDs), and details. If graph has cycles, levels are best-effort.
 func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (orderedIDs []string, waves map[int][]string, details []BacklogTaskDetail, err error) {
@@ -650,7 +648,7 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 
 	levels := GetTaskLevels(tg)
 
-	// Sort backlog by level asc, then priority tier (critical first), then numeric rank, then ID
+	// Sort backlog by level asc, then priority (critical first), then ID
 	sort.Slice(backlog, func(i, j int) bool {
 		li, lj := levels[backlog[i].ID], levels[backlog[j].ID]
 		if li != lj {
@@ -662,11 +660,6 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 
 		if pi != pj {
 			return pi < pj
-		}
-
-		ri, rj := backlog[i].PriorityRank, backlog[j].PriorityRank
-		if ri != rj {
-			return ri < rj
 		}
 
 		return backlog[i].ID < backlog[j].ID
@@ -683,14 +676,12 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 		}
 
 		details = append(details, BacklogTaskDetail{
-			ID:           t.ID,
-			Content:      t.Content,
-			Priority:     t.Priority,
-			PriorityRank: t.PriorityRank,
-			Status:       t.Status,
-			Level:        level,
-			Tags:         tags,
-			Lane:         models.GetTaskLane(&t),
+			ID:       t.ID,
+			Content:  t.Content,
+			Priority: t.Priority,
+			Status:   t.Status,
+			Level:    level,
+			Tags:     tags,
 		})
 	}
 

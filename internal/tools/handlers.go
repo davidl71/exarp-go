@@ -2,17 +2,15 @@
 package tools
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
-	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
@@ -34,7 +32,27 @@ var handleAnalyzeAlignment = WrapHandler(
 // handleGenerateConfig handles the generate_config tool
 // Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go.
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	return handleGenerateConfigNative(ctx, args)
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseGenerateConfigRequest(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = GenerateConfigRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action": "rules",
+		})
+	}
+
+	// Convert params to JSON for native handler (it expects json.RawMessage)
+	argsJSON, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal params: %w", err)
+	}
+
+	return handleGenerateConfigNative(ctx, argsJSON)
 }
 
 // handleHealth handles the health tool.
@@ -91,15 +109,8 @@ var handleAddExternalToolHints = WrapHandler(
 // Uses native Go for all actions (save, recall, search, list) - fully native Go, no Python bridge
 // Note: Basic text search is native; semantic search enhancement can be added later in Go if needed.
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.MemoryRequest { return &proto.MemoryRequest{} })
-	if err != nil {
-		return nil, fmt.Errorf("memory failed: %w", err)
-	}
-
-	params := MemoryRequestToParams(req)
-	applyMemoryRequestDefaults(req, params)
-
-	result, err := handleMemoryDispatch(ctx, params)
+	// Note: handleMemoryNative already handles protobuf parsing, so we just pass args through
+	result, err := handleMemoryNative(ctx, args)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
 	}
@@ -110,45 +121,46 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 // handleMemoryMaint handles the memory_maint tool
 // Uses native Go implementation only (health, gc, prune, consolidate, dream) - fully native Go, no Python fallback.
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.MemoryMaintRequest { return &proto.MemoryMaintRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseMemoryMaintRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := MemoryMaintRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":          "health",
-		"merge_strategy":  "newest",
-		"scope":           "week",
-		"dry_run":         true,
-		"interactive":     true,
-	})
-	return handleMemoryMaintNative(ctx, params)
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = MemoryMaintRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":         "health",
+			"merge_strategy": "newest",
+			"scope":          "week",
+		})
+	}
+
+	// Use native Go implementation only (health, gc, prune, consolidate, dream)
+	return handleMemoryMaintNative(ctx, args)
 }
 
 // handleReport handles the report tool.
 // Fully native Go: overview, scorecard (Go projects only), briefing, prd. No Python bridge fallback.
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.ReportRequest { return &proto.ReportRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseReportRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := ReportRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":          "overview",
-		"output_format":   "text",
-		"include_tasks":   true,
-		"include_hints":   true,
-		"include_metrics": true,
-	})
-
-	action := req.Action
-	if req.ActionEnum != proto.ReportAction_REPORT_ACTION_UNSPECIFIED {
-		if s := reportActionEnumToString(req.ActionEnum); s != "" {
-			action = s
-		}
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = ReportRequestToParams(req)
+		// Set defaults for protobuf request
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":        "overview",
+			"output_format": "text",
+		})
 	}
+
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "overview"
 	}
@@ -161,7 +173,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			return nil, fmt.Errorf("report scorecard: %w", err)
 		}
 
-		if !isGoProjectRoot(projectRoot) {
+		if !IsGoProject() {
 			// Generic scorecard for non-Go projects (C++ / Python / Rust / Go / TypeScript / Swift)
 			pb, errPb := aggregateProjectDataProto(ctx, projectRoot, false)
 			if errPb != nil {
@@ -234,7 +246,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 					}
 					langList = append(langList, map[string]interface{}{
 						"lang":            h.Lang,
-						"lang_root":       h.LangRoot,
+						"lang_root":      h.LangRoot,
 						"score":           h.Score,
 						"build_passes":    h.BuildPasses,
 						"test_passes":     h.TestPasses,
@@ -254,12 +266,8 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 					"languages":        langList,
 				}
 				AddTokenEstimateToResult(out)
-				compact := ParamBool(params, "compact", false)
-				outputPath := ParamOutputPath(params)
-				if err := EnsureParentDir(outputPath); err != nil {
-					return nil, fmt.Errorf("report scorecard (generic): create output dir: %w", err)
-				}
-				return FormatResultOptionalCompact(out, outputPath, compact)
+				compact := cast.ToBool(params["compact"])
+				return FormatResultOptionalCompact(out, "", compact)
 			}
 			text := FormatMultilangScorecard(ctx, projectRoot, pb)
 			return []framework.TextContent{{Type: "text", Text: text}}, nil
@@ -297,11 +305,11 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				}
 			}
 		}
-		// Use proto for type-safe scorecard data (report path)
+		// Use proto for type-safe scorecard data (report/MLX path)
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
 
-		outputFormat := ParamOutputFormat(params, config.ReportDefaultFormat())
+		outputFormat := cast.ToString(params["output_format"])
 		if outputFormat == "json" {
 			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
 			blockers := scorecardProto.GetBlockers()
@@ -313,31 +321,16 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"blockers":         blockers,
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
-				"formatted_text":   FormatGoScorecardWithWisdom(scorecard),
-			}
-			// Add devwisdom quote — gracefully skipped if engine unavailable
-			if engine, err := getWisdomEngine(); err == nil {
-				if quote, err := engine.GetWisdom(scorecard.Score, "random"); err == nil && quote != nil {
-					out["wisdom"] = map[string]string{
-						"quote":         quote.Quote,
-						"source":        quote.Source,
-						"encouragement": quote.Encouragement,
-					}
-				}
 			}
 			AddTokenEstimateToResult(out)
-			compact := ParamBool(params, "compact", false)
-			outputPath := ParamOutputPath(params)
-			if err := EnsureParentDir(outputPath); err != nil {
-				return nil, fmt.Errorf("report scorecard: create output dir: %w", err)
-			}
-			return FormatResultOptionalCompact(out, outputPath, compact)
+			compact := cast.ToBool(params["compact"])
+			return FormatResultOptionalCompact(out, "", compact)
 		}
-		// Optional LLM insight enhancement (FM chain via DefaultReportInsight)
-		enhanced, err := enhanceReportWithAIInsights(ctx, scorecardMap, action)
+		// Use proto-derived map for MLX enhancement
+		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
 		if err == nil && enhanced != nil {
 			if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
-				result := FormatGoScorecardWithAIInsights(scorecard, insights)
+				result := FormatGoScorecardWithMLX(scorecard, insights)
 				wisdomResult := addWisdomToScorecard(result, scorecard)
 
 				return []framework.TextContent{
@@ -364,14 +357,6 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		result, err := handleReportBriefing(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("report briefing: %w", err)
-		}
-
-		return result, nil
-
-	case "execution_briefing":
-		result, err := handleReportExecutionBriefing(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("report execution_briefing: %w", err)
 		}
 
 		return result, nil
@@ -417,28 +402,34 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, execution_briefing, prd, plan, scorecard_plans, parallel_execution_plan, update_waves_from_plan", action)
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan, update_waves_from_plan", action)
+}
+
+// handleScanDependencySecurity runs the multilang dependency security scan (alias for security action=scan).
+// Supports Go, Python, Rust, and Node projects; never returns "only supported for Go projects".
+func handleScanDependencySecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	return handleSecurity(ctx, []byte(`{"action":"scan"}`))
 }
 
 // handleSecurity handles the security tool.
-//
-//nolint:dupl
-//golint:ignore // Intentional duplication - different actions make refactoring complex
 func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.SecurityRequest { return &proto.SecurityRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseSecurityRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := SecurityRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{"action": "report"})
-
-	action := req.Action
-	if req.ActionEnum != proto.SecurityAction_SECURITY_ACTION_UNSPECIFIED {
-		if s := securityActionEnumToString(req.ActionEnum); s != "" {
-			action = s
-		}
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = SecurityRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action": "report",
+			"repo":   "davidl71/exarp-go",
+			"state":  "open",
+		})
 	}
+
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "report"
 	}
@@ -466,51 +457,23 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		}
 
 		return result, nil
-	case "validate_path":
-		result, err := handleSecurityValidatePath(ctx, params)
-		if err != nil {
-			return nil, fmt.Errorf("security validate_path: %w", err)
-		}
-
-		return result, nil
 	}
 
 	return nil, fmt.Errorf("security action %q not supported; supported: scan, alerts, report", action)
 }
 
 // handleTaskAnalysis handles the task_analysis tool (native Go only, no Python fallback).
-// Uses decodeArgsToProto so action_enum / output_format_enum round-trip like task_workflow; merges
-// unknown JSON keys onto params for backward compatibility with extra client fields.
-func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	raw := map[string]interface{}{}
-	trimmed := bytes.TrimSpace(args)
-	if len(trimmed) > 0 && trimmed[0] == '{' {
-		if err := json.Unmarshal(trimmed, &raw); err != nil {
-			return nil, fmt.Errorf("failed to parse arguments: %w", err)
-		}
-	}
-
-	req, err := decodeArgsToProto(args, func() *proto.TaskAnalysisRequest { return &proto.TaskAnalysisRequest{} })
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	params := TaskAnalysisRequestToParams(req)
-	for k, v := range raw {
-		if _, ok := params[k]; !ok {
-			params[k] = v
-		}
-	}
-
-	framework.ApplyDefaults(params, map[string]interface{}{"output_format": "text"})
-
-	result, err := handleTaskAnalysisNative(ctx, params)
-	if err != nil {
-		return nil, &framework.ErrToolFailed{ToolName: "task_analysis", Err: err}
-	}
-
-	return result, nil
-}
+// All actions (duplicates, tags, dependencies, parallelization, hierarchy) use native Go.
+// Hierarchy uses the FM provider abstraction (Apple FM when available; clear error otherwise).
+var handleTaskAnalysis = WrapHandler(
+	"task_analysis",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskAnalysisRequest(args) },
+	func(req any) map[string]interface{} {
+		return TaskAnalysisRequestToParams(req.(*proto.TaskAnalysisRequest))
+	},
+	map[string]interface{}{"output_format": "text"},
+	handleTaskAnalysisNative,
+)
 
 // handleTaskDiscovery handles the task_discovery tool.
 // Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge.
@@ -529,47 +492,37 @@ var handleTaskDiscovery = WrapHandler(
 // handleInferTaskProgress handles the infer_task_progress tool (native Go).
 // Evaluates Todo/In Progress tasks against codebase evidence and infers completion.
 func handleInferTaskProgress(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(args, &raw); err != nil {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	if raw == nil {
-		raw = make(map[string]interface{})
+	if params == nil {
+		params = make(map[string]interface{})
 	}
 
-	req, err := decodeArgsToProto(args, func() *proto.InferTaskProgressRequest { return &proto.InferTaskProgressRequest{} })
-	if err != nil {
-		return nil, err
-	}
-
-	params := mergeInferTaskProgressRequest(raw, req)
 	return handleInferTaskProgressNative(ctx, params)
 }
 
 // handleTaskWorkflow handles the task_workflow tool
 // Uses native Go only. Clarify uses DefaultFMProvider() (FM chain: Apple → Ollama → stub).
 func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTaskWorkflowRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := TaskWorkflowRequestToParams(req)
-	mergeTaskWorkflowZeroPreservingFieldsFromRawJSON(params, args)
-	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":        "sync",
-		"output_format": "text",
-	})
-
-	action := req.Action
-	if req.ActionEnum != proto.TaskWorkflowAction_TASK_WORKFLOW_ACTION_UNSPECIFIED {
-		if s := taskWorkflowActionEnumToString(req.ActionEnum); s != "" {
-			action = s
-		}
-	}
-	if action == "" {
-		action = "sync"
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = TaskWorkflowRequestToParams(req)
+		// Set defaults for protobuf request
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":        "sync",
+			"sub_action":    "list",
+			"output_format": "text",
+			"status":        models.StatusReview,
+		})
 	}
 
 	result, err := handleTaskWorkflowNative(ctx, params)
@@ -577,46 +530,28 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		return nil, err
 	}
 
-	if taskWorkflowActionMutates(action) {
-		MarkTaskResourcesChanged(ctx)
-	}
-
 	return result, nil
-}
-
-func taskWorkflowActionMutates(action string) bool {
-	switch strings.ToLower(strings.TrimSpace(action)) {
-	case "approve", "create", "update", "delete",
-		"cleanup", "clarify", "clarity", "fix_dates",
-		"fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids",
-		"link_planning", "request_approval", "sync_from_plan",
-		"sync_plan_status", "apply_approval_result", "sync_approvals",
-		"run_with_ai", "summarize", "add_comment",
-		"claim", "batch_claim", "release",
-		"start_run", "end_run", "verify", "add_progress", "split", "import_sqlite",
-		"enrich_tool_hints":
-		return true
-	default:
-		return false
-	}
 }
 
 // handleTesting handles the testing tool.
 func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, err := decodeArgsToProto(args, func() *proto.TestingRequest { return &proto.TestingRequest{} })
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTestingRequest(args)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	params := TestingRequestToParams(req)
-	framework.ApplyDefaults(params, map[string]interface{}{"action": "run"})
-
-	action := req.Action
-	if req.ActionEnum != proto.TestingAction_TESTING_ACTION_UNSPECIFIED {
-		if s := testingActionEnumToString(req.ActionEnum); s != "" {
-			action = s
-		}
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = TestingRequestToParams(req)
+		framework.ApplyDefaults(params, map[string]interface{}{
+			"action":         "run",
+			"test_framework": "auto",
+			"format":         "html",
+		})
 	}
+
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "run"
 	}
@@ -647,20 +582,4 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	}
 
 	return nil, fmt.Errorf("testing action %q not supported; supported: run, coverage, validate", action)
-}
-
-// mergeTaskWorkflowZeroPreservingFieldsFromRawJSON copies selected numeric fields from the original
-// JSON tool args into params. ProtobufToParams uses FilterEmptyStrings, which drops zero numbers;
-// priority_rank 0 is valid (earliest within a priority bucket) and must be preserved.
-func mergeTaskWorkflowZeroPreservingFieldsFromRawJSON(params map[string]interface{}, rawArgs json.RawMessage) {
-	if len(params) == 0 || len(bytes.TrimSpace(rawArgs)) == 0 {
-		return
-	}
-	var raw map[string]interface{}
-	if err := json.Unmarshal(rawArgs, &raw); err != nil || raw == nil {
-		return
-	}
-	if v, ok := raw["priority_rank"]; ok && v != nil {
-		params["priority_rank"] = v
-	}
 }

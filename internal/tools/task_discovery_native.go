@@ -52,12 +52,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan comments
 	if action == "comments" || action == "all" {
-		filePatterns := []string{
-			"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx",
-			"**/*.rs", "**/*.java", "**/*.cpp", "**/*.c", "**/*.h", "**/*.hpp",
-			"**/*.toml",
-		}
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
+		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts"}
 
 		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
@@ -71,16 +66,15 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
 
-		commentTasks := scanComments(ctx, projectRoot, filePatterns, ignorePaths, includeFIXME, useAppleFM)
+		commentTasks := scanComments(ctx, projectRoot, filePatterns, includeFIXME, useAppleFM)
 		discoveries = append(discoveries, commentTasks...)
 	}
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 
-		markdownTasks := scanMarkdown(projectRoot, docPath, ignorePaths)
+		markdownTasks := scanMarkdown(projectRoot, docPath)
 		discoveries = append(discoveries, markdownTasks...)
 	}
 
@@ -94,16 +88,15 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	if action == "git_json" || action == "all" {
 		jsonPattern := cast.ToString(params["json_pattern"])
 
-		gitJSONTasks := scanGitJSON(ctx, projectRoot, jsonPattern)
+		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
 	// Scan planning documents for task/epic links
 	if action == "planning_links" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 
-		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, ignorePaths, useAppleFM)
+		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, useAppleFM)
 		discoveries = append(discoveries, planningLinks...)
 	}
 
@@ -160,7 +153,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		result["tasks_created"] = createdTasks
 	}
 
-	// Optionally write result to output_path (default out/task_discovery_report.json when not set)
+	// Optionally write result to output_path (default docs/task_discovery_report.json when not set)
 	outputPath := DefaultReportOutputPath(projectRoot, "task_discovery_report.json", params)
 	fullPath := outputPath
 	if !filepath.IsAbs(fullPath) {
@@ -179,23 +172,18 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 // ─── scanComments ───────────────────────────────────────────────────────────
 // scanComments scans code files for TODO/FIXME comments.
-func scanComments(ctx context.Context, projectRoot string, patterns []string, ignorePaths []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
+func scanComments(ctx context.Context, projectRoot string, patterns []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	// Build regex pattern
 	var todoPattern *regexp.Regexp
 	if includeFIXME {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)(?:\([^)]+\))?[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//)\s*(TODO|FIXME)[\s:]+(.+)`)
 	} else {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO(?:\([^)]+\))?[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//)\s*TODO[\s:]+(.+)`)
 	}
 
-	extMap := map[string]bool{
-		".go": true, ".py": true, ".js": true, ".ts": true, ".tsx": true, ".jsx": true,
-		".rs": true, ".java": true, ".cpp": true, ".c": true, ".h": true, ".hpp": true,
-		".toml": true,
-	}
-
+	// Simple file walking (could be enhanced with glob support)
 	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -203,7 +191,13 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, ig
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			// Skip common ignore directories: vendor, build outputs, archive
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
+				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "target") ||
+				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" {
 				return filepath.SkipDir
 			}
 
@@ -215,13 +209,10 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, ig
 		matched := false
 
 		for _, pattern := range patterns {
-			if strings.Contains(pattern, ext) || pattern == "**/*" || strings.HasSuffix(pattern, ext) {
+			if strings.Contains(pattern, ext) || pattern == "**/*" {
 				matched = true
 				break
 			}
-		}
-		if !matched && extMap[ext] {
-			matched = true
 		}
 
 		if !matched {
@@ -248,12 +239,6 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, ig
 				} else if len(matches) > 1 {
 					taskText = strings.TrimSpace(matches[1])
 				}
-
-				taskText = strings.TrimPrefix(taskText, "//")
-				taskText = strings.TrimPrefix(taskText, "#")
-				taskText = strings.TrimPrefix(taskText, "/*")
-				taskText = strings.TrimSuffix(taskText, "*/")
-				taskText = strings.TrimSpace(taskText)
 
 				// Extract hashtag-style tags from the comment
 				tags, cleanText := extractTagsFromText(taskText)
@@ -317,7 +302,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, ig
 
 // ─── scanMarkdown ───────────────────────────────────────────────────────────
 // scanMarkdown scans markdown files for task lists.
-func scanMarkdown(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
+func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -333,7 +318,8 @@ func scanMarkdown(projectRoot string, docPath string, ignorePaths []string) []ma
 		}
 
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 
@@ -400,7 +386,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 		taskMap[task.ID] = true
 	}
 
-	cycles, missing, err := GetDependencyAnalysisFromTasksWithStore(ctx, store, tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
 	if err != nil {
 		return orphans
 	}
@@ -445,9 +431,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 		}
 
 		if parentID != "" && !taskMap[parentID] {
-			if _, perr := store.GetTask(ctx, parentID); perr != nil {
-				issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
-			}
+			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
 		}
 
 		if len(task.Dependencies) > 0 && len(task.Tags) == 0 && task.Priority == "" {

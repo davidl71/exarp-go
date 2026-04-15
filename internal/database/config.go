@@ -21,9 +21,9 @@ type Config struct {
 	// AutoMigrate determines if migrations should run automatically
 	AutoMigrate bool
 
-	// MigrationsDir is the optional override (e.g. EXARP_MIGRATIONS_DIR): must exist and contain
-	// numbered *.sql files. When empty, ResolveMigrationsSource uses EXARP_GO_ROOT/migrations,
-	// paths next to the binary, projectroot/migrations if present, else built-in embedded SQL.
+	// MigrationsDir overrides the directory used to find migration files.
+	// When set, migrations are loaded from this path instead of findProjectRoot()/migrations.
+	// Used by tests when the DB is in a temp dir that has no migrations.
 	MigrationsDir string
 }
 
@@ -73,6 +73,22 @@ func LoadConfig(projectRoot string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// GetDefaultDSN returns the default DSN for a driver type.
+func GetDefaultDSN(driver DriverType, projectRoot string) string {
+	switch driver {
+	case DriverSQLite:
+		return filepath.Join(projectRoot, ".todo2", "todo2.db")
+	case DriverMySQL:
+		return "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
+	case DriverPostgres:
+		return "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
+	case DriverRqlite:
+		return "http://localhost:4001"
+	default:
+		return ""
+	}
 }
 
 // DatabaseConfigFields holds the database configuration fields from centralized config

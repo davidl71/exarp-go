@@ -27,11 +27,6 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 	testPath := "./..."
 	if path := cast.ToString(params["test_path"]); path != "" {
 		testPath = path
-
-		// Validate path against MCP Roots if available
-		if _, err := ValidatePathAgainstMCPRoots(ctx, testPath); err != nil {
-			return nil, fmt.Errorf("path validation failed: %w", err)
-		}
 	}
 
 	verbose := true
@@ -44,28 +39,11 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 		coverage = cast.ToBool(params["coverage"])
 	}
 
-	// Determine framework: use param if specified, otherwise auto-detect
-	testFramework := cast.ToString(params["framework"])
-	if testFramework == "" || testFramework == "auto" {
-		testFramework = detectTestFramework(projectRoot)
+	if !IsGoProject() {
+		return nil, fmt.Errorf("testing run is only supported for Go projects (go.mod)")
 	}
 
-	var result string
-	switch testFramework {
-	case "go":
-		result, err = runGoTests(ctx, projectRoot, testPath, verbose, coverage)
-	case "python":
-		result, err = runPyTests(ctx, projectRoot, testPath, verbose)
-	case "rust":
-		result, err = runCargoTests(ctx, projectRoot, testPath, verbose)
-	case "node":
-		result, err = runNpmTests(ctx, projectRoot, verbose)
-	case "":
-		return nil, fmt.Errorf("testing run: cannot detect project framework (no go.mod, pyproject.toml, Cargo.toml, or package.json found)")
-	default:
-		return nil, fmt.Errorf("testing run: unsupported framework %q (supported: go, python, rust, node)", testFramework)
-	}
-
+	result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
 	if err != nil {
 		return nil, fmt.Errorf("testing run: %w", err)
 	}
@@ -95,46 +73,18 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		format = f
 	}
 
-	// Determine framework: use param if specified, otherwise auto-detect
-	testFramework := cast.ToString(params["framework"])
-	if testFramework == "" || testFramework == "auto" {
-		testFramework = detectTestFramework(projectRoot)
+	if !IsGoProject() {
+		return nil, fmt.Errorf("testing coverage is only supported for Go projects (go.mod)")
 	}
 
-	switch testFramework {
-	case "go":
-		result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
-		if err != nil {
-			return nil, fmt.Errorf("testing coverage: %w", err)
-		}
-		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
-		return framework.FormatResult(TestingResponseToMap(resp), "")
-	case "python":
-		result, err := analyzePyCoverage(ctx, projectRoot, minCoverage, format)
-		if err != nil {
-			return nil, fmt.Errorf("testing coverage: %w", err)
-		}
-		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
-		return framework.FormatResult(TestingResponseToMap(resp), "")
-	case "rust":
-		result, err := analyzeRustCoverage(ctx, projectRoot, minCoverage, format)
-		if err != nil {
-			return nil, fmt.Errorf("testing coverage: %w", err)
-		}
-		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
-		return framework.FormatResult(TestingResponseToMap(resp), "")
-	case "node":
-		result, err := analyzeNodeCoverage(ctx, projectRoot, minCoverage, format)
-		if err != nil {
-			return nil, fmt.Errorf("testing coverage: %w", err)
-		}
-		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
-		return framework.FormatResult(TestingResponseToMap(resp), "")
-	case "":
-		return nil, fmt.Errorf("testing coverage: cannot detect project framework")
-	default:
-		return nil, fmt.Errorf("testing coverage: unsupported framework %q (supported: go, python, rust, node)", testFramework)
+	result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
+	if err != nil {
+		return nil, fmt.Errorf("testing coverage: %w", err)
 	}
+
+	resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+
+	return framework.FormatResult(TestingResponseToMap(resp), "")
 }
 
 // handleTestingValidate handles the validate action for testing tool.
@@ -149,26 +99,20 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 		testPath = path
 	}
 
-	// Determine framework: use param if specified, otherwise auto-detect
-	testFramework := cast.ToString(params["framework"])
-	if testFramework == "" || testFramework == "auto" {
-		testFramework = detectTestFramework(projectRoot)
+	testFramework := "auto"
+	if f := cast.ToString(params["framework"]); f != "" {
+		testFramework = f
 	}
 
-	var result string
-	switch testFramework {
-	case "go":
-		result, err = validateGoTests(projectRoot, testPath)
-	case "python":
-		result, err = validatePyTests(projectRoot, testPath)
-	case "rust":
-		result, err = validateCargoTests(projectRoot, testPath)
-	case "":
-		return nil, fmt.Errorf("testing validate: cannot detect project framework")
-	default:
-		return nil, fmt.Errorf("testing validate: unsupported framework %q", testFramework)
+	if !IsGoProject() {
+		if testFramework == "go" {
+			return nil, fmt.Errorf("testing validate framework=go requires a Go project (go.mod)")
+		}
+
+		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod)")
 	}
 
+	result, err := validateGoTests(projectRoot, testPath)
 	if err != nil {
 		return nil, fmt.Errorf("testing validate: %w", err)
 	}
@@ -304,32 +248,28 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 	return string(jsonResult), nil
 }
 
-// walkTestFiles walks searchPath and returns all files where match(path, base) is true.
-func walkTestFiles(searchPath string, match func(path, base string) bool) ([]string, error) {
-	var files []string
-	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+// validateGoTests validates Go test structure.
+func validateGoTests(projectRoot, testPath string) (string, error) {
+	issues := []string{}
+
+	// Check for test files
+	testFiles := []string{}
+
+	err := filepath.Walk(filepath.Join(projectRoot, testPath), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
-		if !info.IsDir() && match(path, filepath.Base(path)) {
-			files = append(files, path)
+
+		if !info.IsDir() && strings.HasSuffix(path, "_test.go") {
+			testFiles = append(testFiles, path)
 		}
+
 		return nil
 	})
-	return files, err
-}
-
-// validateGoTests validates Go test structure.
-func validateGoTests(projectRoot, testPath string) (string, error) {
-	testFiles, err := walkTestFiles(
-		filepath.Join(projectRoot, testPath),
-		func(path, _ string) bool { return strings.HasSuffix(path, "_test.go") },
-	)
 	if err != nil {
 		return "", fmt.Errorf("failed to walk test path: %w", err)
 	}
 
-	var issues []string
 	if len(testFiles) == 0 {
 		issues = append(issues, "No test files found")
 	}
@@ -340,7 +280,9 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		if err != nil {
 			continue
 		}
-		if !strings.Contains(string(data), "func Test") {
+
+		content := string(data)
+		if !strings.Contains(content, "func Test") {
 			issues = append(issues, fmt.Sprintf("No test functions in %s", testFile))
 		}
 	}
@@ -351,233 +293,10 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		"issues":     issues,
 		"test_path":  testPath,
 	}
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// validatePyTests validates Python test structure (pytest).
-func validatePyTests(projectRoot, testPath string) (string, error) {
-	searchPath := projectRoot
-	if testPath != "" && testPath != "./..." {
-		searchPath = filepath.Join(projectRoot, testPath)
-	}
-
-	testFiles, err := walkTestFiles(searchPath, func(_, base string) bool {
-		return strings.HasPrefix(base, "test_") || strings.HasSuffix(base, "_test.py")
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to walk test path: %w", err)
-	}
-
-	var issues []string
-	if len(testFiles) == 0 {
-		issues = append(issues, "No pytest test files found (looked for test_*.py and *_test.py)")
-	}
-
-	result := map[string]interface{}{
-		"valid":      len(issues) == 0,
-		"test_files": len(testFiles),
-		"issues":     issues,
-		"test_path":  testPath,
-		"framework":  "python",
-	}
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// validateCargoTests validates Rust test structure (cargo test).
-func validateCargoTests(projectRoot, testPath string) (string, error) {
-	searchPath := projectRoot
-	if testPath != "" && testPath != "./..." {
-		searchPath = filepath.Join(projectRoot, testPath)
-	}
-
-	testFiles, err := walkTestFiles(searchPath, func(path, _ string) bool {
-		return strings.HasSuffix(path, ".rs")
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to walk test path: %w", err)
-	}
-
-	var issues []string
-	if len(testFiles) == 0 {
-		issues = append(issues, "No Rust source files found")
-	}
-
-	result := map[string]interface{}{
-		"valid":      len(issues) == 0,
-		"test_files": len(testFiles),
-		"issues":     issues,
-		"test_path":  testPath,
-		"framework":  "rust",
-	}
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// analyzePyCoverage runs pytest with coverage.py and returns a coverage result JSON.
-// Requires pytest-cov: pip install pytest-cov. Falls back to plain coverage report if available.
-func analyzePyCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
-	args := []string{"-m", "pytest", "--cov=.", "--cov-report=term-missing"}
-	if format == "html" {
-		args = append(args, "--cov-report=html:coverage_html")
-	}
-
-	cmd := exec.CommandContext(ctx, "python", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-	outputStr := string(output)
-
-	coveragePercent := parsePyCoveragePercent(outputStr)
-
-	result := map[string]interface{}{
-		"framework":        "python",
-		"coverage_percent": coveragePercent,
-		"min_coverage":     minCoverage,
-		"meets_threshold":  coveragePercent >= float64(minCoverage),
-		"format":           format,
-		"output":           outputStr,
-	}
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-	if format == "html" {
-		result["html_dir"] = filepath.Join(projectRoot, "coverage_html")
-	}
 
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
 	return string(jsonResult), nil
-}
-
-// parsePyCoveragePercent extracts the total coverage percentage from pytest-cov / coverage.py output.
-// Looks for "TOTAL ... X%" at the end of the summary table.
-func parsePyCoveragePercent(output string) float64 {
-	for _, line := range strings.Split(output, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) >= 2 && fields[0] == "TOTAL" {
-			// Last field is "XX%" when pytest-cov summary is present
-			last := fields[len(fields)-1]
-			if strings.HasSuffix(last, "%") {
-				if pct, err := parseFloat(strings.TrimSuffix(last, "%")); err == nil {
-					return pct
-				}
-			}
-		}
-	}
-	return 0
-}
-
-// analyzeRustCoverage runs cargo tarpaulin and returns a coverage result JSON.
-// Requires: cargo install cargo-tarpaulin
-func analyzeRustCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
-	args := []string{"tarpaulin", "--out", "Stdout"}
-	if format == "html" {
-		args = append(args, "--out", "Html")
-	}
-
-	cmd := exec.CommandContext(ctx, "cargo", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-	outputStr := string(output)
-
-	coveragePercent := parseRustCoveragePercent(outputStr)
-
-	result := map[string]interface{}{
-		"framework":        "rust",
-		"coverage_percent": coveragePercent,
-		"min_coverage":     minCoverage,
-		"meets_threshold":  coveragePercent >= float64(minCoverage),
-		"format":           format,
-		"output":           outputStr,
-	}
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-	if format == "html" {
-		result["html_file"] = filepath.Join(projectRoot, "tarpaulin-report.html")
-	}
-
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// parseRustCoveragePercent extracts the total coverage from cargo tarpaulin output.
-// Tarpaulin prints a line like: "XX.XX% coverage, ..."
-func parseRustCoveragePercent(output string) float64 {
-	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		if idx := strings.Index(line, "% coverage"); idx > 0 {
-			start := strings.LastIndex(line[:idx], " ")
-			if start < 0 {
-				start = 0
-			} else {
-				start++
-			}
-			if pct, err := parseFloat(line[start:idx]); err == nil {
-				return pct
-			}
-		}
-	}
-	return 0
-}
-
-// analyzeNodeCoverage runs jest with --coverage and returns a coverage result JSON.
-// Uses npx jest so it works whether jest is installed locally or globally.
-func analyzeNodeCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
-	args := []string{"jest", "--coverage", "--coverageReporters=text"}
-	if format == "html" {
-		args = append(args, "--coverageReporters=html")
-	}
-
-	cmd := exec.CommandContext(ctx, "npx", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-	outputStr := string(output)
-
-	coveragePercent := parseNodeCoveragePercent(outputStr)
-
-	result := map[string]interface{}{
-		"framework":        "node",
-		"coverage_percent": coveragePercent,
-		"min_coverage":     minCoverage,
-		"meets_threshold":  coveragePercent >= float64(minCoverage),
-		"format":           format,
-		"output":           outputStr,
-	}
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-	if format == "html" {
-		result["html_dir"] = filepath.Join(projectRoot, "coverage")
-	}
-
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// parseNodeCoveragePercent extracts the "All files" statements coverage from jest text output.
-// Jest prints a table: "All files | XX | ..." — we take the Statements column (index 1).
-func parseNodeCoveragePercent(output string) float64 {
-	for _, line := range strings.Split(output, "\n") {
-		if strings.Contains(line, "All files") {
-			parts := strings.Split(line, "|")
-			if len(parts) >= 2 {
-				if pct, err := parseFloat(strings.TrimSpace(parts[1])); err == nil {
-					return pct
-				}
-			}
-		}
-	}
-	return 0
 }
 
 // parseFloat is a simple float parser helper.
@@ -587,109 +306,4 @@ func parseFloat(s string) (float64, error) {
 	_, err := fmt.Sscanf(s, "%f", &f)
 
 	return f, err
-}
-
-// detectTestFramework returns the detected test framework based on project markers.
-// Returns "go", "python", "rust", "node", or "" if none detected.
-func detectTestFramework(projectRoot string) string {
-	if DetectGoProject(projectRoot) {
-		return "go"
-	}
-	if DetectPythonProject(projectRoot) {
-		return "python"
-	}
-	if DetectRustProject(projectRoot) {
-		return "rust"
-	}
-	if DetectTypeScriptProject(projectRoot) {
-		return "node"
-	}
-	return ""
-}
-
-// runPyTests runs Python tests using pytest.
-func runPyTests(ctx context.Context, projectRoot, testPath string, verbose bool) (string, error) {
-	args := []string{"-m", "pytest"}
-	if verbose {
-		args = append(args, "-v")
-	}
-	if testPath != "" && testPath != "./..." {
-		args = append(args, testPath)
-	}
-
-	cmd := exec.CommandContext(ctx, "python", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-
-	result := map[string]interface{}{
-		"framework":  "python",
-		"test_path":  testPath,
-		"output":     string(output),
-		"returncode": 0,
-	}
-
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// runCargoTests runs Rust tests using cargo test.
-func runCargoTests(ctx context.Context, projectRoot, testPath string, verbose bool) (string, error) {
-	args := []string{"test"}
-	if verbose {
-		args = append(args, "-v")
-	}
-	if testPath != "" && testPath != "./..." {
-		args = append(args, "--", testPath)
-	}
-
-	cmd := exec.CommandContext(ctx, "cargo", args...)
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-
-	result := map[string]interface{}{
-		"framework":  "rust",
-		"test_path":  testPath,
-		"output":     string(output),
-		"returncode": 0,
-	}
-
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
-}
-
-// runNpmTests runs Node.js tests using npm test.
-func runNpmTests(ctx context.Context, projectRoot string, verbose bool) (string, error) {
-	cmd := exec.CommandContext(ctx, "npm", "test", "--if-present")
-	cmd.Dir = projectRoot
-	output, err := cmd.CombinedOutput()
-
-	result := map[string]interface{}{
-		"framework":  "node",
-		"output":     string(output),
-		"returncode": 0,
-	}
-
-	if err != nil {
-		exitErr := &exec.ExitError{}
-		if errors.As(err, &exitErr) {
-			result["returncode"] = exitErr.ExitCode()
-		}
-	}
-
-	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-	return string(jsonResult), nil
 }

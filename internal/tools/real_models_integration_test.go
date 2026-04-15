@@ -1,4 +1,4 @@
-// Integration tests that call real LLM backends (FM, Ollama) when available.
+// Integration tests that call real LLM backends (FM, Ollama, MLX) when available.
 // Skip with: go test -short ./internal/tools/...
 // Run with: go test -run RealModels ./internal/tools/... (omit -short)
 package tools
@@ -31,6 +31,8 @@ func isConnectionRefused(err error) bool {
 	return strings.Contains(err.Error(), "connection refused")
 }
 
+const realModelsTimeoutSeconds = 60
+
 func TestRealModels_TextGenerate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test with real models in short mode")
@@ -40,7 +42,7 @@ func TestRealModels_TextGenerate(t *testing.T) {
 
 	gen := DefaultFMProvider()
 	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available (FM/Ollama)")
+		t.Skip("no real model backend available (FM/Ollama/MLX)")
 	}
 
 	text, err := gen.Generate(ctx, "Reply with exactly the word OK and nothing else.", 10, 0)
@@ -96,7 +98,7 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 
 	gen := DefaultFMProvider()
 	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available (FM/Ollama)")
+		t.Skip("no real model backend available (FM/Ollama/MLX)")
 	}
 
 	ctx := context.Background()
@@ -106,16 +108,11 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
-	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
-		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
 
-	defer func() {
-		_ = database.Close()
-		sessionTestDBMu.Unlock()
-	}()
+	defer func() { _ = database.Close() }()
 
 	task := &database.Todo2Task{
 		Content:         "Add a comment to main.go",

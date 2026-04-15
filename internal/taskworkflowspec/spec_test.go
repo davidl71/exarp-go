@@ -1,9 +1,6 @@
 package taskworkflowspec
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
 
 func containsAllFlags(specs []FieldSpec, flags []string) bool {
 	set := map[string]bool{}
@@ -24,7 +21,6 @@ func TestCreateFieldSpecsExposeExpectedCLIFlags(t *testing.T) {
 	expected := []string{
 		"description",
 		"priority",
-		"priority-rank",
 		"tags",
 		"dependencies",
 		"local-ai-backend",
@@ -42,7 +38,6 @@ func TestUpdateFieldSpecsExposeExpectedCLIFlags(t *testing.T) {
 	expected := []string{
 		"new-status",
 		"new-priority",
-		"priority-rank",
 		"tags",
 		"remove-tags",
 		"name",
@@ -81,7 +76,6 @@ func TestAppendTaskFieldSchemaPropertiesIncludesSharedFields(t *testing.T) {
 		"action",
 		"new_status",
 		"priority",
-		"priority_rank",
 		"dependencies",
 		"parent_id",
 		"planning_doc",
@@ -100,7 +94,6 @@ func TestTaskCreateInputToToolArgs(t *testing.T) {
 		Name:            "Task A",
 		LongDescription: OptionalString{Set: true, Value: "details"},
 		Priority:        OptionalString{Set: true, Value: "high"},
-		PriorityRank:    OptionalInt{Set: true, Value: 7},
 		Tags:            OptionalList{Set: true, Values: []string{"docs", "mcp"}},
 		Dependencies:    OptionalList{Set: true, Values: []string{"T-1", "T-2"}},
 		PlanningDoc:     OptionalString{Set: true, Value: "docs/plan.md"},
@@ -113,22 +106,14 @@ func TestTaskCreateInputToToolArgs(t *testing.T) {
 	if got := args["action"]; got != "create" {
 		t.Fatalf("action = %v, want create", got)
 	}
-	wantDeps := []string{"T-1", "T-2"}
-	if got, ok := args["dependencies"].([]string); !ok || !reflect.DeepEqual(got, wantDeps) {
-		t.Fatalf("dependencies = %v (%T), want %#v as []string", args["dependencies"], args["dependencies"], wantDeps)
-	}
-	wantTags := []string{"docs", "mcp"}
-	if got, ok := args["tags"].([]string); !ok || !reflect.DeepEqual(got, wantTags) {
-		t.Fatalf("tags = %v (%T), want %#v as []string", args["tags"], args["tags"], wantTags)
+	if got := args["dependencies"]; got != "T-1,T-2" {
+		t.Fatalf("dependencies = %v, want T-1,T-2", got)
 	}
 	if got := args["parent_id"]; got != "T-50" {
 		t.Fatalf("parent_id = %v, want T-50", got)
 	}
 	if got := args["epic_id"]; got != "T-100" {
 		t.Fatalf("epic_id = %v, want T-100", got)
-	}
-	if got := args["priority_rank"]; got != 7 {
-		t.Fatalf("priority_rank = %v, want 7", got)
 	}
 }
 
@@ -137,7 +122,6 @@ func TestTaskUpdateInputToToolArgs(t *testing.T) {
 		TaskIDs:         []string{"T-1", "T-2"},
 		NewStatus:       OptionalString{Set: true, Value: "Done"},
 		Priority:        OptionalString{Set: true, Value: "low"},
-		PriorityRank:    OptionalInt{Set: true, Value: 3},
 		Tags:            OptionalList{Set: true, Values: []string{"docs"}},
 		RemoveTags:      OptionalList{Set: true, Values: []string{"old"}},
 		Dependencies:    OptionalList{Set: true, Values: []string{"T-9"}},
@@ -155,22 +139,10 @@ func TestTaskUpdateInputToToolArgs(t *testing.T) {
 	if got := args["new_status"]; got != "Done" {
 		t.Fatalf("new_status = %v, want Done", got)
 	}
-	wantDeps := []string{"T-9"}
-	if got, ok := args["dependencies"].([]string); !ok || !reflect.DeepEqual(got, wantDeps) {
-		t.Fatalf("dependencies = %v (%T), want %#v as []string", args["dependencies"], args["dependencies"], wantDeps)
-	}
-	wantTags := []string{"docs"}
-	if got, ok := args["tags"].([]string); !ok || !reflect.DeepEqual(got, wantTags) {
-		t.Fatalf("tags = %v (%T), want %#v as []string", args["tags"], args["tags"], wantTags)
-	}
-	wantRemove := []string{"old"}
-	if got, ok := args["remove_tags"].([]string); !ok || !reflect.DeepEqual(got, wantRemove) {
-		t.Fatalf("remove_tags = %v (%T), want %#v as []string", args["remove_tags"], args["remove_tags"], wantRemove)
+	if got := args["dependencies"]; got != "T-9" {
+		t.Fatalf("dependencies = %v, want T-9", got)
 	}
 	if got := args["parent_id"]; got != "T-10" {
 		t.Fatalf("parent_id = %v, want T-10", got)
-	}
-	if got := args["priority_rank"]; got != 3 {
-		t.Fatalf("priority_rank = %v, want 3", got)
 	}
 }

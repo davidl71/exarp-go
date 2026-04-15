@@ -48,10 +48,6 @@ func TestHandleToolCatalogNative(t *testing.T) {
 				if help["category"] == nil {
 					t.Error("expected category field in result")
 				}
-
-				if help["class"] != "primary" {
-					t.Errorf("expected class 'primary', got %v", help["class"])
-				}
 			},
 		},
 		{
@@ -193,19 +189,19 @@ func TestGetToolCatalog(t *testing.T) {
 	}
 }
 
-func TestGetToolCatalog_TextGenerateMentionsGateway(t *testing.T) {
+func TestGetToolCatalog_TextGenerateMentionsGatewayAndLlamacpp(t *testing.T) {
 	catalog := GetToolCatalog()
 	entry, exists := catalog["text_generate"]
 	if !exists {
 		t.Fatal("text_generate missing from catalog")
 	}
 
-	if !strings.Contains(entry.Hint, "gateway") {
-		t.Fatalf("text_generate hint = %q, want gateway", entry.Hint)
+	if !strings.Contains(entry.Hint, "gateway") || !strings.Contains(entry.Hint, "llamacpp") {
+		t.Fatalf("text_generate hint = %q, want gateway and llamacpp", entry.Hint)
 	}
 
-	if !strings.Contains(entry.Description, "gateway") {
-		t.Fatalf("text_generate description = %q, want gateway", entry.Description)
+	if !strings.Contains(entry.Description, "gateway") || !strings.Contains(entry.Description, "llama.cpp") {
+		t.Fatalf("text_generate description = %q, want gateway and llama.cpp", entry.Description)
 	}
 }
 
@@ -222,60 +218,5 @@ func TestGetToolCatalog_TestingDocumentsGoSpecificFlows(t *testing.T) {
 
 	if !strings.Contains(entry.Description, "Go test/coverage/validation") {
 		t.Fatalf("testing description = %q, want Go-specific execution note", entry.Description)
-	}
-}
-
-func TestGetToolCatalog_ClassificationsAndAliases(t *testing.T) {
-	catalog := GetToolCatalog()
-
-	primary, exists := catalog["task_workflow"]
-	if !exists {
-		t.Fatal("task_workflow missing from catalog")
-	}
-	if primary.Class != "primary" {
-		t.Fatalf("task_workflow class = %q, want primary", primary.Class)
-	}
-	if len(primary.Aliases) == 0 {
-		t.Fatal("task_workflow aliases missing from catalog")
-	}
-
-	specialist, exists := catalog["ollama"]
-	if !exists {
-		t.Fatal("ollama missing from catalog")
-	}
-	if specialist.Class != "specialist" {
-		t.Fatalf("ollama class = %q, want specialist", specialist.Class)
-	}
-
-	alias, exists := catalog["task_execute"]
-	if !exists {
-		t.Fatal("task_execute missing from catalog")
-	}
-	if alias.Class != "alias" {
-		t.Fatalf("task_execute class = %q, want alias", alias.Class)
-	}
-	if alias.PreferredTool != "task_workflow" {
-		t.Fatalf("task_execute preferred_tool = %q, want task_workflow", alias.PreferredTool)
-	}
-
-	toolCatalog, exists := catalog["tool_catalog"]
-	if !exists {
-		t.Fatal("tool_catalog missing from catalog")
-	}
-	if len(toolCatalog.Aliases) == 0 {
-		t.Fatal("tool_catalog aliases missing from catalog")
-	}
-
-	for _, aliasName := range []string{"task_runs", "task_verify", "task_progress", "task_claim", "ready_tasks", "execution_briefing", "active_work"} {
-		entry, exists := catalog[aliasName]
-		if !exists {
-			t.Fatalf("%s missing from catalog", aliasName)
-		}
-		if entry.Class != "alias" {
-			t.Fatalf("%s class = %q, want alias", aliasName, entry.Class)
-		}
-		if entry.PreferredTool == "" {
-			t.Fatalf("%s preferred_tool missing", aliasName)
-		}
 	}
 }

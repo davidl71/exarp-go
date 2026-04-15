@@ -8,16 +8,15 @@ import (
 func projectToProtobuf(p *ProjectConfig) *configpb.ProjectConfig {
 	return ptrToProto(p, func(p *ProjectConfig) *configpb.ProjectConfig {
 		return &configpb.ProjectConfig{
-			Name:                     p.Name,
-			Type:                     p.Type,
-			Language:                 p.Language,
-			Root:                     p.Root,
-			Todo2Path:                p.Todo2Path,
-			ExarpPath:                p.ExarpPath,
-			Features:                 featuresToProtobuf(&p.Features),
-			SkipChecks:               p.SkipChecks,
-			CustomTools:              p.CustomTools,
-			TaskDiscoveryIgnorePaths: p.TaskDiscoveryIgnorePaths,
+			Name:        p.Name,
+			Type:        p.Type,
+			Language:    p.Language,
+			Root:        p.Root,
+			Todo2Path:   p.Todo2Path,
+			ExarpPath:   p.ExarpPath,
+			Features:    featuresToProtobuf(&p.Features),
+			SkipChecks:  p.SkipChecks,
+			CustomTools: p.CustomTools,
 		}
 	})
 }
@@ -27,16 +26,15 @@ func projectFromProtobuf(pb *configpb.ProjectConfig) ProjectConfig {
 		return ProjectConfig{}
 	}
 	return ProjectConfig{
-		Name:                     pb.GetName(),
-		Type:                     pb.GetType(),
-		Language:                 pb.GetLanguage(),
-		Root:                     pb.GetRoot(),
-		Todo2Path:                pb.GetTodo2Path(),
-		ExarpPath:                pb.GetExarpPath(),
-		Features:                 featuresFromProtobuf(pb.GetFeatures()),
-		SkipChecks:               pb.GetSkipChecks(),
-		CustomTools:              pb.GetCustomTools(),
-		TaskDiscoveryIgnorePaths: pb.GetTaskDiscoveryIgnorePaths(),
+		Name:        pb.GetName(),
+		Type:        pb.GetType(),
+		Language:    pb.GetLanguage(),
+		Root:        pb.GetRoot(),
+		Todo2Path:   pb.GetTodo2Path(),
+		ExarpPath:   pb.GetExarpPath(),
+		Features:    featuresFromProtobuf(pb.GetFeatures()),
+		SkipChecks:  pb.GetSkipChecks(),
+		CustomTools: pb.GetCustomTools(),
 	}
 }
 

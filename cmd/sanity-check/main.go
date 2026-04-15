@@ -16,16 +16,13 @@ import (
 )
 
 // Expected counts
-// Tools = 36 (RegisterAllTools; Apple FM is via text_generate / helpers, not a separate MCP tool)
+// Tools = 36 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 37 on Mac Silicon
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
-// Resources = 60 (44 RegisterResource + 16 RegisterResourceTemplate):
-// config(2) + scorecard + memories(6) + prompts(4) + session(2) + server + models + cursor/skills(2) + agent/skills(2) + tools(4) + tasks(10) + suggested-tasks + active-work + task-runs + agent/card + prime/context = 36 resources
-// + agent/briefing + codex/briefing + agent/alerts + codex/alerts + agent/task/{id}/execution-pack + codex/task/{id}/execution-pack = 6 new resources → 44 total static
-// + 16 templates (memories/category, memories/task, memories/session, prompts/mode, prompts/persona, prompts/category, tools/{category}, tasks/{task_id}, tasks/status, tasks/priority, tasks/tag, task-runs/{task_id}, agent/skills/{name}, agent/task/{task_id}/execution-pack, codex/task/{task_id}/execution-pack, + 1 more)
+// Resources = 24 (scorecard, memories, prompts, session/mode, session/status, server/status, models, cursor/skills, tools, tasks).
 const (
-	ExpectedTools     = 36
-	ExpectedPrompts   = 36
-	ExpectedResources = 60
+	EXPECTED_TOOLS     = 37 // Base tools (38 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	EXPECTED_PROMPTS   = 36
+	EXPECTED_RESOURCES = 24
 )
 
 // Counting wrapper to track registrations.
@@ -49,14 +46,6 @@ func (c *countingServer) RegisterPrompt(name, description string, handler framew
 func (c *countingServer) RegisterResource(uri, name, description, mimeType string, handler framework.ResourceHandler) error {
 	c.resourceCount++
 	return c.MCPServer.RegisterResource(uri, name, description, mimeType, handler)
-}
-
-func (c *countingServer) RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
-	c.resourceCount++
-	if registrar, ok := c.MCPServer.(framework.ResourceTemplateRegistrar); ok {
-		return registrar.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
-	}
-	return nil
 }
 
 func main() {
@@ -99,33 +88,34 @@ func main() {
 	fmt.Println("=== MCP Server Sanity Check ===")
 	fmt.Println()
 
+	// Tools (allow +1 for conditional Apple Foundation Models tool)
 	toolCount := server.toolCount
-	toolMatch := toolCount == ExpectedTools
+	toolMatch := toolCount == EXPECTED_TOOLS || toolCount == EXPECTED_TOOLS+1
 
 	if toolMatch {
-		fmt.Printf("✅ Tools: %d/%d\n", toolCount, ExpectedTools)
+		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, EXPECTED_TOOLS, EXPECTED_TOOLS+1)
 	} else {
-		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, ExpectedTools)
+		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, EXPECTED_TOOLS)
 	}
 
 	// Prompts
 	promptCount := server.promptCount
-	promptMatch := promptCount == ExpectedPrompts
+	promptMatch := promptCount == EXPECTED_PROMPTS
 
 	if promptMatch {
-		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, ExpectedPrompts)
+		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, EXPECTED_PROMPTS)
 	} else {
-		fmt.Printf("❌ Prompts: %d/%d (MISMATCH)\n", promptCount, ExpectedPrompts)
+		fmt.Printf("❌ Prompts: %d/%d (MISMATCH)\n", promptCount, EXPECTED_PROMPTS)
 	}
 
 	// Resources
 	resourceCount := server.resourceCount
-	resourceMatch := resourceCount == ExpectedResources
+	resourceMatch := resourceCount == EXPECTED_RESOURCES
 
 	if resourceMatch {
-		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, ExpectedResources)
+		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, EXPECTED_RESOURCES)
 	} else {
-		fmt.Printf("❌ Resources: %d/%d (MISMATCH)\n", resourceCount, ExpectedResources)
+		fmt.Printf("❌ Resources: %d/%d (MISMATCH)\n", resourceCount, EXPECTED_RESOURCES)
 	}
 
 	// Summary
@@ -136,24 +126,25 @@ func main() {
 		fmt.Println()
 		fmt.Printf("Summary: %d tools, %d prompts, %d resources\n", toolCount, promptCount, resourceCount)
 		os.Exit(0)
-	}
-	fmt.Println("❌ Count mismatches detected!")
-	fmt.Println()
+	} else {
+		fmt.Println("❌ Count mismatches detected!")
+		fmt.Println()
 
-	if !toolMatch {
-		fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
-			ExpectedTools, toolCount, toolCount-ExpectedTools)
-	}
+		if !toolMatch {
+			fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_TOOLS, toolCount, toolCount-EXPECTED_TOOLS)
+		}
 
-	if !promptMatch {
-		fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
-			ExpectedPrompts, promptCount, promptCount-ExpectedPrompts)
-	}
+		if !promptMatch {
+			fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_PROMPTS, promptCount, promptCount-EXPECTED_PROMPTS)
+		}
 
-	if !resourceMatch {
-		fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
-			ExpectedResources, resourceCount, resourceCount-ExpectedResources)
-	}
+		if !resourceMatch {
+			fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_RESOURCES, resourceCount, resourceCount-EXPECTED_RESOURCES)
+		}
 
-	os.Exit(1)
+		os.Exit(1)
+	}
 }

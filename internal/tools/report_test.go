@@ -3,16 +3,10 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/proto"
 )
 
@@ -223,30 +217,6 @@ func TestHandleReportPlan(t *testing.T) {
 	}
 }
 
-func TestGetCodebaseMetrics_UsesCurrentRegistryCounts(t *testing.T) {
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
-		t.Fatalf("write main.go: %v", err)
-	}
-
-	metrics, err := getCodebaseMetrics(tmpDir)
-	if err != nil {
-		t.Fatalf("getCodebaseMetrics() error = %v", err)
-	}
-
-	if got := metrics["tools"]; got != ExpectedToolCountBase {
-		t.Fatalf("tools = %v, want %d", got, ExpectedToolCountBase)
-	}
-
-	if got := metrics["prompts"]; got != len(prompts.ListAllPromptNames()) {
-		t.Fatalf("prompts = %v, want %d", got, len(prompts.ListAllPromptNames()))
-	}
-
-	if got := metrics["resources"]; got != 27 {
-		t.Fatalf("resources = %v, want 27", got)
-	}
-}
-
 func TestHandleReport(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)
@@ -315,118 +285,6 @@ func TestHandleReport(t *testing.T) {
 	}
 }
 
-func TestHandleReportExecutionBriefingIncludesAgentRoleOrchestration(t *testing.T) {
-	cleanup := initSessionTestDB(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	tasks := []*models.Todo2Task{
-		{
-			ID:       "T-4200001",
-			Content:  "Planning slice",
-			Status:   models.StatusTodo,
-			Priority: "high",
-			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRolePlanner},
-		},
-		{
-			ID:       "T-4200002",
-			Content:  "Implementation slice",
-			Status:   models.StatusTodo,
-			Priority: "high",
-			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRoleWorker},
-		},
-		{
-			ID:       "T-4200003",
-			Content:  "Review slice",
-			Status:   models.StatusTodo,
-			Priority: "medium",
-			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRoleReviewer},
-		},
-	}
-	for _, task := range tasks {
-		if err := database.CreateTask(ctx, task); err != nil {
-			t.Fatalf("CreateTask(%s): %v", task.ID, err)
-		}
-	}
-
-	if _, err := database.ClaimTaskForAgent(ctx, "T-4200002", "worker-agent", 30*time.Minute); err != nil {
-		t.Fatalf("ClaimTaskForAgent: %v", err)
-	}
-	run := &database.TaskExecutionRun{
-		TaskID:  "T-4200002",
-		AgentID: "worker-agent",
-		Host:    "test-host",
-		Status:  "running",
-		Summary: "Implementing worker slice",
-	}
-	if err := database.StartTaskExecutionRun(ctx, run); err != nil {
-		t.Fatalf("StartTaskExecutionRun: %v", err)
-	}
-
-	result, err := handleReportExecutionBriefing(ctx, map[string]interface{}{
-		"action":  "execution_briefing",
-		"limit":   10,
-		"compact": true,
-	})
-	if err != nil {
-		t.Fatalf("handleReportExecutionBriefing: %v", err)
-	}
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
-	}
-
-	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(result[0].Text), &payload); err != nil {
-		t.Fatalf("unmarshal result: %v", err)
-	}
-
-	summary, ok := payload["agent_role_summary"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("expected agent_role_summary, got %T", payload["agent_role_summary"])
-	}
-	if got := summary["dominant_role"]; got != AgentRolePlanner && got != AgentRoleWorker && got != AgentRoleReviewer {
-		t.Fatalf("unexpected dominant_role: %v", got)
-	}
-	distribution, ok := summary["distribution"].(map[string]interface{})
-	if !ok || len(distribution) == 0 {
-		t.Fatalf("expected distribution in agent_role_summary, got %v", summary["distribution"])
-	}
-	if distribution[AgentRolePlanner] == nil {
-		t.Fatalf("expected planner in distribution, got %v", distribution)
-	}
-
-	lanes, ok := payload["orchestration_lanes"].([]interface{})
-	if !ok || len(lanes) == 0 {
-		t.Fatalf("expected orchestration_lanes, got %v", payload["orchestration_lanes"])
-	}
-
-	foundWorkerLane := false
-	for _, laneRaw := range lanes {
-		lane, ok := laneRaw.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if lane["role"] != AgentRoleWorker {
-			continue
-		}
-		foundWorkerLane = true
-		if lane["active_claim_count"] != float64(1) {
-			t.Fatalf("worker active_claim_count = %v, want 1", lane["active_claim_count"])
-		}
-		if lane["active_run_count"] != float64(1) {
-			t.Fatalf("worker active_run_count = %v, want 1", lane["active_run_count"])
-		}
-	}
-	if !foundWorkerLane {
-		t.Fatalf("worker lane not found in %v", lanes)
-	}
-
-	suggestions, ok := payload["delegation_suggestions"].([]interface{})
-	if !ok || len(suggestions) == 0 {
-		t.Fatalf("expected delegation_suggestions, got %v", payload["delegation_suggestions"])
-	}
-}
-
 // TestAggregateProjectDataProto verifies proto-based overview aggregation (step 1).
 func TestAggregateProjectDataProto(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -449,51 +307,6 @@ func TestAggregateProjectDataProto(t *testing.T) {
 
 	if pb.Project == nil && pb.Tasks == nil && pb.Codebase == nil {
 		t.Error("expected at least one of project, tasks, or codebase to be set")
-	}
-}
-
-func TestAggregateProjectDataProto_UsesExplicitProjectRootForGoDetection(t *testing.T) {
-	outerRoot := t.TempDir()
-	t.Setenv("PROJECT_ROOT", outerRoot)
-
-	goRoot := t.TempDir()
-	if err := os.WriteFile(filepath.Join(goRoot, "go.mod"), []byte("module example.com/test\n\ngo 1.24\n"), 0644); err != nil {
-		t.Fatalf("WriteFile(go.mod) error = %v", err)
-	}
-
-	pb, err := aggregateProjectDataProto(context.Background(), goRoot, false)
-	if err != nil {
-		t.Fatalf("aggregateProjectDataProto() error = %v", err)
-	}
-	if pb.Health == nil && (pb.Project == nil || !strings.Contains(pb.Project.Description, "Health warning:")) {
-		t.Fatalf("expected Go-root health attempt based on explicit project root, got %#v", pb)
-	}
-}
-
-func TestHandleReportScorecardJSON_WritesOutputPath(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("PROJECT_ROOT", tmpDir)
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\n\ngo 1.24\n"), 0644); err != nil {
-		t.Fatalf("WriteFile(go.mod) error = %v", err)
-	}
-	outputPath := filepath.Join(tmpDir, "out", "scorecard.json")
-
-	argsJSON, _ := json.Marshal(map[string]interface{}{
-		"action":        "scorecard",
-		"output_format": "json",
-		"output_path":   outputPath,
-		"fast_mode":     true,
-	})
-
-	result, err := handleReport(context.Background(), argsJSON)
-	if err != nil {
-		t.Fatalf("handleReport() error = %v", err)
-	}
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
-	}
-	if _, err := os.Stat(outputPath); err != nil {
-		t.Fatalf("expected scorecard output file at %s: %v", outputPath, err)
 	}
 }
 

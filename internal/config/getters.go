@@ -9,6 +9,7 @@ import (
 
 var (
 	globalConfig *FullConfig
+	configOnce   sync.Once
 	configMu     sync.RWMutex
 )
 
@@ -174,21 +175,6 @@ func WorkflowDefaultMode() string {
 	return GetGlobalConfig().Workflow.DefaultMode
 }
 
-// WorkflowToolLimit returns the configured per-tool concurrency limit (0 = no limit).
-// This is used by the tool semaphore middleware in internal/factory.
-func WorkflowToolLimit() int {
-	cfg := GetGlobalConfig()
-	mode := cfg.Workflow.DefaultMode
-	if mode == "" {
-		mode = "default"
-	}
-	if m, ok := cfg.Workflow.Modes[mode]; ok {
-		return m.ToolLimit
-	}
-	// Fallback: no limit when mode not found.
-	return 0
-}
-
 // MemoryCategories returns the valid memory categories from config.
 func MemoryCategories() []string {
 	cfg := GetGlobalConfig()
@@ -207,18 +193,6 @@ func MemoryStoragePath() string {
 	}
 
 	return path
-}
-
-// ReportDefaultFormat returns the default output format for the report tool.
-// Env EXARP_REPORT_FORMAT overrides config (e.g. "json", "text", "markdown").
-func ReportDefaultFormat() string {
-	if s := os.Getenv("EXARP_REPORT_FORMAT"); s != "" {
-		return s
-	}
-	if f := GetGlobalConfig().Tools.Report.DefaultFormat; f != "" {
-		return f
-	}
-	return "json"
 }
 
 // GetOllamaDefaultModel returns the Ollama default model (env OLLAMA_DEFAULT_MODEL overrides config).

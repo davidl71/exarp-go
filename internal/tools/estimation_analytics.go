@@ -447,7 +447,7 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 			priority = models.PriorityMedium
 		}
 
-		res, err := estimateStatistically(context.Background(), projectRoot, task.Content, details, task.Tags, priority, useHistorical)
+		res, err := estimateStatistically(projectRoot, task.Content, details, task.Tags, priority, useHistorical)
 		if err != nil {
 			estimates = append(estimates, map[string]interface{}{
 				"task_id":        task.ID,

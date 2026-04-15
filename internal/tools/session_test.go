@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/database"
@@ -17,23 +16,16 @@ import (
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
-// sessionTestDBMu serializes tests that use the process-global database handle (database.Init / GetDB).
-// Without this, parallel tests can redirect global DB between Init and CRUD and break isolation.
-var sessionTestDBMu sync.Mutex
-
 // initSessionTestDB creates a temp dir with .todo2, inits the database, sets PROJECT_ROOT, and returns a cleanup func.
 // Use for tests that need task/assignee (handleSessionAssignee, handleSessionNative assignee/prime).
 func initSessionTestDB(t *testing.T) (cleanup func()) {
 	t.Helper()
-	sessionTestDBMu.Lock()
 	dir := t.TempDir()
 	todo2 := filepath.Join(dir, ".todo2")
 	if err := os.MkdirAll(todo2, 0755); err != nil {
-		sessionTestDBMu.Unlock()
 		t.Fatalf("mkdir .todo2: %v", err)
 	}
 	if err := database.Init(dir); err != nil {
-		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
 	oldRoot := os.Getenv("PROJECT_ROOT")
@@ -41,7 +33,6 @@ func initSessionTestDB(t *testing.T) (cleanup func()) {
 	return func() {
 		os.Setenv("PROJECT_ROOT", oldRoot)
 		_ = database.Close()
-		sessionTestDBMu.Unlock()
 	}
 }
 
@@ -191,7 +182,7 @@ func TestHandleSessionAssignee(t *testing.T) {
 				}
 
 				if method, ok := data["method"].(string); !ok || method != "native_go" {
-					t.Skipf("TODO: method value changed from native_go (got %q); update expectation when session assignee logic is settled", method)
+					t.Error("expected method=native_go")
 				}
 			},
 		},
@@ -435,89 +426,6 @@ func TestHandleSessionNative(t *testing.T) {
 	}
 }
 
-func TestHandleSessionPrimeIncludesRecommendedToolsInSuggestedNext(t *testing.T) {
-	cleanup := initSessionTestDB(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		t.Fatalf("FindProjectRoot: %v", err)
-	}
-	task := &database.Todo2Task{
-		ID:              "T-session-recommended-1",
-		Content:         "Prime should expose recommended tools",
-		LongDescription: "Session prime regression test",
-		Status:          "Todo",
-		Priority:        "high",
-		ProjectID:       filepath.Base(projectRoot),
-		Metadata: map[string]interface{}{
-			MetadataKeyRecommendedTools: []interface{}{"task_workflow", "report"},
-		},
-	}
-	if err := database.CreateTask(ctx, task); err != nil {
-		t.Fatalf("CreateTask: %v", err)
-	}
-
-	result, err := handleSessionNative(ctx, map[string]interface{}{
-		"action":        "prime",
-		"include_tasks": true,
-	})
-	if err != nil {
-		t.Fatalf("handleSessionNative: %v", err)
-	}
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-		t.Fatalf("invalid JSON result: %v", err)
-	}
-
-	suggested, ok := data["suggested_next"].([]interface{})
-	if !ok || len(suggested) == 0 {
-		t.Fatalf("expected suggested_next entries, got %v", data["suggested_next"])
-	}
-
-	found := false
-	for _, item := range suggested {
-		m, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if m["id"] != task.ID {
-			continue
-		}
-		tools, ok := m["recommended_tools"].([]interface{})
-		if !ok {
-			t.Fatalf("expected recommended_tools array for task %s, got %T", task.ID, m["recommended_tools"])
-		}
-		if len(tools) != 2 || tools[0] != "task_workflow" || tools[1] != "report" {
-			t.Fatalf("recommended_tools = %v, want [task_workflow report]", tools)
-		}
-		lazyContext, ok := m["lazy_context"].(map[string]interface{})
-		if !ok {
-			t.Fatalf("expected lazy_context object for task %s, got %T", task.ID, m["lazy_context"])
-		}
-		if lazyContext["task_resource_uri"] != "stdio://tasks/"+task.ID {
-			t.Fatalf("task_resource_uri = %v, want %s", lazyContext["task_resource_uri"], "stdio://tasks/"+task.ID)
-		}
-		skillURIs, ok := lazyContext["skill_resource_uris"].([]interface{})
-		if !ok || len(skillURIs) == 0 {
-			t.Fatalf("expected skill_resource_uris for task %s, got %v", task.ID, lazyContext["skill_resource_uris"])
-		}
-		if skillURIs[0] != "stdio://cursor/skills/use-exarp-tools" {
-			t.Fatalf("first skill_resource_uri = %v, want stdio://cursor/skills/use-exarp-tools", skillURIs[0])
-		}
-		found = true
-		break
-	}
-	if !found {
-		t.Fatalf("task %s not found in suggested_next: %v", task.ID, suggested)
-	}
-}
-
 func TestBuildSuggestedNextAction(t *testing.T) {
 	tests := []struct {
 		name string
@@ -737,11 +645,10 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	ctx := context.Background()
 	// Create one task so snapshot has content
 	task := &database.Todo2Task{
-		ID:        "T-session-test-1",
-		Content:   "Session handoff test task",
-		Status:    "Todo",
-		Priority:  "medium",
-		ProjectID: filepath.Base(os.Getenv("PROJECT_ROOT")),
+		ID:       "T-session-test-1",
+		Content:  "Session handoff test task",
+		Status:   "Todo",
+		Priority: "medium",
 	}
 	if err := database.CreateTask(ctx, task); err != nil {
 		t.Fatalf("CreateTask: %v", err)
@@ -784,11 +691,6 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	if cnt, ok := handoff["point_in_time_snapshot_task_count"].(float64); !ok || int(cnt) != 1 {
 		t.Errorf("handoff point_in_time_snapshot_task_count = %v, want 1", handoff["point_in_time_snapshot_task_count"])
 	}
-	if ledgerPath, ok := handoff["continuity_ledger_path"].(string); !ok || ledgerPath == "" {
-		t.Errorf("handoff missing continuity_ledger_path: %v", handoff["continuity_ledger_path"])
-	} else if _, err := os.Stat(ledgerPath); err != nil {
-		t.Errorf("continuity ledger not written: %v", err)
-	}
 
 	// Decode snapshot and verify we get our task back
 	encoded, _ := handoff["point_in_time_snapshot"].(string)
@@ -806,59 +708,4 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	if len(tasks) > 0 && tasks[0].Content != "Session handoff test task" {
 		t.Errorf("decoded task content = %q", tasks[0].Content)
 	}
-}
-
-func TestSessionResumeIncludesLatestLedger(t *testing.T) {
-	cleanup := initSessionTestDB(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	params := map[string]interface{}{
-		"action":     "handoff",
-		"sub_action": "end",
-		"summary":    "Resume ledger test",
-		"next_steps": []interface{}{"Pick up the next execution slice"},
-	}
-	if _, err := handleSessionNative(ctx, params); err != nil {
-		t.Fatalf("handleSessionNative handoff end: %v", err)
-	}
-
-	result, err := handleSessionNative(ctx, map[string]interface{}{
-		"action":     "handoff",
-		"sub_action": "resume",
-	})
-	if err != nil {
-		t.Fatalf("handleSessionNative handoff resume: %v", err)
-	}
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-		t.Fatalf("invalid JSON result: %v", err)
-	}
-	latestLedger, ok := data["latest_ledger"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("resume result missing latest_ledger: %v", data["latest_ledger"])
-	}
-	if path, ok := latestLedger["path"].(string); !ok || path == "" {
-		t.Fatalf("latest_ledger.path = %v, want non-empty", latestLedger["path"])
-	}
-	if excerpt, ok := latestLedger["excerpt"].(string); !ok || excerpt == "" {
-		t.Fatalf("latest_ledger.excerpt = %v, want non-empty", latestLedger["excerpt"])
-	}
-}
-
-func TestSessionHandoffInferredWhenOnlySubActionSet(t *testing.T) {
-	cleanup := initSessionTestDB(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	if _, err := handleSessionNative(ctx, map[string]interface{}{
-		"sub_action": "resume",
-	}); err != nil {
-		t.Fatalf("handleSessionNative sub_action only: %v", err)
-	}
-	// No has_handoff error path: empty store is ok
 }

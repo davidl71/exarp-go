@@ -7,12 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // dbOrFileStore implements database.TaskStore with DB-first, JSON-file fallback.
-// When SQLite is available, ordinary CRUD writes go to the database only.
-// Full SQLite<->JSON reconciliation is intentionally reserved for explicit sync/repair actions.
 type dbOrFileStore struct {
 	projectRoot string
 }
@@ -47,10 +44,12 @@ func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task
 		return fmt.Errorf("task and task.ID are required")
 	}
 
-	models.SetContentHash(task)
-
 	if db, err := database.GetDB(); err == nil && db != nil {
-		return database.UpdateTask(ctx, task)
+		if err := database.UpdateTask(ctx, task); err != nil {
+			return err
+		}
+
+		return SyncTodo2Tasks(s.projectRoot)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
@@ -75,15 +74,10 @@ func (s *dbOrFileStore) ListTasks(ctx context.Context, filters *database.TaskFil
 	}
 	// Default list to current project so multiple projects using the same DB don't clobber each other.
 	if filters == nil {
-		filters = &database.TaskFilters{ProjectID: &projectID, IncludeNullProjectID: true}
+		filters = &database.TaskFilters{ProjectID: &projectID}
 	} else if filters.ProjectID == nil {
 		f2 := *filters
 		f2.ProjectID = &projectID
-		f2.IncludeNullProjectID = true
-		filters = &f2
-	} else if *filters.ProjectID == projectID && !filters.IncludeNullProjectID {
-		f2 := *filters
-		f2.IncludeNullProjectID = true
 		filters = &f2
 	}
 
@@ -111,8 +105,6 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 			task.ProjectID = "default"
 		}
 	}
-
-	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.CreateTask(ctx, task)
@@ -190,28 +182,15 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 			continue
 		}
 
-		if filters.StatusEnum != nil && filters.Status == nil && t.StatusEnum != *filters.StatusEnum {
-			continue
-		}
-
 		if filters.Priority != nil && t.Priority != *filters.Priority {
 			continue
 		}
 
-		if filters.PriorityEnum != nil && filters.Priority == nil && t.PriorityEnum != *filters.PriorityEnum {
-			continue
-		}
-
 		if filters.Tag != nil {
-			normalizedFilter, ok := models.NormalizeTag(*filters.Tag)
-			if !ok {
-				// A malformed filter tag can't match anything.
-				continue
-			}
 			found := false
 
 			for _, tag := range t.Tags {
-				if normalizedTag, ok := models.NormalizeTag(tag); ok && normalizedTag == normalizedFilter {
+				if tag == *filters.Tag {
 					found = true
 					break
 				}
@@ -222,14 +201,8 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 			}
 		}
 
-		if filters.ProjectID != nil {
-			if filters.IncludeNullProjectID {
-				if t.ProjectID != "" && t.ProjectID != *filters.ProjectID {
-					continue
-				}
-			} else if t.ProjectID != *filters.ProjectID {
-				continue
-			}
+		if filters.ProjectID != nil && t.ProjectID != *filters.ProjectID {
+			continue
 		}
 
 		out = append(out, t)

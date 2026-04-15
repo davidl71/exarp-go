@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
+	"strings"
 
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
@@ -18,9 +16,6 @@ import (
 
 var reportOverviewFlight singleflight.Group
 
-// Mutable by design: singleflight maintains internal state to deduplicate
-// concurrent overview computations within a process.
-
 // handleReportOverview handles the overview action for report tool.
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
@@ -28,8 +23,10 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	outputFormat := config.ReportDefaultFormat()
-	outputFormat = ParamOutputFormat(params, outputFormat)
+	outputFormat := "text"
+	if format := strings.TrimSpace(cast.ToString(params["output_format"])); format != "" {
+		outputFormat = format
+	}
 
 	outputPath := DefaultReportOutputPath(projectRoot, "PROJECT_OVERVIEW.md", params)
 	includePlanning := cast.ToBool(params["include_planning"])
@@ -50,7 +47,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
 		AddTokenEstimateToResult(overviewMap)
-		compact := ParamBool(params, "compact", false)
+		compact := cast.ToBool(params["compact"])
 		contents, err := FormatResultOptionalCompact(overviewMap, outputPath, compact)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format JSON: %w", err)
@@ -87,9 +84,14 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 // handleReportBriefing handles the briefing action for report tool.
 // Uses proto internally (BuildBriefingDataProto) for type-safe briefing data.
 func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	score := 50.0
-	if sc, ok := ParamFloat64OK(params, "score"); ok {
+	var score float64
+
+	if sc, ok := params["score"].(float64); ok {
 		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	} else {
+		score = 50.0 // Default score
 	}
 
 	if score < 0 {
@@ -109,63 +111,6 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	AddTokenEstimateToResult(briefingMap)
 	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(briefingMap, "", compact)
-}
-
-func handleReportExecutionBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	activeLocks, err := database.GetActiveLocks(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load active claims: %w", err)
-	}
-	activeRuns, err := database.ListTaskExecutionRuns(ctx, "", "running", cast.ToInt(params["limit"]))
-	if err != nil {
-		return nil, fmt.Errorf("failed to load active runs: %w", err)
-	}
-	expiredThreshold := 10 * time.Minute
-	expiredClaims := make([]map[string]interface{}, 0)
-	activeClaimMaps := make([]map[string]interface{}, 0, len(activeLocks))
-	for _, lock := range activeLocks {
-		m := lockToMap(lock)
-		activeClaimMaps = append(activeClaimMaps, m)
-		if lock.IsExpired || lock.TimeRemaining < 0 {
-			expiredClaims = append(expiredClaims, m)
-		}
-	}
-	runMaps := make([]map[string]interface{}, 0, len(activeRuns))
-	staleRuns := make([]map[string]interface{}, 0)
-	for i := range activeRuns {
-		runMap := runToMap(&activeRuns[i])
-		runMaps = append(runMaps, runMap)
-		if time.Since(activeRuns[i].StartedAt) > expiredThreshold {
-			staleRuns = append(staleRuns, runMap)
-		}
-	}
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-	result := map[string]interface{}{
-		"active_claims": activeClaimMaps,
-		"active_runs":   runMaps,
-		"summary": map[string]interface{}{
-			"active_claim_count": len(activeClaimMaps),
-			"active_run_count":   len(runMaps),
-			"stale_run_count":    len(staleRuns),
-		},
-	}
-	if orchestration, err := BuildExecutionOrchestrationSummary(ctx, projectRoot, activeLocks, activeRuns); err == nil {
-		for key, value := range orchestration {
-			result[key] = value
-		}
-	}
-	if len(staleRuns) > 0 {
-		result["stale_runs"] = staleRuns
-	}
-	if len(expiredClaims) > 0 {
-		result["expired_claims"] = expiredClaims
-	}
-	AddTokenEstimateToResult(result)
-	compact := cast.ToBool(params["compact"])
-	return FormatResultOptionalCompact(result, "", compact)
 }
 
 // handleReportPRD handles the prd action for report tool.

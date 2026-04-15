@@ -7,116 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-func TestHandleHealthDatabase(t *testing.T) {
-	cleanup := initSessionTestDB(t)
-	defer cleanup()
-
-	ctx := context.Background()
-
-	task := &database.Todo2Task{
-		ID:       "T-health-db-1",
-		Content:  "Database maintenance health test",
-		Status:   "Todo",
-		Priority: "medium",
-	}
-	if err := database.CreateTask(ctx, task); err != nil {
-		t.Fatalf("database.CreateTask: %v", err)
-	}
-
-	tests := []struct {
-		name      string
-		params    map[string]interface{}
-		wantError bool
-		validate  func(*testing.T, map[string]interface{})
-	}{
-		{
-			name: "status",
-			params: map[string]interface{}{
-				"action":    "database",
-				"operation": "status",
-			},
-			validate: func(t *testing.T, data map[string]interface{}) {
-				if success, ok := data["success"].(bool); !ok || !success {
-					t.Fatalf("expected success=true, got %v", data["success"])
-				}
-				dbInfo, ok := data["database"].(map[string]interface{})
-				if !ok {
-					t.Fatalf("expected database map, got %T", data["database"])
-				}
-				if driver, _ := dbInfo["driver"].(string); driver != "sqlite" {
-					t.Fatalf("expected driver=sqlite, got %v", dbInfo["driver"])
-				}
-				if _, ok := dbInfo["page_count"]; !ok {
-					t.Fatal("expected page_count in database status")
-				}
-			},
-		},
-		{
-			name: "checkpoint",
-			params: map[string]interface{}{
-				"action":          "database",
-				"operation":       "checkpoint",
-				"checkpoint_mode": "PASSIVE",
-			},
-			validate: func(t *testing.T, data map[string]interface{}) {
-				checkpoint, ok := data["checkpoint"].(map[string]interface{})
-				if !ok {
-					t.Fatalf("expected checkpoint map, got %T", data["checkpoint"])
-				}
-				if mode, _ := checkpoint["mode"].(string); mode != "PASSIVE" {
-					t.Fatalf("expected checkpoint mode PASSIVE, got %v", checkpoint["mode"])
-				}
-			},
-		},
-		{
-			name: "analyze",
-			params: map[string]interface{}{
-				"action":    "database",
-				"operation": "analyze",
-			},
-			validate: func(t *testing.T, data map[string]interface{}) {
-				if msg, _ := data["message"].(string); msg != "ANALYZE completed" {
-					t.Fatalf("expected analyze completion message, got %v", data["message"])
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := handleHealthDatabase(ctx, tt.params)
-			if (err != nil) != tt.wantError {
-				t.Fatalf("handleHealthDatabase() error = %v, wantError %v", err, tt.wantError)
-			}
-			if err != nil {
-				return
-			}
-			if len(result) == 0 {
-				t.Fatal("expected non-empty result")
-			}
-
-			var data map[string]interface{}
-			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-				t.Fatalf("invalid JSON: %v", err)
-			}
-
-			if tt.validate != nil {
-				tt.validate(t, data)
-			}
-		})
-	}
-}
-
 func TestHandleHealthDocs(t *testing.T) {
 	tmpDir := t.TempDir()
-	readmePath := filepath.Join(tmpDir, "README.md")
-	if err := os.WriteFile(readmePath, []byte("# Test Project\n"), 0644); err != nil {
-		t.Fatalf("failed to create README: %v", err)
-	}
 	// Create a test project structure
 	docsDir := filepath.Join(tmpDir, "docs")
 	if err := os.MkdirAll(docsDir, 0755); err != nil {
@@ -124,25 +19,8 @@ func TestHandleHealthDocs(t *testing.T) {
 	}
 	// Create a test markdown file
 	testDoc := filepath.Join(docsDir, "test.md")
-	if err := os.WriteFile(testDoc, []byte("# Test Document\n\nSee [Missing](missing.md).\nOld path: /Users/davidl/Projects/exarp-go"), 0644); err != nil {
+	if err := os.WriteFile(testDoc, []byte("# Test Document\n\nContent here."), 0644); err != nil {
 		t.Fatalf("failed to create test doc: %v", err)
-	}
-	nestedDir := filepath.Join(docsDir, "guides")
-	if err := os.MkdirAll(nestedDir, 0755); err != nil {
-		t.Fatalf("failed to create nested docs directory: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(nestedDir, "nested.md"), []byte("# Nested\n"), 0644); err != nil {
-		t.Fatalf("failed to create nested doc: %v", err)
-	}
-	archiveDir := filepath.Join(docsDir, "archive")
-	if err := os.MkdirAll(archiveDir, 0755); err != nil {
-		t.Fatalf("failed to create archive docs directory: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(archiveDir, "archived.md"), []byte("# Archived\n"), 0644); err != nil {
-		t.Fatalf("failed to create archive doc: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(docsDir, "DOCUMENTATION_HEALTH_REPORT.md"), []byte("# Generated\n"), 0644); err != nil {
-		t.Fatalf("failed to create generated report doc: %v", err)
 	}
 
 	tests := []struct {
@@ -169,37 +47,13 @@ func TestHandleHealthDocs(t *testing.T) {
 					return
 				}
 
-				if status, ok := data["status"].(string); !ok || status != "completed" {
-					t.Fatalf("expected status=completed, got %v", data["status"])
+				if success, ok := data["success"].(bool); ok && success {
+					return
 				}
-				if scanMode, ok := data["scan_mode"].(string); !ok || scanMode != "recursive" {
-					t.Fatalf("expected scan_mode=recursive, got %v", data["scan_mode"])
+				if status, ok := data["status"].(string); ok && status == "completed" {
+					return
 				}
-				checks, ok := data["checks"].(map[string]interface{})
-				if !ok {
-					t.Fatalf("expected checks map, got %T", data["checks"])
-				}
-				if got := int(checks["docs_file_count"].(float64)); got != 4 {
-					t.Fatalf("docs_file_count = %d, want 4", got)
-				}
-				if got := int(checks["live_docs_count"].(float64)); got != 2 {
-					t.Fatalf("live_docs_count = %d, want 2", got)
-				}
-				if got := int(checks["archive_docs_count"].(float64)); got != 1 {
-					t.Fatalf("archive_docs_count = %d, want 1", got)
-				}
-				if got := int(checks["generated_docs_count"].(float64)); got != 1 {
-					t.Fatalf("generated_docs_count = %d, want 1", got)
-				}
-				if got := int(checks["stale_path_matches"].(float64)); got != 1 {
-					t.Fatalf("stale_path_matches = %d, want 1", got)
-				}
-				if got := int(checks["missing_reference_count"].(float64)); got != 1 {
-					t.Fatalf("missing_reference_count = %d, want 1", got)
-				}
-				if score := data["health_score"].(float64); score >= 100 {
-					t.Fatalf("health_score = %v, want degraded score", score)
-				}
+				t.Error("expected success=true or status=completed")
 			},
 		},
 		{
@@ -215,38 +69,7 @@ func TestHandleHealthDocs(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
-				if got, _ := data["changed_files"].(string); got != "docs/test.md" {
-					t.Fatalf("changed_files = %q, want docs/test.md", got)
-				}
-			},
-		},
-		{
-			name: "writes report file",
-			params: map[string]interface{}{
-				"action":      "docs",
-				"output_path": "out/docs-health.md",
-			},
-			wantError: false,
-			validate: func(t *testing.T, result []framework.TextContent) {
-				var data map[string]interface{}
-				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-					t.Errorf("invalid JSON: %v", err)
-					return
-				}
-				reportPath, _ := data["report_path"].(string)
-				if reportPath == "" {
-					t.Fatal("expected report_path")
-				}
-				raw, err := os.ReadFile(reportPath)
-				if err != nil {
-					t.Fatalf("expected report file: %v", err)
-				}
-				if !filepath.IsAbs(reportPath) {
-					t.Fatalf("report_path should be absolute, got %q", reportPath)
-				}
-				if len(raw) == 0 {
-					t.Fatal("expected non-empty report file")
-				}
+				// Should have checked the changed file
 			},
 		},
 	}

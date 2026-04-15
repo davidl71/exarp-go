@@ -5,13 +5,12 @@ package tools
 import (
 	"context"
 	"fmt"
-	"os"
-	"sort"
-	"strings"
-
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/spf13/cast"
+	"os"
+	"strings"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -30,6 +29,73 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 	dryRun := false
 	if _, has := params["dry_run"]; has {
 		dryRun = cast.ToBool(params["dry_run"])
+	}
+
+	if db, err := database.GetDB(); err == nil && db != nil {
+		tasks, err := database.ListTasks(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+
+		var toUpdate []*models.Todo2Task
+
+		for _, task := range tasks {
+			if strings.TrimSpace(task.LongDescription) == "" && task.Content != "" {
+				t := *task
+				t.LongDescription = task.Content
+				toUpdate = append(toUpdate, &t)
+			}
+		}
+
+		if dryRun {
+			ids := make([]string, len(toUpdate))
+			for i, t := range toUpdate {
+				ids[i] = t.ID
+			}
+
+			result := map[string]interface{}{
+				"success":       true,
+				"method":        "database",
+				"dry_run":       true,
+				"tasks_updated": len(toUpdate),
+				"task_ids":      ids,
+			}
+
+			return framework.FormatResult(result, "")
+		}
+
+		updatedIDs := []string{}
+
+		for _, task := range toUpdate {
+			if err := database.UpdateTask(ctx, task); err == nil {
+				updatedIDs = append(updatedIDs, task.ID)
+			}
+		}
+
+		var syncErr error
+
+		if len(updatedIDs) > 0 {
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after fix_dates failed: %v\n", syncErr)
+				}
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "database",
+			"tasks_updated": len(updatedIDs),
+			"task_ids":      updatedIDs,
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
+		}
+
+		outputPath := cast.ToString(params["output_path"])
+
+		return framework.FormatResult(result, outputPath)
 	}
 
 	store, err := getTaskStore(ctx)
@@ -53,7 +119,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 
 		result := map[string]interface{}{
 			"success":       true,
-			"method":        "store",
+			"method":        "file",
 			"dry_run":       true,
 			"tasks_updated": len(ids),
 			"task_ids":      ids,
@@ -82,142 +148,16 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 
 	result := map[string]interface{}{
 		"success":       true,
-		"method":        "store",
+		"method":        "file",
 		"tasks_updated": updated,
 	}
-	outputPath := ParamOutputPath(params)
-
-	return framework.FormatResult(result, outputPath)
-}
-
-// ─── handleTaskWorkflowFixEmptyNames ────────────────────────────────────────
-// handleTaskWorkflowFixEmptyNames backfills name from content (fallback: long_description)
-// for tasks with empty name. This improves list UIs and enables name-first summary queries.
-func handleTaskWorkflowFixEmptyNames(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	dryRun := false
-	if _, has := params["dry_run"]; has {
-		dryRun = cast.ToBool(params["dry_run"])
-	}
-
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task store: %w", err)
-	}
-
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	if dryRun {
-		ids := make([]string, 0)
-		for _, t := range list {
-			if t == nil {
-				continue
-			}
-			if strings.TrimSpace(t.Name) == "" {
-				before := t.Name
-				t.EnsureName()
-				if strings.TrimSpace(t.Name) != "" && strings.TrimSpace(before) == "" {
-					ids = append(ids, t.ID)
-				}
-			}
-		}
-
-		result := map[string]interface{}{
-			"success":       true,
-			"method":        "store",
-			"dry_run":       true,
-			"tasks_updated": len(ids),
-			"task_ids":      ids,
-		}
-
-		return framework.FormatResult(result, "")
-	}
-
-	updated := 0
-	for _, task := range list {
-		if task == nil {
-			continue
-		}
-
-		if strings.TrimSpace(task.Name) != "" {
-			continue
-		}
-
-		task.EnsureName()
-		if strings.TrimSpace(task.Name) == "" {
-			continue
-		}
-
-		if err := store.UpdateTask(ctx, task); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to update task %s: %v\n", task.ID, err)
-			continue
-		}
-		updated++
-	}
-
-	result := map[string]interface{}{
-		"success":       true,
-		"method":        "store",
-		"tasks_updated": updated,
-	}
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	return framework.FormatResult(result, outputPath)
 }
 
 // ─── buildClarityRecommendations ────────────────────────────────────────────
 // Helper functions for clarity action
-
-type storeDriftReport struct {
-	JSONOnlyIDs []string `json:"json_only_ids,omitempty"`
-	DBOnlyIDs   []string `json:"db_only_ids,omitempty"`
-}
-
-func detectTaskStoreDrift(projectRoot string) (*storeDriftReport, error) {
-	if projectRoot == "" {
-		return nil, fmt.Errorf("project root is required")
-	}
-
-	jsonTasks, err := loadTodo2TasksFromJSON(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("load json for store drift: %w", err)
-	}
-
-	dbTasks, err := loadTodo2TasksFromDB(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("load database for store drift: %w", err)
-	}
-
-	dbSet := make(map[string]struct{}, len(dbTasks))
-	for _, task := range dbTasks {
-		dbSet[task.ID] = struct{}{}
-	}
-	jsonSet := make(map[string]struct{}, len(jsonTasks))
-	for _, task := range jsonTasks {
-		jsonSet[task.ID] = struct{}{}
-	}
-
-	var jsonOnly, dbOnly []string
-	for _, task := range jsonTasks {
-		if _, ok := dbSet[task.ID]; !ok {
-			jsonOnly = append(jsonOnly, task.ID)
-		}
-	}
-	for _, task := range dbTasks {
-		if _, ok := jsonSet[task.ID]; !ok {
-			dbOnly = append(dbOnly, task.ID)
-		}
-	}
-	sort.Strings(jsonOnly)
-	sort.Strings(dbOnly)
-
-	return &storeDriftReport{
-		JSONOnlyIDs: jsonOnly,
-		DBOnlyIDs:   dbOnly,
-	}, nil
-}
 
 func buildClarityRecommendations(issues []map[string]interface{}) []map[string]interface{} {
 	recommendations := []map[string]interface{}{}
@@ -362,7 +302,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	}
 
 	if epicID != "" {
-		if err := ValidateTaskReferenceInStore(ctx, store, epicID, tasks); err != nil {
+		if err := ValidateTaskReference(epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic_id: %w", err)
 		}
 	}
@@ -374,12 +314,8 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	for _, id := range uniqueIDs {
 		task, ok := taskMap[id]
 		if !ok {
-			ptr, gerr := store.GetTask(ctx, id)
-			if gerr != nil {
-				skippedStatus = append(skippedStatus, id+": not found")
-				continue
-			}
-			task = *ptr
+			skippedStatus = append(skippedStatus, id+": not found")
+			continue
 		}
 
 		norm := normalizeStatus(strings.TrimSpace(task.Status))
@@ -413,13 +349,27 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		updatedIDs = append(updatedIDs, id)
 	}
 
+	var linkSyncErr error
+
+	if len(updatedIDs) > 0 {
+		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+			linkSyncErr = SyncTodo2Tasks(projectRoot)
+			if linkSyncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after link_planning failed: %v\n", linkSyncErr)
+			}
+		}
+	}
+
 	result := map[string]interface{}{
 		"success":       true,
-		"method":        "store",
+		"method":        "native_go",
 		"action":        "link_planning",
 		"updated_count": len(updatedIDs),
 		"updated_ids":   updatedIDs,
 		"skipped":       skippedStatus,
+	}
+	if linkSyncErr != nil {
+		result["sync_error"] = linkSyncErr.Error()
 	}
 
 	return framework.FormatResult(result, "")

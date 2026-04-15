@@ -1,4 +1,3 @@
-// Package taskworkflowspec provides task workflow specification types.
 package taskworkflowspec
 
 import (
@@ -36,24 +35,13 @@ var CreateFieldSpecs = []FieldSpec{
 		},
 	},
 	{
-		CanonicalName: "priority_rank",
-		MCPName:       "priority_rank",
-		CLIFlag:       "priority-rank",
-		Description:   "Numeric sort key within the same priority (lower first)",
-		Schema: map[string]interface{}{
-			"type":        "integer",
-			"default":     0,
-			"description": "For create/update: ordering within priority band (list, claim, backlog).",
-		},
-	},
-	{
 		CanonicalName: "tags",
 		MCPName:       "tags",
 		CLIFlag:       "tags",
-		Description:   "Comma-separated tags, JSON array string, or repeated --tag on CLI",
+		Description:   "Comma-separated tags",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "Task tags: comma-separated (e.g. 'backend,urgent'), a JSON array string (e.g. '[\"backend\",\"urgent\"]'), or a native JSON array in tool args (required for proto/typed decode when tags include '#'). CLI: --tags CSV and/or repeated --tag.",
+			"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
 		},
 	},
 	{
@@ -70,11 +58,11 @@ var CreateFieldSpecs = []FieldSpec{
 		CanonicalName: "local_ai_backend",
 		MCPName:       "local_ai_backend",
 		CLIFlag:       "local-ai-backend",
-		Description:   "Preferred local AI backend (fm, ollama)",
+		Description:   "Preferred local AI backend (fm, mlx, ollama)",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "For create/update: preferred local LLM for estimation (fm|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
-			"enum":        []string{"", "fm", "ollama"},
+			"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
+			"enum":        []string{"", "fm", "mlx", "ollama"},
 		},
 	},
 	{
@@ -142,16 +130,6 @@ var UpdateFieldSpecs = []FieldSpec{
 		},
 	},
 	{
-		CanonicalName: "priority_rank",
-		MCPName:       "priority_rank",
-		CLIFlag:       "priority-rank",
-		Description:   "New priority_rank (integer)",
-		Schema: map[string]interface{}{
-			"type":        "integer",
-			"description": "For update: numeric sort order within the same priority band.",
-		},
-	},
-	{
 		CanonicalName: "tags",
 		MCPName:       "tags",
 		CLIFlag:       "tags",
@@ -179,7 +157,6 @@ var UpdateFieldSpecs = []FieldSpec{
 		Schema: map[string]interface{}{
 			"type":        "string",
 			"description": "Task name (required for single create; omit when using tasks array)",
-			"examples":    []string{"Add OAuth2 login", "Fix session timeout bug"},
 		},
 	},
 	{
@@ -206,11 +183,11 @@ var UpdateFieldSpecs = []FieldSpec{
 		CanonicalName: "local_ai_backend",
 		MCPName:       "local_ai_backend",
 		CLIFlag:       "local-ai-backend",
-		Description:   "Preferred local AI backend (fm, ollama)",
+		Description:   "Preferred local AI backend (fm, mlx, ollama)",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "For create/update: preferred local LLM for estimation (fm|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
-			"enum":        []string{"", "fm", "ollama"},
+			"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
+			"enum":        []string{"", "fm", "mlx", "ollama"},
 		},
 	},
 	{
@@ -245,17 +222,10 @@ type OptionalList struct {
 	Values []string
 }
 
-// OptionalInt is an optional integer field for CLI → task_workflow mapping.
-type OptionalInt struct {
-	Set   bool
-	Value int
-}
-
 type TaskCreateInput struct {
 	Name             string
 	LongDescription  OptionalString
 	Priority         OptionalString
-	PriorityRank     OptionalInt
 	Tags             OptionalList
 	Dependencies     OptionalList
 	LocalAIBackend   OptionalString
@@ -269,7 +239,6 @@ type TaskUpdateInput struct {
 	TaskIDs          []string
 	NewStatus        OptionalString
 	Priority         OptionalString
-	PriorityRank     OptionalInt
 	Tags             OptionalList
 	RemoveTags       OptionalList
 	Name             OptionalString
@@ -323,18 +292,6 @@ func ListToCSV(values []string) string {
 	return strings.Join(values, ",")
 }
 
-// toolArgStringSlice returns a defensive copy for task_workflow JSON args.
-// Proto fields tags and dependencies are repeated string; protojson requires a JSON array,
-// not a single comma-separated string (otherwise unmarshal fails with e.g. unexpected token on "#tag").
-func toolArgStringSlice(values []string) []string {
-	if len(values) == 0 {
-		return nil
-	}
-	out := make([]string, len(values))
-	copy(out, values)
-	return out
-}
-
 func (in TaskCreateInput) ToToolArgs() map[string]interface{} {
 	toolArgs := map[string]interface{}{
 		"action": "create",
@@ -346,14 +303,11 @@ func (in TaskCreateInput) ToToolArgs() map[string]interface{} {
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
 	}
-	if in.PriorityRank.Set {
-		toolArgs["priority_rank"] = in.PriorityRank.Value
+	if in.Tags.Set {
+		toolArgs["tags"] = ListToCSV(in.Tags.Values)
 	}
-	if in.Tags.Set && len(in.Tags.Values) > 0 {
-		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)
-	}
-	if in.Dependencies.Set && len(in.Dependencies.Values) > 0 {
-		toolArgs["dependencies"] = toolArgStringSlice(in.Dependencies.Values)
+	if in.Dependencies.Set {
+		toolArgs["dependencies"] = ListToCSV(in.Dependencies.Values)
 	}
 	if in.LocalAIBackend.Set {
 		toolArgs["local_ai_backend"] = in.LocalAIBackend.Value
@@ -384,15 +338,11 @@ func (in TaskUpdateInput) ToToolArgs() map[string]interface{} {
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
 	}
-	if in.PriorityRank.Set {
-		toolArgs["priority_rank"] = in.PriorityRank.Value
+	if in.Tags.Set {
+		toolArgs["tags"] = ListToCSV(in.Tags.Values)
 	}
-	if in.Tags.Set && len(in.Tags.Values) > 0 {
-		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)
-	}
-	if in.RemoveTags.Set && len(in.RemoveTags.Values) > 0 {
-		// TaskWorkflowRequest has no remove_tags field yet; kept for non-proto / future wire parity.
-		toolArgs["remove_tags"] = toolArgStringSlice(in.RemoveTags.Values)
+	if in.RemoveTags.Set {
+		toolArgs["remove_tags"] = ListToCSV(in.RemoveTags.Values)
 	}
 	if in.Name.Set {
 		toolArgs["name"] = in.Name.Value
@@ -400,8 +350,8 @@ func (in TaskUpdateInput) ToToolArgs() map[string]interface{} {
 	if in.LongDescription.Set {
 		toolArgs["long_description"] = in.LongDescription.Value
 	}
-	if in.Dependencies.Set && len(in.Dependencies.Values) > 0 {
-		toolArgs["dependencies"] = toolArgStringSlice(in.Dependencies.Values)
+	if in.Dependencies.Set {
+		toolArgs["dependencies"] = ListToCSV(in.Dependencies.Values)
 	}
 	if in.LocalAIBackend.Set {
 		toolArgs["local_ai_backend"] = in.LocalAIBackend.Value

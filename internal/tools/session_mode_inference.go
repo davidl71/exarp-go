@@ -36,7 +36,7 @@ var lastInferenceTime time.Time
 // HandleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
 // Exported for use by resources package.
 func HandleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	forceRecompute := ParamBool(params, "force_recompute", false)
+	forceRecompute, _ := params["force_recompute"].(bool)
 
 	// Check cache (within 2 minutes) unless forcing recompute
 	if !forceRecompute && lastInferenceCache != nil {
@@ -117,12 +117,7 @@ func inferModeFromTasks(tasks []Todo2Task, projectRoot string) ModeInferenceResu
 
 	// Analyze task patterns
 	metrics := analyzeTaskPatterns(tasks)
-	roleMetrics := analyzeAgentRolePatterns(tasks)
 	reasoning := []string{}
-
-	for key, value := range roleMetrics {
-		metrics[key] = value
-	}
 
 	// Count tasks by status
 	pendingCount := 0
@@ -181,18 +176,6 @@ func inferModeFromTasks(tasks []Todo2Task, projectRoot string) ModeInferenceResu
 	// - Many tasks with dependencies (suggests multi-step work)
 	// - Multiple pending tasks (suggests autonomous execution)
 	agentScore := 0.0
-	dominantRole, _ := metrics["dominant_agent_role"].(string)
-	if dominantRole != "" {
-		roleRatio, _ := metrics["agent_role_ratio"].(float64)
-
-		reasoning = append(reasoning, fmt.Sprintf("Dominant agent role is %s (%.1f%% of tagged tasks)", dominantRole, roleRatio*100))
-
-		if roleRatio > 0.5 && (dominantRole == AgentRolePlanner || dominantRole == AgentRoleWorker) {
-			agentScore += 0.3
-			metrics["agent_role_bias"] = "agent"
-			reasoning = append(reasoning, fmt.Sprintf("Role mix favors autonomous execution because %s tasks dominate", dominantRole))
-		}
-	}
 	if inProgressRatio > 0.3 {
 		agentScore += 0.4
 
@@ -315,34 +298,6 @@ func analyzeTaskPatterns(tasks []Todo2Task) map[string]interface{} {
 	metrics["status_distribution"] = statusCounts
 	metrics["priority_distribution"] = priorityCounts
 	metrics["tag_counts"] = tagCounts
-
-	return metrics
-}
-
-// analyzeAgentRolePatterns counts agent roles across tasks and returns role metrics.
-func analyzeAgentRolePatterns(tasks []Todo2Task) map[string]interface{} {
-	metrics := make(map[string]interface{})
-
-	roleCounts := make(map[string]int)
-	tasksWithRole := 0
-
-	for _, task := range tasks {
-		if role := AgentRoleFromTask(&task); role != "" {
-			roleCounts[role]++
-			tasksWithRole++
-		}
-	}
-
-	metrics["agent_role_distribution"] = roleCounts
-	metrics["tasks_with_agent_role"] = tasksWithRole
-
-	if len(tasks) > 0 {
-		metrics["agent_role_ratio"] = float64(tasksWithRole) / float64(len(tasks))
-	} else {
-		metrics["agent_role_ratio"] = 0.0
-	}
-
-	metrics["dominant_agent_role"] = dominantAgentRole(tasks)
 
 	return metrics
 }

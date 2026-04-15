@@ -1,18 +1,13 @@
 // task_discovery_common.go — Shared logic for discovering tasks from code comments and docs.
-// Includes scanGitJSON (git-tracked JSON task state); used by CGO and nocgo task_discovery builds.
 package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
@@ -44,115 +39,6 @@ func IsDeprecatedDiscoveryText(text string) bool {
 	}
 
 	return false
-}
-
-var defaultDiscoverySkipDirs = map[string]bool{
-	".git":         true,
-	"node_modules": true,
-	"__pycache__":  true,
-	".venv":        true,
-	"vendor":       true,
-	".idea":        true,
-	".vscode":      true,
-	"dist":         true,
-	"build":        true,
-	"target":       true,
-	"archive":      true,
-	".cache":       true,
-	"third_party":  true,
-	"mcp-servers":  true,
-}
-
-func parseIgnorePaths(raw string) []string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil
-	}
-
-	var parsed []string
-	if strings.HasPrefix(raw, "[") {
-		if err := json.Unmarshal([]byte(raw), &parsed); err == nil {
-			return normalizeIgnorePaths(parsed)
-		}
-	}
-
-	parts := strings.Split(raw, ",")
-	return normalizeIgnorePaths(parts)
-}
-
-func normalizeIgnorePaths(paths []string) []string {
-	normalized := make([]string, 0, len(paths))
-	seen := make(map[string]bool)
-
-	for _, path := range paths {
-		path = strings.TrimSpace(path)
-		path = normalizeDiscoveryPath(path)
-		if path == "" || path == "." || seen[path] {
-			continue
-		}
-
-		seen[path] = true
-		normalized = append(normalized, path)
-	}
-
-	return normalized
-}
-
-func normalizeDiscoveryPath(path string) string {
-	path = filepath.ToSlash(strings.TrimSpace(path))
-	path = strings.TrimPrefix(path, "./")
-	path = strings.Trim(path, "/")
-	return path
-}
-
-func discoveryRelativePath(projectRoot, path string) string {
-	rel, err := filepath.Rel(projectRoot, path)
-	if err != nil {
-		return normalizeDiscoveryPath(path)
-	}
-
-	return normalizeDiscoveryPath(rel)
-}
-
-func shouldSkipDiscoveryDir(projectRoot, path string, ignorePaths []string) bool {
-	relPath := discoveryRelativePath(projectRoot, path)
-	if relPath == "" {
-		return false
-	}
-
-	parts := strings.Split(relPath, "/")
-	for _, part := range parts {
-		if defaultDiscoverySkipDirs[part] {
-			return true
-		}
-	}
-
-	if len(parts) > 0 && parts[0] == "bin" {
-		return true
-	}
-
-	for _, ignorePath := range ignorePaths {
-		if relPath == ignorePath || strings.HasPrefix(relPath, ignorePath+"/") {
-			return true
-		}
-	}
-
-	return false
-}
-
-func discoveryIgnorePathsForProject(projectRoot string, params map[string]interface{}) []string {
-	ignorePaths := []string{}
-
-	cfg, err := config.LoadConfig(projectRoot)
-	if err == nil && cfg != nil && len(cfg.Project.TaskDiscoveryIgnorePaths) > 0 {
-		ignorePaths = append(ignorePaths, cfg.Project.TaskDiscoveryIgnorePaths...)
-	}
-
-	if paramPaths := parseIgnorePaths(fmt.Sprint(params["ignore_paths"])); len(paramPaths) > 0 {
-		ignorePaths = append(ignorePaths, paramPaths...)
-	}
-
-	return normalizeIgnorePaths(ignorePaths)
 }
 
 // isThirdPartyOrBinaryPath returns true if path indicates bin/ or third-party code (vendor, node_modules, etc.).
@@ -316,148 +202,11 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		})
 	}
 
+	if len(createdTasks) > 0 {
+		if err := SyncTodo2Tasks(projectRoot); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to sync after discovery: %v\n", err)
+		}
+	}
+
 	return createdTasks
-}
-
-// scanGitJSON scans the git repository for tracked JSON files and extracts tasks (e.g. legacy state.todo2.json).
-func scanGitJSON(ctx context.Context, projectRoot string, jsonPattern string) []map[string]interface{} {
-	discoveries := []map[string]interface{}{}
-
-	if jsonPattern == "" {
-		jsonPattern = "**/.todo2/state.todo2.json"
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	if err := ctx.Err(); err != nil {
-		return discoveries
-	}
-
-	cmd := exec.CommandContext(ctx, "git", "ls-files", "*.json", "**/*.json")
-	cmd.Dir = projectRoot
-	output, err := cmd.Output()
-	if err != nil {
-		return discoveries
-	}
-
-	jsonFiles := []string{}
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	defaultPattern := "**/.todo2/state.todo2.json"
-
-	for _, line := range lines {
-		if err := ctx.Err(); err != nil {
-			return discoveries
-		}
-
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		patternToUse := jsonPattern
-		if patternToUse == "" {
-			patternToUse = defaultPattern
-		}
-
-		matched := false
-		if patternToUse == defaultPattern {
-			matched = strings.Contains(line, "state.todo2.json")
-		} else {
-			matched, _ = filepath.Match(patternToUse, line)
-			if !matched {
-				if strings.HasPrefix(patternToUse, "**/") {
-					pattern := strings.TrimPrefix(patternToUse, "**/")
-					matched, _ = filepath.Match(pattern, filepath.Base(line))
-				}
-				if !matched && strings.Contains(line, strings.TrimPrefix(patternToUse, "**/")) {
-					matched = true
-				}
-			}
-		}
-
-		if matched {
-			jsonFiles = append(jsonFiles, line)
-		}
-	}
-
-	for _, jsonFile := range jsonFiles {
-		if err := ctx.Err(); err != nil {
-			return discoveries
-		}
-
-		fullPath := filepath.Join(projectRoot, jsonFile)
-
-		cmd = exec.CommandContext(ctx, "git", "log", "--all", "--pretty=format:%H", "--", jsonFile)
-		cmd.Dir = projectRoot
-		commitOutput, err := cmd.Output()
-		if err != nil {
-			tasks, _, err := LoadJSONStateFromFile(fullPath)
-			if err == nil {
-				for _, task := range tasks {
-					discoveries = append(discoveries, map[string]interface{}{
-						"type":      "JSON_TASK",
-						"text":      task.Content,
-						"task_id":   task.ID,
-						"status":    task.Status,
-						"priority":  task.Priority,
-						"file":      jsonFile,
-						"source":    "git_json",
-						"completed": task.Completed,
-					})
-				}
-			}
-
-			continue
-		}
-
-		commits := strings.Split(strings.TrimSpace(string(commitOutput)), "\n")
-		processedTasks := make(map[string]bool)
-
-		for _, commit := range commits {
-			if err := ctx.Err(); err != nil {
-				return discoveries
-			}
-
-			commit = strings.TrimSpace(commit)
-			if commit == "" {
-				continue
-			}
-
-			cmd = exec.CommandContext(ctx, "git", "show", commit+":"+jsonFile)
-			cmd.Dir = projectRoot
-			fileContent, err := cmd.Output()
-			if err != nil {
-				continue
-			}
-
-			tasks, _, err := LoadJSONStateFromContent(fileContent)
-			if err != nil {
-				continue
-			}
-
-			for _, task := range tasks {
-				uniqueKey := fmt.Sprintf("%s:%s", task.ID, commit)
-				if processedTasks[uniqueKey] {
-					continue
-				}
-				processedTasks[uniqueKey] = true
-
-				discoveries = append(discoveries, map[string]interface{}{
-					"type":      "JSON_TASK",
-					"text":      task.Content,
-					"task_id":   task.ID,
-					"status":    task.Status,
-					"priority":  task.Priority,
-					"file":      jsonFile,
-					"commit":    commit[:8],
-					"source":    "git_json",
-					"completed": task.Completed,
-				})
-			}
-		}
-	}
-
-	return discoveries
 }

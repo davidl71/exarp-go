@@ -1,4 +1,4 @@
-// Package queue provides periodic task wave dispatching.
+// dispatcher.go — Periodically finds and enqueues the next wave of tasks.
 package queue
 
 import (

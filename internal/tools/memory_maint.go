@@ -4,6 +4,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -21,9 +22,10 @@ import (
 
 // ─── handleMemoryMaintNative ────────────────────────────────────────────────
 // handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations.
-func handleMemoryMaintNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	if params == nil {
-		params = make(map[string]interface{})
+func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
 	action := cast.ToString(params["action"])

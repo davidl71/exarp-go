@@ -8,16 +8,15 @@ import (
 func databaseToProtobuf(d *DatabaseConfig) *configpb.DatabaseConfig {
 	return ptrToProto(d, func(d *DatabaseConfig) *configpb.DatabaseConfig {
 		return &configpb.DatabaseConfig{
-			Backend:             d.Backend,
 			SqlitePath:          d.SQLitePath,
 			JsonFallbackPath:    d.JSONFallbackPath,
 			BackupPath:          d.BackupPath,
 			MaxConnections:      int32(d.MaxConnections),
-			ConnectionTimeout:   durationToProto(d.ConnectionTimeout),
-			QueryTimeout:        durationToProto(d.QueryTimeout),
+			ConnectionTimeout:   durationToSeconds(d.ConnectionTimeout),
+			QueryTimeout:        durationToSeconds(d.QueryTimeout),
 			RetryAttempts:       int32(d.RetryAttempts),
-			RetryInitialDelay:   durationToProto(d.RetryInitialDelay),
-			RetryMaxDelay:       durationToProto(d.RetryMaxDelay),
+			RetryInitialDelay:   durationToSeconds(d.RetryInitialDelay),
+			RetryMaxDelay:       durationToSeconds(d.RetryMaxDelay),
 			RetryMultiplier:     d.RetryMultiplier,
 			AutoVacuum:          d.AutoVacuum,
 			WalMode:             d.WALMode,
@@ -32,16 +31,15 @@ func databaseFromProtobuf(pb *configpb.DatabaseConfig) DatabaseConfig {
 		return DatabaseConfig{}
 	}
 	return DatabaseConfig{
-		Backend:             pb.GetBackend(),
 		SQLitePath:          pb.GetSqlitePath(),
 		JSONFallbackPath:    pb.GetJsonFallbackPath(),
 		BackupPath:          pb.GetBackupPath(),
 		MaxConnections:      int(pb.GetMaxConnections()),
-		ConnectionTimeout:   durationFromProto(pb.GetConnectionTimeout()),
-		QueryTimeout:        durationFromProto(pb.GetQueryTimeout()),
+		ConnectionTimeout:   secondsToDuration(pb.GetConnectionTimeout()),
+		QueryTimeout:        secondsToDuration(pb.GetQueryTimeout()),
 		RetryAttempts:       int(pb.GetRetryAttempts()),
-		RetryInitialDelay:   durationFromProto(pb.GetRetryInitialDelay()),
-		RetryMaxDelay:       durationFromProto(pb.GetRetryMaxDelay()),
+		RetryInitialDelay:   secondsToDuration(pb.GetRetryInitialDelay()),
+		RetryMaxDelay:       secondsToDuration(pb.GetRetryMaxDelay()),
 		RetryMultiplier:     pb.GetRetryMultiplier(),
 		AutoVacuum:          pb.GetAutoVacuum(),
 		WALMode:             pb.GetWalMode(),

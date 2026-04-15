@@ -8,20 +8,20 @@ import (
 func timeoutsToProtobuf(t *TimeoutsConfig) *configpb.TimeoutsConfig {
 	return ptrToProto(t, func(t *TimeoutsConfig) *configpb.TimeoutsConfig {
 		return &configpb.TimeoutsConfig{
-			TaskLockLease:      durationToProto(t.TaskLockLease),
-			TaskLockRenewal:    durationToProto(t.TaskLockRenewal),
-			StaleLockThreshold: durationToProto(t.StaleLockThreshold),
-			ToolDefault:        durationToProto(t.ToolDefault),
-			ToolScorecard:      durationToProto(t.ToolScorecard),
-			ToolLinting:        durationToProto(t.ToolLinting),
-			ToolTesting:        durationToProto(t.ToolTesting),
-			ToolReport:         durationToProto(t.ToolReport),
-			OllamaDownload:     durationToProto(t.OllamaDownload),
-			OllamaGenerate:     durationToProto(t.OllamaGenerate),
-			HttpClient:         durationToProto(t.HTTPClient),
-			DatabaseRetry:      durationToProto(t.DatabaseRetry),
-			ContextSummarize:   durationToProto(t.ContextSummarize),
-			ContextBudget:      durationToProto(t.ContextBudget),
+			TaskLockLease:      durationToSeconds(t.TaskLockLease),
+			TaskLockRenewal:    durationToSeconds(t.TaskLockRenewal),
+			StaleLockThreshold: durationToSeconds(t.StaleLockThreshold),
+			ToolDefault:        durationToSeconds(t.ToolDefault),
+			ToolScorecard:      durationToSeconds(t.ToolScorecard),
+			ToolLinting:        durationToSeconds(t.ToolLinting),
+			ToolTesting:        durationToSeconds(t.ToolTesting),
+			ToolReport:         durationToSeconds(t.ToolReport),
+			OllamaDownload:     durationToSeconds(t.OllamaDownload),
+			OllamaGenerate:     durationToSeconds(t.OllamaGenerate),
+			HttpClient:         durationToSeconds(t.HTTPClient),
+			DatabaseRetry:      durationToSeconds(t.DatabaseRetry),
+			ContextSummarize:   durationToSeconds(t.ContextSummarize),
+			ContextBudget:      durationToSeconds(t.ContextBudget),
 		}
 	})
 }
@@ -31,19 +31,19 @@ func timeoutsFromProtobuf(pb *configpb.TimeoutsConfig) TimeoutsConfig {
 		return TimeoutsConfig{}
 	}
 	return TimeoutsConfig{
-		TaskLockLease:      durationFromProto(pb.GetTaskLockLease()),
-		TaskLockRenewal:    durationFromProto(pb.GetTaskLockRenewal()),
-		StaleLockThreshold: durationFromProto(pb.GetStaleLockThreshold()),
-		ToolDefault:        durationFromProto(pb.GetToolDefault()),
-		ToolScorecard:      durationFromProto(pb.GetToolScorecard()),
-		ToolLinting:        durationFromProto(pb.GetToolLinting()),
-		ToolTesting:        durationFromProto(pb.GetToolTesting()),
-		ToolReport:         durationFromProto(pb.GetToolReport()),
-		OllamaDownload:     durationFromProto(pb.GetOllamaDownload()),
-		OllamaGenerate:     durationFromProto(pb.GetOllamaGenerate()),
-		HTTPClient:         durationFromProto(pb.GetHttpClient()),
-		DatabaseRetry:      durationFromProto(pb.GetDatabaseRetry()),
-		ContextSummarize:   durationFromProto(pb.GetContextSummarize()),
-		ContextBudget:      durationFromProto(pb.GetContextBudget()),
+		TaskLockLease:      secondsToDuration(pb.GetTaskLockLease()),
+		TaskLockRenewal:    secondsToDuration(pb.GetTaskLockRenewal()),
+		StaleLockThreshold: secondsToDuration(pb.GetStaleLockThreshold()),
+		ToolDefault:        secondsToDuration(pb.GetToolDefault()),
+		ToolScorecard:      secondsToDuration(pb.GetToolScorecard()),
+		ToolLinting:        secondsToDuration(pb.GetToolLinting()),
+		ToolTesting:        secondsToDuration(pb.GetToolTesting()),
+		ToolReport:         secondsToDuration(pb.GetToolReport()),
+		OllamaDownload:     secondsToDuration(pb.GetOllamaDownload()),
+		OllamaGenerate:     secondsToDuration(pb.GetOllamaGenerate()),
+		HTTPClient:         secondsToDuration(pb.GetHttpClient()),
+		DatabaseRetry:      secondsToDuration(pb.GetDatabaseRetry()),
+		ContextSummarize:   secondsToDuration(pb.GetContextSummarize()),
+		ContextBudget:      secondsToDuration(pb.GetContextBudget()),
 	}
 }

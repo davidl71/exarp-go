@@ -19,6 +19,8 @@ import (
 //   TaskDiscoveryRequestToParams — TaskDiscoveryRequestToParams converts a protobuf TaskDiscoveryRequest to params map
 //   ParseOllamaRequest — ParseOllamaRequest parses an ollama request (protobuf or JSON).
 //   OllamaRequestToParams — OllamaRequestToParams converts a protobuf OllamaRequest to params map
+//   ParseMlxRequest — ParseMlxRequest parses an mlx request (protobuf or JSON).
+//   MlxRequestToParams — MlxRequestToParams converts a protobuf MlxRequest to params map
 //   ParsePromptTrackingRequest — ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON).
 //   PromptTrackingRequestToParams — PromptTrackingRequestToParams converts a protobuf PromptTrackingRequest to params map
 //   ParseRecommendRequest — ParseRecommendRequest parses a recommend request (protobuf or JSON).
@@ -124,22 +126,6 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 		return make(map[string]interface{})
 	}
 
-	if req.ActionEnum != proto.MemoryMaintAction_MEMORY_MAINT_ACTION_UNSPECIFIED {
-		if s := memoryMaintActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-	if req.MergeStrategyEnum != proto.MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED {
-		if s := memoryMaintMergeStrategyEnumToString(req.MergeStrategyEnum); s != "" {
-			params["merge_strategy"] = s
-		}
-	}
-	if req.ScopeEnum != proto.MemoryMaintScope_MEMORY_MAINT_SCOPE_UNSPECIFIED {
-		if s := memoryMaintScopeEnumToString(req.ScopeEnum); s != "" {
-			params["scope"] = s
-		}
-	}
-
 	return params
 }
 
@@ -175,18 +161,6 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 	})
 	if err != nil {
 		return make(map[string]interface{})
-	}
-
-	// Enum-first: prefer enums over legacy strings.
-	if req.ActionEnum != proto.TaskAnalysisAction_TASK_ANALYSIS_ACTION_UNSPECIFIED {
-		if s := taskAnalysisActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-	if req.OutputFormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
-		if s := outputFormatEnumToString(req.OutputFormatEnum); s != "" {
-			params["output_format"] = s
-		}
 	}
 
 	return params
@@ -263,15 +237,43 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	if req.StyleEnum != proto.LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED {
-		if s := localLLMDocstringStyleEnumToString(req.StyleEnum); s != "" {
-			params["style"] = s
-		}
+	return params
+}
+
+// ─── ParseMlxRequest ────────────────────────────────────────────────────────
+// ParseMlxRequest parses an mlx request (protobuf or JSON).
+func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
+	req, params, err := framework.ParseRequest(args, func() *proto.MLXRequest {
+		return &proto.MLXRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-	if req.LevelEnum != proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED {
-		if s := localLLMSummaryLevelEnumToString(req.LevelEnum); s != "" {
-			params["level"] = s
-		}
+
+	if req != nil {
+		return req, nil, nil
+	}
+
+	return nil, params, nil
+}
+
+// ─── MlxRequestToParams ─────────────────────────────────────────────────────
+// MlxRequestToParams converts a protobuf MlxRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
+func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
+	if req == nil {
+		return make(map[string]interface{})
+	}
+
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"max_tokens"},
+		// Note: temperature remains as float64 (it's a threshold, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -456,12 +458,6 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
-	if req.ActionEnum != proto.SetupHooksAction_SETUP_HOOKS_ACTION_UNSPECIFIED {
-		if s := setupHooksActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-
 	return params
 }
 
@@ -575,12 +571,6 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	if req.ActionEnum != proto.TestingAction_TESTING_ACTION_UNSPECIFIED {
-		if s := testingActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-
 	return params
 }
 
@@ -620,12 +610,6 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
-	if req.ActionEnum != proto.AutomationAction_AUTOMATION_ACTION_UNSPECIFIED {
-		if s := automationActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
-	}
-
 	return params
 }
 
@@ -660,12 +644,6 @@ func LintRequestToParams(req *proto.LintRequest) map[string]interface{} {
 	})
 	if err != nil {
 		return make(map[string]interface{})
-	}
-
-	if req.ActionEnum != proto.LintAction_LINT_ACTION_UNSPECIFIED {
-		if s := lintActionEnumToString(req.ActionEnum); s != "" {
-			params["action"] = s
-		}
 	}
 
 	return params

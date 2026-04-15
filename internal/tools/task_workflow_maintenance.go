@@ -26,16 +26,15 @@ import (
 
 // ─── handleTaskWorkflowSync ─────────────────────────────────────────────────
 func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	dryRun := ParamBool(params, "dry_run", false)
+	dryRun := false
+	if dr, ok := params["dry_run"].(bool); ok {
+		dryRun = dr
+	}
 
 	// Check if this is a list sub-action (for listing tasks)
 	// If sub_action is "list", we just load and return tasks (no sync needed)
@@ -45,13 +44,27 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		return handleTaskWorkflowList(ctx, params)
 	}
 
+	// Parse optional conflict_strategy param (default: db_wins)
+	strategyStr := cast.ToString(params["conflict_strategy"])
+	strategy, strategyErr := ParseSyncConflictStrategy(strategyStr)
+	if strategyErr != nil {
+		return nil, fmt.Errorf("invalid conflict_strategy: %w", strategyErr)
+	}
+
+	// Optional: import from an explicit JSON file path
+	jsonPath := cast.ToString(params["json_path"])
+
 	// Perform bidirectional sync between SQLite and JSON
+	var syncReport *SyncReport
 	if !dryRun {
-		if err := ctx.Err(); err != nil {
-			return nil, err
+		var syncErr error
+		if jsonPath != "" {
+			syncReport, syncErr = ImportFromJSON(projectRoot, jsonPath, strategy)
+		} else {
+			syncReport, syncErr = SyncTodo2TasksWithStrategy(projectRoot, strategy)
 		}
-		if err := SyncTodo2Tasks(projectRoot); err != nil {
-			return nil, fmt.Errorf("failed to sync tasks: %w", err)
+		if syncErr != nil {
+			return nil, fmt.Errorf("failed to sync tasks: %w", syncErr)
 		}
 		// Regenerate overview so dates never show 1970
 		if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
@@ -85,20 +98,14 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 	// Check for missing dependencies and invalid planning links
 	for i := range tasks {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
 		task := &tasks[i]
 		for _, dep := range task.Dependencies {
-			if taskMap[dep] {
-				continue
-			}
-			if _, err := store.GetTask(ctx, dep); err != nil {
+			if !taskMap[dep] {
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
 
-		// Validate planning document links; auto-clear orphaned epic_id only when unresolved
+		// Validate planning document links; auto-clear orphaned epic_id
 		if linkMeta := GetPlanningLinkMetadata(task); linkMeta != nil {
 			if linkMeta.PlanningDoc != "" {
 				if err := ValidatePlanningLink(projectRoot, linkMeta.PlanningDoc); err != nil {
@@ -107,14 +114,13 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 			}
 
 			if linkMeta.EpicID != "" {
-				if err := ValidateTaskReferenceInStore(ctx, store, linkMeta.EpicID, tasks); err != nil {
+				if err := ValidateTaskReference(linkMeta.EpicID, tasks); err != nil {
 					issues = append(issues, fmt.Sprintf("Task %s has invalid epic ID: %v", task.ID, err))
-					if !dryRun {
-						linkMeta.EpicID = ""
-						SetPlanningLinkMetadata(task, linkMeta)
-						tasksWithOrphanedEpicFixed = append(tasksWithOrphanedEpicFixed, task)
-					}
 				}
+				// Clear orphaned epic_id so future syncs are clean
+				linkMeta.EpicID = ""
+				SetPlanningLinkMetadata(task, linkMeta)
+				tasksWithOrphanedEpicFixed = append(tasksWithOrphanedEpicFixed, task)
 			}
 		}
 	}
@@ -122,8 +128,14 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	// Persist cleared epic_id for tasks that referenced a missing epic
 	if !dryRun && len(tasksWithOrphanedEpicFixed) > 0 {
 		for _, t := range tasksWithOrphanedEpicFixed {
-			if err := store.UpdateTask(ctx, t); err != nil {
+			if err := database.UpdateTask(ctx, t); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to clear orphaned epic_id on task %s: %v\n", t.ID, err)
+			}
+		}
+
+		if len(tasksWithOrphanedEpicFixed) > 0 {
+			if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync after clearing orphaned epic_id failed: %v\n", syncErr)
 			}
 		}
 	}
@@ -150,7 +162,24 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
-	outputPath := ParamOutputPath(params)
+	// Attach SyncReport (strategy, conflict details, counts) when a sync was performed
+	if syncReport != nil {
+		result["sync_report"] = map[string]interface{}{
+			"strategy":   syncReport.Strategy,
+			"conflicts":  len(syncReport.Conflicts),
+			"created":    syncReport.Created,
+			"updated":    syncReport.Updated,
+			"unchanged":  syncReport.Unchanged,
+			"db_only":    syncReport.DBOnly,
+			"json_only":  syncReport.JSONOnly,
+			"conflict_details": syncReport.Conflicts,
+		}
+		if len(syncReport.Errors) > 0 {
+			result["sync_report"].(map[string]interface{})["errors"] = syncReport.Errors
+		}
+	}
+
+	outputPath := cast.ToString(params["output_path"])
 
 	return framework.FormatResult(result, outputPath)
 }
@@ -158,8 +187,8 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 // ─── validTaskStatuses ──────────────────────────────────────────────────────
 // Valid task statuses for sanity check.
 var validTaskStatuses = map[string]bool{
-	models.StatusTodo: true, models.StatusInProgress: true, models.StatusDone: true, models.StatusReview: true, models.StatusCancelled: true, models.StatusBlocked: true,
-	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true, strings.ToLower(models.StatusCancelled): true, strings.ToLower(models.StatusBlocked): true,
+	models.StatusTodo: true, models.StatusInProgress: true, models.StatusDone: true, models.StatusReview: true,
+	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true,
 }
 
 // ─── handleTaskWorkflowSanityCheck ──────────────────────────────────────────
@@ -203,7 +232,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid last_modified", task.ID))
 		}
 
-		if task.StatusEnum == models.TaskStatusDone && models.IsEpochDate(task.CompletedAt) {
+		if strings.EqualFold(task.Status, models.StatusDone) && models.IsEpochDate(task.CompletedAt) {
 			issues = append(issues, fmt.Sprintf("Task %s (Done) has epoch/invalid completed_at", task.ID))
 		}
 
@@ -212,19 +241,17 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			issues = append(issues, fmt.Sprintf("Task %s has empty content/name", task.ID))
 		}
 
-		// Valid status (prefer typed status).
-		if task.StatusEnum == models.TaskStatusUnspecified {
+		// Valid status
+		norm := strings.TrimSpace(strings.ToLower(task.Status))
+		if task.Status == "" || !validTaskStatuses[norm] {
 			issues = append(issues, fmt.Sprintf("Task %s has invalid or empty status: %q", task.ID, task.Status))
 		}
 	}
 
-	// Missing dependencies (verify against store when dep not in project-scoped list)
+	// Missing dependencies
 	for _, task := range tasks {
 		for _, dep := range task.Dependencies {
-			if taskMap[dep] {
-				continue
-			}
-			if _, err := store.GetTask(ctx, dep); err != nil {
+			if !taskMap[dep] {
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
@@ -265,7 +292,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		"sanity_checks": []string{"invalid_task_id", "epoch_dates", "empty_content", "valid_status", "duplicate_ids", "duplicate_content", "missing_dependencies"},
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	return framework.FormatResult(result, outputPath)
 }
@@ -285,10 +312,15 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 	tasks := tasksFromPtrs(list)
 
-	autoApply := ParamBool(params, "auto_apply", false)
+	autoApply := false
+	if apply, ok := params["auto_apply"].(bool); ok {
+		autoApply = apply
+	}
 
-	outputFormat := "json"
-	outputFormat = ParamOutputFormat(params, outputFormat)
+	outputFormat := "text"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
 
 	// Analyze tasks for clarity issues
 	clarityIssues := []map[string]interface{}{}
@@ -353,7 +385,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 		"recommendations": buildClarityRecommendations(clarityIssues),
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	// Handle text vs JSON formatting
 	if outputFormat == "json" {
@@ -366,7 +398,6 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 	// Write to file if outputPath is provided
 	if outputPath != "" {
-		_ = EnsureParentDir(outputPath)
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err == nil {
 			// File written successfully - note: can't add output_path to text output
 			// but we can log it or include in a comment
@@ -406,18 +437,19 @@ func isOldSequentialID(taskID string) bool {
 // ─── handleTaskWorkflowCleanup ──────────────────────────────────────────────
 // handleTaskWorkflowCleanup handles cleanup action for removing stale tasks and legacy tasks.
 func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	staleThresholdHours := ParamFloat64(params, "stale_threshold_hours", 2.0)
+	staleThresholdHours := 2.0
+	if threshold, ok := params["stale_threshold_hours"].(float64); ok {
+		staleThresholdHours = threshold
+	}
 
-	includeLegacy := ParamBool(params, "include_legacy", false)
+	includeLegacy := false
+	if legacy, ok := params["include_legacy"].(bool); ok {
+		includeLegacy = legacy
+	}
 
-	dryRun := ParamBool(params, "dry_run", false)
-
-	projectRoot, _ := FindProjectRoot()
-	var driftBefore *storeDriftReport
-	if projectRoot != "" {
-		if drift, err := detectTaskStoreDrift(projectRoot); err == nil {
-			driftBefore = drift
-		}
+	dryRun := false
+	if dr, ok := params["dry_run"].(bool); ok {
+		dryRun = dr
 	}
 
 	// Try database first for efficient filtering and deletion
@@ -505,51 +537,28 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 				"threshold_hours": staleThresholdHours,
 				"include_legacy":  includeLegacy,
 			}
-			if driftBefore != nil {
-				result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
-				result["json_only_count"] = len(driftBefore.JSONOnlyIDs)
-				result["json_only_tasks"] = driftBefore.JSONOnlyIDs
-				result["db_only_count"] = len(driftBefore.DBOnlyIDs)
-				result["db_only_tasks"] = driftBefore.DBOnlyIDs
-			}
 
 			return framework.FormatResult(result, "")
 		}
 
-		// Delete stale and legacy tasks from database in a single transaction
-		idsToDelete := make([]string, len(tasksToRemove))
-		for i, task := range tasksToRemove {
-			idsToDelete[i] = task.ID
-		}
+		// Delete stale and legacy tasks from database
+		removedIDs := []string{}
 
-		removedIDs, err := database.BatchDeleteTasks(context.Background(), idsToDelete)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: batch delete failed, falling back to per-task delete: %v\n", err)
-			removedIDs = []string{}
-			for _, task := range tasksToRemove {
-				if err := database.DeleteTask(context.Background(), task.ID); err == nil {
-					removedIDs = append(removedIDs, task.ID)
-				}
+		for _, task := range tasksToRemove {
+			if err := database.DeleteTask(context.Background(), task.ID); err == nil {
+				removedIDs = append(removedIDs, task.ID)
 			}
 		}
 
-		// Sync DB to JSON (shared workflow), and repair any detected store drift.
+		// Sync DB to JSON (shared workflow)
 		var syncErr error
-		needsSync := len(removedIDs) > 0
-		if driftBefore != nil && (len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0) {
-			needsSync = true
-		}
-		if needsSync && projectRoot != "" {
-			syncErr = SyncTodo2Tasks(projectRoot)
-			if syncErr != nil {
-				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after cleanup failed: %v\n", syncErr)
-			}
-		}
 
-		var driftAfter *storeDriftReport
-		if projectRoot != "" {
-			if drift, err := detectTaskStoreDrift(projectRoot); err == nil {
-				driftAfter = drift
+		if len(removedIDs) > 0 {
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after cleanup failed: %v\n", syncErr)
+				}
 			}
 		}
 
@@ -567,27 +576,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"threshold_hours": staleThresholdHours,
 			"include_legacy":  includeLegacy,
 		}
-		if driftBefore != nil {
-			result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
-			result["json_only_count_before"] = len(driftBefore.JSONOnlyIDs)
-			result["json_only_tasks_before"] = driftBefore.JSONOnlyIDs
-			result["db_only_count_before"] = len(driftBefore.DBOnlyIDs)
-			result["db_only_tasks_before"] = driftBefore.DBOnlyIDs
-		}
-		if driftAfter != nil {
-			result["json_only_count_after"] = len(driftAfter.JSONOnlyIDs)
-			result["json_only_tasks_after"] = driftAfter.JSONOnlyIDs
-			result["db_only_count_after"] = len(driftAfter.DBOnlyIDs)
-			result["db_only_tasks_after"] = driftAfter.DBOnlyIDs
-			result["store_drift_repaired"] = driftBefore != nil &&
-				(len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0) &&
-				len(driftAfter.JSONOnlyIDs) == 0 && len(driftAfter.DBOnlyIDs) == 0
-		}
 		if syncErr != nil {
 			result["sync_error"] = syncErr.Error()
 		}
 
-		outputPath := ParamOutputPath(params)
+		outputPath := cast.ToString(params["output_path"])
 
 		return framework.FormatResult(result, outputPath)
 	}
@@ -658,13 +651,6 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"threshold_hours": staleThresholdHours,
 			"include_legacy":  includeLegacy,
 		}
-		if driftBefore != nil {
-			result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
-			result["json_only_count"] = len(driftBefore.JSONOnlyIDs)
-			result["json_only_tasks"] = driftBefore.JSONOnlyIDs
-			result["db_only_count"] = len(driftBefore.DBOnlyIDs)
-			result["db_only_tasks"] = driftBefore.DBOnlyIDs
-		}
 
 		return framework.FormatResult(result, "")
 	}
@@ -705,15 +691,8 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		"threshold_hours": staleThresholdHours,
 		"include_legacy":  includeLegacy,
 	}
-	if driftBefore != nil {
-		result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
-		result["json_only_count_before"] = len(driftBefore.JSONOnlyIDs)
-		result["json_only_tasks_before"] = driftBefore.JSONOnlyIDs
-		result["db_only_count_before"] = len(driftBefore.DBOnlyIDs)
-		result["db_only_tasks_before"] = driftBefore.DBOnlyIDs
-	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	return framework.FormatResult(result, outputPath)
 }

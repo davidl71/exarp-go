@@ -5,7 +5,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 )
 
@@ -56,18 +55,4 @@ func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier
 	return loadStrings(ctx, queryCtx, querier,
 		`SELECT depends_on_id FROM task_dependencies WHERE task_id = ? ORDER BY depends_on_id`,
 		taskID)
-}
-
-// parseJSONArrayToStrings decodes a JSON array of strings (e.g. from sqlite json_group_array).
-func parseJSONArrayToStrings(raw string) ([]string, error) {
-	if raw == "" || raw == "null" {
-		return nil, nil
-	}
-
-	var out []string
-	if err := json.Unmarshal([]byte(raw), &out); err != nil {
-		return nil, fmt.Errorf("parse json string array: %w", err)
-	}
-
-	return out, nil
 }

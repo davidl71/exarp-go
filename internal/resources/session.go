@@ -60,16 +60,6 @@ func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) 
 	return jsonData, "application/json", nil
 }
 
-// handlePrimeContext handles the prime://context resource.
-// Returns compact session prime data (tasks, hints, mode) for OpenCode session bootstrap.
-func handlePrimeContext(ctx context.Context, _ string) ([]byte, string, error) {
-	data, err := tools.HandleSessionPrimeJSON(ctx)
-	if err != nil {
-		return nil, "", fmt.Errorf("prime://context: %w", err)
-	}
-	return data, "application/json", nil
-}
-
 // inferSessionMode infers the current session mode (AGENT/ASK/MANUAL) with confidence
 // This uses the same logic as the infer_session_mode tool.
 func inferSessionMode(ctx context.Context) (string, float64, error) {

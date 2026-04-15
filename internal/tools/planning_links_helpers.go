@@ -2,7 +2,6 @@
 package tools
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/security"
 )
@@ -116,43 +114,26 @@ func ValidatePlanningLink(projectRoot string, planningDocPath string) error {
 	return nil
 }
 
-func validatePlanningTaskID(taskID string) error {
+// ValidateTaskReference validates that a task ID exists in the task list.
+func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 	if taskID == "" {
 		return fmt.Errorf("task ID is empty")
 	}
-	if !models.IsValidTaskID(taskID) {
-		return fmt.Errorf("invalid task ID format: %s (expected T- followed by digits)", taskID)
-	}
-	return nil
-}
 
-// ValidateTaskReference validates that a task ID exists in the task list.
-func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
-	if err := validatePlanningTaskID(taskID); err != nil {
-		return err
+	// Validate task ID format (T- followed by digits)
+	taskIDPattern := regexp.MustCompile(`^T-\d+$`)
+	if !taskIDPattern.MatchString(taskID) {
+		return fmt.Errorf("invalid task ID format: %s (expected T-123 or T-1234567890)", taskID)
 	}
+
+	// Check if task exists
 	for _, task := range tasks {
 		if task.ID == taskID {
 			return nil
 		}
 	}
+
 	return fmt.Errorf("task %s not found", taskID)
-}
-
-// ValidateTaskReferenceInStore validates task ID format and that the task exists either in the
-// project-scoped task snapshot or in the backing store. Use this when ListTasks applies a
-// project_id filter so legacy or cross-labeled rows are still accepted.
-func ValidateTaskReferenceInStore(ctx context.Context, store database.TaskStore, taskID string, tasks []models.Todo2Task) error {
-	if err := validatePlanningTaskID(taskID); err != nil {
-		return err
-	}
-	for _, task := range tasks {
-		if task.ID == taskID {
-			return nil
-		}
-	}
-	_, err := store.GetTask(ctx, taskID)
-	return err
 }
 
 // PlanningDependencyHint is a dependency hint extracted from a planning document (e.g. "Depends on T-XXX" or order).

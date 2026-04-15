@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -23,24 +24,29 @@ type Todo2State = models.Todo2State
 
 // LoadTodo2Tasks loads tasks from database (preferred) or .todo2/state.todo2.json (fallback).
 func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
-	tasks, err := loadTodo2TasksFromDB(projectRoot)
-	if err == nil {
+	// Try database first (scoped to project when projectRoot is set)
+	if tasks, err := loadTodo2TasksFromDB(projectRoot); err == nil {
 		return tasks, nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Todo2: LoadTodo2Tasks using JSON fallback: %v\n", err)
+	// Database not available or query failed, fallback to JSON
 	return loadTodo2TasksFromJSON(projectRoot)
 }
 
 // loadTodo2TasksFromJSON loads tasks from JSON file (fallback method).
-// This is canonical-only: no alias fields (title/description, created/updated) are supported.
+// Metadata is sanitized on load; invalid JSON is coerced to {"raw": "..."}.
 func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-	data, err := os.ReadFile(todo2Path)
+
+	// Use file cache for frequently accessed todo2.json file
+	fileCache := cache.GetGlobalFileCache()
+
+	data, _, err := fileCache.ReadFile(todo2Path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Todo2Task{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
@@ -69,31 +75,35 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 // When database save succeeds, also writes the same list to JSON so both stores stay in sync
 // (avoids merge/sync reintroducing removed tasks from stale JSON).
 func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
-	err := saveTodo2TasksToDB(projectRoot, tasks)
-	if err == nil {
+	// Try database first
+	if err := saveTodo2TasksToDB(projectRoot, tasks); err == nil {
 		// Keep JSON in sync so a later sync does not reintroduce removed tasks (e.g. after merge)
 		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
 			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
 		}
+
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Todo2: SaveTodo2Tasks using JSON fallback: %v\n", err)
+	// Database not available or save failed, fallback to JSON
 	return saveTodo2TasksToJSON(projectRoot, tasks)
 }
 
 // saveTodo2TasksToJSON saves tasks to JSON file (fallback method).
-// Writes canonical state.todo2.json with no legacy alias fields.
 func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-	if err := os.MkdirAll(filepath.Dir(todo2Path), 0755); err != nil {
+
+	// Ensure directory exists
+	dir := filepath.Dir(todo2Path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create .todo2 directory: %w", err)
 	}
 
+	// Normalize epoch dates so we never persist 1970-01-01
 	for i := range tasks {
 		tasks[i].NormalizeEpochDates()
 	}
-
+	// Use MarshalTasksToStateJSON so written JSON includes "name" and "description" for Todo2 extension/overview
 	data, err := MarshalTasksToStateJSON(tasks)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Todo2 state: %w", err)
@@ -102,6 +112,7 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	if err := os.WriteFile(todo2Path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write Todo2 file: %w", err)
 	}
+
 	return nil
 }
 
@@ -111,8 +122,8 @@ func FindProjectRoot() (string, error) {
 	return config.FindProjectRoot()
 }
 
-// GetProjectRootWithFallback returns project root: FindProjectRoot, else PROJECT_ROOT env.
-// Use when a best-effort root is needed, but still require an explicit or discoverable project root.
+// GetProjectRootWithFallback returns project root: FindProjectRoot, else PROJECT_ROOT env, else cwd.
+// Use when a best-effort root is needed (e.g. state file path); returns error only if os.Getwd() fails.
 func GetProjectRootWithFallback() (string, error) {
 	root, err := config.FindProjectRoot()
 	if err == nil && root != "" {
@@ -121,69 +132,19 @@ func GetProjectRootWithFallback() (string, error) {
 	if env := os.Getenv("PROJECT_ROOT"); env != "" && !strings.Contains(env, "{{PROJECT_ROOT}}") {
 		return filepath.Clean(env), nil
 	}
-	return "", fmt.Errorf("project root not found; set PROJECT_ROOT or run from a project with .todo2/.exarp markers")
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("project root not found and getwd failed: %w", err)
+	}
+	return wd, nil
 }
 
-// SyncTodo2Tasks synchronizes tasks between database and JSON file
-// It loads from both sources, merges them (database takes precedence for conflicts),
-// and saves to both to ensure consistency.
+// SyncTodo2Tasks synchronizes tasks between database and JSON file.
+// Database takes precedence for conflicts (StrategyDBWins).
+// For strategy control or structured conflict reporting use SyncTodo2TasksWithStrategy.
 func SyncTodo2Tasks(projectRoot string) error {
-	dbTasksLoaded, dbErr := loadTodo2TasksFromDB(projectRoot)
-	jsonTasksLoaded, jsonErr := loadTodo2TasksFromJSON(projectRoot)
-	if jsonErr != nil {
-		return fmt.Errorf("sync: load json: %w", jsonErr)
-	}
-
-	taskMap := make(map[string]Todo2Task)
-	for _, task := range jsonTasksLoaded {
-		taskMap[task.ID] = task
-	}
-	for _, task := range dbTasksLoaded {
-		taskMap[task.ID] = task
-	}
-
-	// Drop JSON-only rows that duplicate a DB task by normalized content. After tools
-	// delete duplicates in SQLite only, stale JSON copies would otherwise re-enter the
-	// merged set and force multiple UpdateTask calls on the same row (version mismatch).
-	if dbErr == nil && len(dbTasksLoaded) > 0 {
-		dbIDs := make(map[string]struct{}, len(dbTasksLoaded))
-		dbContentKeys := make(map[string]struct{})
-		for _, t := range dbTasksLoaded {
-			dbIDs[t.ID] = struct{}{}
-			if k := normalizeTaskContent(t.Content, t.LongDescription); k != "" {
-				dbContentKeys[k] = struct{}{}
-			}
-		}
-		for id, t := range taskMap {
-			if _, ok := dbIDs[id]; ok {
-				continue
-			}
-			if k := normalizeTaskContent(t.Content, t.LongDescription); k != "" {
-				if _, dup := dbContentKeys[k]; dup {
-					delete(taskMap, id)
-				}
-			}
-		}
-	}
-
-	mergedTasks := make([]Todo2Task, 0, len(taskMap))
-	for _, task := range taskMap {
-		mergedTasks = append(mergedTasks, task)
-	}
-
-	if dbErr == nil {
-		if err := saveTodo2TasksToDB(projectRoot, mergedTasks); err != nil {
-			return fmt.Errorf("sync: save database: %w", err)
-		}
-	} else {
-		fmt.Fprintf(os.Stderr, "WARNING: sync: database unavailable, updating JSON only: %v\n", dbErr)
-	}
-
-	if err := saveTodo2TasksToJSON(projectRoot, mergedTasks); err != nil {
-		return fmt.Errorf("sync: save json: %w", err)
-	}
-
-	return nil
+	_, err := SyncTodo2TasksWithStrategy(projectRoot, StrategyDBWins)
+	return err
 }
 
 // GetTaskByID returns a task by ID via TaskStore (database or JSON fallback).
@@ -366,8 +327,7 @@ func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
 	done := make(map[string]bool)
 
 	for _, t := range tasks {
-		// Prefer typed status when available; fall back to string for legacy callers.
-		if t.StatusEnum == models.TaskStatusDone || strings.EqualFold(t.Status, "done") {
+		if strings.EqualFold(t.Status, "done") {
 			done[t.ID] = true
 		}
 	}
@@ -468,12 +428,12 @@ func WriteTodo2Overview(projectRoot string) error {
 		b.WriteString("### " + t.ID + ": " + name + "\n")
 		b.WriteString("- **Status:** " + t.Status + " ")
 
-		switch t.StatusEnum {
-		case models.TaskStatusDone:
+		switch strings.ToLower(t.Status) {
+		case "done":
 			b.WriteString("✅")
-		case models.TaskStatusInProgress:
+		case "in progress":
 			b.WriteString("⚡")
-		case models.TaskStatusReview:
+		case "review":
 			b.WriteString("👀")
 		default:
 			b.WriteString("📋")
@@ -512,12 +472,12 @@ func WriteTodo2Overview(projectRoot string) error {
 	var todo, inProgress, done int
 
 	for _, t := range tasks {
-		switch t.StatusEnum {
-		case models.TaskStatusTodo:
+		switch strings.ToLower(t.Status) {
+		case "todo":
 			todo++
-		case models.TaskStatusInProgress:
+		case "in progress":
 			inProgress++
-		case models.TaskStatusDone:
+		case "done":
 			done++
 		}
 	}
@@ -525,7 +485,7 @@ func WriteTodo2Overview(projectRoot string) error {
 	high := 0
 
 	for _, t := range tasks {
-		if models.IsHighPriority(t.Priority) {
+		if strings.ToLower(t.Priority) == "high" || strings.ToLower(t.Priority) == "critical" {
 			high++
 		}
 	}
@@ -539,7 +499,7 @@ func WriteTodo2Overview(projectRoot string) error {
 	critical := 0
 
 	for _, t := range tasks {
-		if models.IsCritical(t.Priority) {
+		if strings.ToLower(t.Priority) == "critical" {
 			critical++
 		}
 	}

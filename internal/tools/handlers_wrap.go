@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -41,38 +40,18 @@ func WrapHandler(
 			return nil, fmt.Errorf("failed to parse arguments: %w", err)
 		}
 
-		if !isNilAny(req) {
+		if req != nil {
 			params = convert(req)
-		}
-
-		if params == nil {
-			params = make(map[string]interface{})
-		}
-
-		// Apply defaults for both protobuf and JSON paths
-		if defaults != nil {
-			framework.ApplyDefaults(params, defaults)
+			if defaults != nil {
+				framework.ApplyDefaults(params, defaults)
+			}
 		}
 
 		result, err := handler(ctx, params)
 		if err != nil {
-			return nil, &framework.ErrToolFailed{ToolName: toolName, Err: err}
+			return nil, fmt.Errorf("%s failed: %w", toolName, err)
 		}
 
 		return result, nil
-	}
-}
-
-func isNilAny(v any) bool {
-	if v == nil {
-		return true
-	}
-
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return rv.IsNil()
-	default:
-		return false
 	}
 }

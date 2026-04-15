@@ -6,24 +6,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/exarp-go/proto"
-	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
 //   handleTaskAnalysisDependencies
 //   handleTaskAnalysisDependenciesSummary — handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
 //   handleTaskAnalysisExecutionPlan — handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
-//   handleTaskAnalysisNextBatch — handleTaskAnalysisNextBatch returns remaining waves + next executable batch (wave 0), with optional tag preference.
 //   formatExecutionPlanText
 //   formatExecutionPlanMarkdown
 //   fmtTime
@@ -43,7 +40,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 
 	tasks := tasksFromPtrs(list)
 
-	cycles, missing, err := GetDependencyAnalysisFromTasksWithStore(ctx, store, tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +99,9 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	}
 
 	outputFormat := "json"
-	outputFormat = ParamOutputFormat(params, outputFormat)
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
 
 	result := map[string]interface{}{
 		"success":               true,
@@ -125,14 +124,13 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatDependencyAnalysisText(result)
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES.md", params)
 	if outputFormat == "json" {
-		if err := EnsureParentDir(outputPath); err != nil {
-			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -144,7 +142,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	output := formatDependencyAnalysisText(result)
 
 	if outputPath != "" {
-		if err := EnsureParentDir(outputPath); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
@@ -161,71 +159,6 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 // ─── handleTaskAnalysisDependenciesSummary ──────────────────────────────────
 // handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
 func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	outputFormat := ParamString(params, "output_format")
-	if outputFormat == "" {
-		outputFormat = "json"
-	}
-
-	if outputFormat == "json" {
-		jsonParams := make(map[string]interface{}, len(params)+1)
-		for k, v := range params {
-			jsonParams[k] = v
-		}
-		jsonParams["output_format"] = "json"
-
-		deps, err := handleTaskAnalysisDependencies(ctx, jsonParams)
-		if err != nil {
-			return nil, err
-		}
-		par, err := handleTaskAnalysisParallelization(ctx, jsonParams)
-		if err != nil {
-			return nil, err
-		}
-		plan, err := handleTaskAnalysisExecutionPlan(ctx, jsonParams)
-		if err != nil {
-			return nil, err
-		}
-
-		depsData, err := parseTaskAnalysisJSONContent(deps)
-		if err != nil {
-			return nil, fmt.Errorf("dependencies_summary dependencies: %w", err)
-		}
-		parData, err := parseTaskAnalysisJSONContent(par)
-		if err != nil {
-			return nil, fmt.Errorf("dependencies_summary parallelization: %w", err)
-		}
-		planData, err := parseTaskAnalysisJSONContent(plan)
-		if err != nil {
-			return nil, fmt.Errorf("dependencies_summary execution_plan: %w", err)
-		}
-
-		reportParts := []string{}
-		if report := ParamString(depsData, "report"); report != "" {
-			reportParts = append(reportParts, "## Dependency Analysis\n"+report)
-		}
-		if report := ParamString(parData, "report"); report != "" {
-			reportParts = append(reportParts, "## Parallelization\n"+report)
-		}
-		reportParts = append(reportParts, "## Execution Plan\n"+formatExecutionPlanText(planData))
-
-		result := map[string]interface{}{
-			"success":         true,
-			"method":          "native_go",
-			"action":          "dependencies_summary",
-			"dependencies":    depsData,
-			"parallelization": parData,
-			"execution_plan":  planData,
-			"report":          "# Task Dependencies Summary\n\n" + strings.Join(reportParts, "\n\n"),
-		}
-
-		projectRoot, err := GetProjectRootWithFallback()
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve project root: %w", err)
-		}
-		outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES_SUMMARY.json", params)
-		return framework.FormatResult(result, outputPath)
-	}
-
 	var parts []string
 
 	deps, err := handleTaskAnalysisDependencies(ctx, params)
@@ -248,177 +181,10 @@ func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[strin
 	return []framework.TextContent{{Type: "text", Text: report}}, nil
 }
 
-func parseTaskAnalysisJSONContent(contents []framework.TextContent) (map[string]interface{}, error) {
-	if len(contents) == 0 {
-		return nil, fmt.Errorf("empty tool result")
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(contents[0].Text), &data); err != nil {
-		return nil, fmt.Errorf("invalid JSON result: %w", err)
-	}
-
-	return data, nil
-}
-
-// ─── handleTaskAnalysisNextBatch ─────────────────────────────────────────────
-// handleTaskAnalysisNextBatch returns:
-// - remaining_waves: number of non-empty dependency waves in the open backlog
-// - next_wave: the earliest wave index with work (typically 0)
-// - next_batch_task_ids: task IDs from next_wave (optionally reordered by tag preference)
-// - next_batch_details: BacklogTaskDetail entries for that batch
-//
-// Params:
-// - limit (int): max tasks to return in next_batch_task_ids (0 = no limit)
-// - prefer_tags ([]string or comma-separated string): tags to prioritize within the next batch
-// - output_format ("json" | "text"): default json
-func handleTaskAnalysisNextBatch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task store: %w", err)
-	}
-
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	tasks := tasksFromPtrs(list)
-
-	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, nil)
-	if err != nil {
-		return nil, fmt.Errorf("execution order: %w", err)
-	}
-
-	// Apply the same wave splitting config used elsewhere (plan/report/TUI).
-	if max := config.MaxTasksPerWave(); max > 0 {
-		waves = LimitWavesByMaxTasks(waves, max)
-	}
-
-	// Determine next wave (min key).
-	nextWave := -1
-	if len(waves) > 0 {
-		levels := make([]int, 0, len(waves))
-		for k := range waves {
-			levels = append(levels, k)
-		}
-		sort.Ints(levels)
-		if len(levels) > 0 {
-			nextWave = levels[0]
-		}
-	}
-
-	preferTags := ParamStringSlice(params, "prefer_tags")
-	if len(preferTags) == 0 {
-		// Allow comma-separated string fallback.
-		if s := strings.TrimSpace(cast.ToString(params["prefer_tags"])); s != "" {
-			parts := strings.Split(s, ",")
-			for _, p := range parts {
-				if tag := strings.TrimSpace(p); tag != "" {
-					preferTags = append(preferTags, tag)
-				}
-			}
-		}
-	}
-
-	limit := ParamInt(params, "limit", 0)
-
-	var nextBatchIDs []string
-	if nextWave >= 0 {
-		nextBatchIDs = append([]string(nil), waves[nextWave]...)
-	} else {
-		nextBatchIDs = []string{}
-	}
-
-	// Tag-aware stable partition: preferred tags first, preserving execution-order within each partition.
-	if len(preferTags) > 0 && len(nextBatchIDs) > 1 {
-		taskByID := make(map[string]Todo2Task, len(tasks))
-		for _, t := range tasks {
-			taskByID[t.ID] = t
-		}
-
-		hasPreferredTag := func(id string) bool {
-			t, ok := taskByID[id]
-			if !ok {
-				return false
-			}
-			for _, tt := range t.Tags {
-				for _, pt := range preferTags {
-					if tt == pt {
-						return true
-					}
-				}
-			}
-			return false
-		}
-
-		preferred := make([]string, 0, len(nextBatchIDs))
-		other := make([]string, 0, len(nextBatchIDs))
-		for _, id := range nextBatchIDs {
-			if hasPreferredTag(id) {
-				preferred = append(preferred, id)
-			} else {
-				other = append(other, id)
-			}
-		}
-		nextBatchIDs = append(preferred, other...)
-	}
-
-	if limit > 0 && len(nextBatchIDs) > limit {
-		nextBatchIDs = nextBatchIDs[:limit]
-	}
-
-	// Build details for selected batch IDs (preserve batch order).
-	detailByID := make(map[string]BacklogTaskDetail, len(details))
-	for _, d := range details {
-		detailByID[d.ID] = d
-	}
-
-	nextBatchDetails := make([]BacklogTaskDetail, 0, len(nextBatchIDs))
-	for _, id := range nextBatchIDs {
-		if d, ok := detailByID[id]; ok {
-			nextBatchDetails = append(nextBatchDetails, d)
-		}
-	}
-
-	result := map[string]interface{}{
-		"success":             true,
-		"method":              "native_go",
-		"backlog_count":       len(orderedIDs),
-		"remaining_waves":     len(waves),
-		"next_wave":           nextWave,
-		"next_batch_task_ids": nextBatchIDs,
-		"next_batch_details":  nextBatchDetails,
-		"prefer_tags":         preferTags,
-	}
-
-	outputFormat := ParamOutputFormat(params, "json")
-	if outputFormat == "json" {
-		resultJSON, _ := json.Marshal(result)
-		resp := &proto.TaskAnalysisResponse{Action: "next_batch", ResultJson: string(resultJSON)}
-		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
-	}
-
-	// Text fallback: compact summary.
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Remaining waves: %d\n", len(waves)))
-	b.WriteString(fmt.Sprintf("Next wave: %d\n", nextWave))
-	if len(nextBatchIDs) == 0 {
-		b.WriteString("Next batch: (empty)\n")
-	} else {
-		b.WriteString("Next batch:\n")
-		for _, id := range nextBatchIDs {
-			b.WriteString("- " + id + "\n")
-		}
-	}
-
-	return []framework.TextContent{{Type: "text", Text: b.String()}}, nil
-}
-
 // ─── handleTaskAnalysisExecutionPlan ────────────────────────────────────────
 // handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
 func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := GetProjectRootWithFallback()
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -487,8 +253,8 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 
 	// Optional limit (0 = all)
 	limit := 0
-	if l := ParamInt(params, "limit", 0); l > 0 {
-		limit = l
+	if l, ok := params["limit"].(float64); ok && l > 0 {
+		limit = int(l)
 	}
 
 	if limit > 0 && len(orderedIDs) > limit {
@@ -499,33 +265,21 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		}
 	}
 
-	topTasks := buildCodexTopTasks(details, waves)
-	suggestedNextAction := buildExecutionPlanSuggestedNextAction(topTasks)
-	agentHint := buildExecutionPlanAgentHint(suggestedNextAction)
-	summary := buildExecutionPlanSummary(len(orderedIDs), topTasks)
-
-	// Detect file collisions between tasks with ownership metadata
-	collisions := DetectFileCollisions(tasks)
-	collisionMap := BuildCollisionMap(collisions)
-
 	result := map[string]interface{}{
-		"success":               true,
-		"method":                "native_go",
-		"backlog_count":         len(orderedIDs),
-		"ordered_task_ids":      orderedIDs,
-		"waves":                 waves,
-		"details":               details,
-		"top_tasks":             topTasks,
-		"suggested_next_action": suggestedNextAction,
-		"agent_hint":            agentHint,
-		"summary":               summary,
-		"file_collisions":       collisions,
-		"collision_map":         collisionMap,
-		"has_collisions":        len(collisions) > 0,
+		"success":          true,
+		"method":           "native_go",
+		"backlog_count":    len(orderedIDs),
+		"ordered_task_ids": orderedIDs,
+		"waves":            waves,
+		"details":          details,
 	}
 
-	outputFormat := ParamOutputFormat(params, "json")
-	outputPath := ParamOutputPath(params)
+	outputFormat := "json"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
+
+	outputPath := cast.ToString(params["output_path"])
 
 	// subagents_plan: write parallel-execution-subagents.plan.md using wave detection
 	if outputFormat == "subagents_plan" {
@@ -570,8 +324,10 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	}
 
 	if outputFormat == "json" {
-		if err := EnsureParentDir(outputPath); err != nil {
-			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -583,7 +339,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	output := formatExecutionPlanText(result)
 
 	if outputPath != "" {
-		if err := EnsureParentDir(outputPath); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
@@ -614,31 +370,6 @@ func formatExecutionPlanText(result map[string]interface{}) string {
 
 	sb.WriteString("Backlog execution order\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
-
-	if summary := ParamString(result, "summary"); summary != "" {
-		sb.WriteString(summary + "\n")
-	}
-	if next := ParamString(result, "suggested_next_action"); next != "" {
-		sb.WriteString("Next: " + next + "\n")
-	}
-
-	// Collision warnings
-	if hasCollisions, ok := result["has_collisions"].(bool); ok && hasCollisions {
-		sb.WriteString("\n⚠️  File Collision Warnings:\n")
-		if collisions, ok := result["file_collisions"].([]TaskCollision); ok {
-			for _, c := range collisions {
-				sb.WriteString(fmt.Sprintf("  - %s ↔ %s [%s]", c.TaskA, c.TaskB, c.Risk))
-				if len(c.Files) > 0 {
-					sb.WriteString(fmt.Sprintf(" (files: %s)", strings.Join(c.Files, ", ")))
-				}
-				if c.LaneA != "" && c.LaneB != "" && c.LaneA == c.LaneB {
-					sb.WriteString(fmt.Sprintf(" (same lane: %s)", c.LaneA))
-				}
-				sb.WriteString("\n")
-			}
-		}
-	}
-	sb.WriteString("\n")
 
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
 		for i, id := range ids {
@@ -709,245 +440,12 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 		sb.WriteString("\n")
 	}
 
-	// Collision warnings in markdown
-	if hasCollisions, ok := result["has_collisions"].(bool); ok && hasCollisions {
-		sb.WriteString("\n## ⚠️ File Collision Warnings\n\n")
-		if collisions, ok := result["file_collisions"].([]TaskCollision); ok {
-			sb.WriteString("| Task A | Task B | Risk | Files | Lane |\n")
-			sb.WriteString("|--------|--------|------|-------|------|\n")
-			for _, c := range collisions {
-				files := strings.Join(c.Files, ", ")
-				if files == "" {
-					files = "-"
-				}
-				lane := "-"
-				if c.LaneA != "" && c.LaneB != "" && c.LaneA == c.LaneB {
-					lane = c.LaneA
-				}
-				sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", c.TaskA, c.TaskB, c.Risk, files, lane))
-			}
-			sb.WriteString("\n")
-		}
-	}
-
 	return sb.String()
 }
 
 // ─── fmtTime ────────────────────────────────────────────────────────────────
 func fmtTime(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
-}
-
-func buildCodexTopTasks(details []BacklogTaskDetail, waves map[int][]string) []map[string]interface{} {
-	if len(details) == 0 {
-		return []map[string]interface{}{}
-	}
-
-	waveByTask := make(map[string]int, len(details))
-	for level, ids := range waves {
-		for _, id := range ids {
-			waveByTask[id] = level
-		}
-	}
-
-	limit := 3
-	if len(details) < limit {
-		limit = len(details)
-	}
-
-	topTasks := make([]map[string]interface{}, 0, limit)
-	for i := 0; i < limit; i++ {
-		d := details[i]
-		whyNow := fmt.Sprintf("wave_%d_priority_%s", waveByTask[d.ID], NormalizePriority(d.Priority))
-		if waveByTask[d.ID] == 0 {
-			whyNow = "wave_0_no_dependencies"
-		}
-
-		topTasks = append(topTasks, map[string]interface{}{
-			"id":       d.ID,
-			"content":  d.Content,
-			"priority": d.Priority,
-			"status":   d.Status,
-			"level":    d.Level,
-			"tags":     d.Tags,
-			"why_now":  whyNow,
-		})
-	}
-
-	return topTasks
-}
-
-func buildExecutionPlanSuggestedNextAction(topTasks []map[string]interface{}) string {
-	if len(topTasks) == 0 {
-		return "No actionable backlog tasks found."
-	}
-
-	first := topTasks[0]
-	id := ParamString(first, "id")
-	content := ParamString(first, "content")
-	if id == "" {
-		return "No actionable backlog tasks found."
-	}
-	if content == "" {
-		return fmt.Sprintf("Work on %s.", id)
-	}
-
-	return fmt.Sprintf("Work on %s: %s", id, content)
-}
-
-func buildExecutionPlanAgentHint(suggestedNextAction string) string {
-	if suggestedNextAction == "" || suggestedNextAction == "No actionable backlog tasks found." {
-		return "Backlog is empty or filtered out; use task_workflow list/show to inspect remaining work."
-	}
-
-	return suggestedNextAction + " Then use task_workflow show or summarize on that task before implementation."
-}
-
-func buildExecutionPlanSummary(backlogCount int, topTasks []map[string]interface{}) string {
-	if backlogCount == 0 {
-		return "Backlog has no Todo or In Progress tasks."
-	}
-
-	if len(topTasks) == 0 {
-		return fmt.Sprintf("Backlog has %d actionable tasks.", backlogCount)
-	}
-
-	return fmt.Sprintf("Backlog has %d actionable tasks. Start with %s.", backlogCount, ParamString(topTasks[0], "id"))
-}
-
-// TaskCollision represents a file collision between two tasks.
-type TaskCollision struct {
-	TaskA string   `json:"task_a"`
-	TaskB string   `json:"task_b"`
-	Files []string `json:"files"`  // Overlapping files
-	LaneA string   `json:"lane_a"` // Lane of task A (if set)
-	LaneB string   `json:"lane_b"` // Lane of task B (if set)
-	Risk  string   `json:"risk"`   // "high" (same hotspot files) or "medium" (same lane)
-}
-
-// TaskOwnershipInfo holds ownership info for collision detection.
-type TaskOwnershipInfo struct {
-	TaskID         string
-	OwnedFiles     []string
-	OwnedGlobs     []string
-	Lane           string
-	ForbiddenFiles []string
-}
-
-// GetTaskOwnershipInfo extracts ownership info from a task.
-func GetTaskOwnershipInfo(task *Todo2Task) *TaskOwnershipInfo {
-	own := models.GetTaskOwnership(task)
-	if own == nil {
-		return nil
-	}
-	return &TaskOwnershipInfo{
-		TaskID:         task.ID,
-		OwnedFiles:     own.OwnedFiles,
-		OwnedGlobs:     own.OwnedGlobs,
-		Lane:           own.Lane,
-		ForbiddenFiles: own.ForbiddenFiles,
-	}
-}
-
-// DetectFileCollisions detects file collisions between tasks with ownership metadata.
-// Returns collisions sorted by risk (high first).
-func DetectFileCollisions(tasks []Todo2Task) []TaskCollision {
-	// Build ownership map
-	ownershipMap := make(map[string]*TaskOwnershipInfo)
-	for i := range tasks {
-		info := GetTaskOwnershipInfo(&tasks[i])
-		if info != nil && (len(info.OwnedFiles) > 0 || len(info.OwnedGlobs) > 0 || info.Lane != "") {
-			ownershipMap[info.TaskID] = info
-		}
-	}
-
-	// Only check pending tasks (Todo + In Progress)
-	pendingIDs := make(map[string]bool)
-	for _, task := range tasks {
-		if IsPendingStatus(task.Status) {
-			pendingIDs[task.ID] = true
-		}
-	}
-
-	var collisions []TaskCollision
-
-	// Check each pair of pending tasks
-	taskIDs := make([]string, 0, len(ownershipMap))
-	for id := range ownershipMap {
-		if pendingIDs[id] {
-			taskIDs = append(taskIDs, id)
-		}
-	}
-	sort.Strings(taskIDs)
-
-	for i := 0; i < len(taskIDs); i++ {
-		for j := i + 1; j < len(taskIDs); j++ {
-			infoA := ownershipMap[taskIDs[i]]
-			infoB := ownershipMap[taskIDs[j]]
-
-			// Find overlapping files
-			overlapping := findOverlappingFiles(infoA, infoB)
-
-			// Check same lane
-			sameLane := infoA.Lane != "" && infoB.Lane != "" && infoA.Lane == infoB.Lane
-
-			if len(overlapping) > 0 || sameLane {
-				risk := "medium"
-				if len(overlapping) > 0 {
-					risk = "high" // Direct file overlap is high risk
-				}
-				collisions = append(collisions, TaskCollision{
-					TaskA: infoA.TaskID,
-					TaskB: infoB.TaskID,
-					Files: overlapping,
-					LaneA: infoA.Lane,
-					LaneB: infoB.Lane,
-					Risk:  risk,
-				})
-			}
-		}
-	}
-
-	// Sort: high risk first
-	sort.Slice(collisions, func(i, j int) bool {
-		if collisions[i].Risk != collisions[j].Risk {
-			return collisions[i].Risk == "high"
-		}
-		return collisions[i].TaskA < collisions[j].TaskA
-	})
-
-	return collisions
-}
-
-// findOverlappingFiles finds files that appear in both tasks' owned_files.
-func findOverlappingFiles(a, b *TaskOwnershipInfo) []string {
-	fileSet := make(map[string]bool)
-	for _, f := range a.OwnedFiles {
-		fileSet[f] = true
-	}
-
-	var overlapping []string
-	for _, f := range b.OwnedFiles {
-		if fileSet[f] {
-			overlapping = append(overlapping, f)
-		}
-	}
-	sort.Strings(overlapping)
-	return overlapping
-}
-
-// BuildCollisionMap returns a map of task ID -> list of task IDs it conflicts with.
-func BuildCollisionMap(collisions []TaskCollision) map[string][]string {
-	m := make(map[string][]string)
-	for _, c := range collisions {
-		m[c.TaskA] = append(m[c.TaskA], c.TaskB)
-		m[c.TaskB] = append(m[c.TaskB], c.TaskA)
-	}
-	// Sort each list
-	for k := range m {
-		sort.Strings(m[k])
-	}
-	return m
 }
 
 // handleTaskAnalysisComplexity classifies task complexity (simple/medium/complex) using heuristic rules.

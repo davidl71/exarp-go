@@ -5,13 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"os"
+	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/spf13/cast"
 )
 
 // TaskAnalysisResponseToMap converts TaskAnalysisResponse to a map for response.FormatResult (unmarshals result_json into map).
@@ -48,8 +47,6 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 	}
 
 	switch action {
-	case "next_batch":
-		return handleTaskAnalysisNextBatch(ctx, params)
 	case "hierarchy":
 		return handleTaskAnalysisHierarchy(ctx, params)
 	case "duplicates":
@@ -74,18 +71,10 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisConflicts(ctx, params)
 	case "dependencies_summary":
 		return handleTaskAnalysisDependenciesSummary(ctx, params)
-	case "suggest_dependencies", "suggest_deps":
+	case "suggest_dependencies":
 		return handleTaskAnalysisSuggestDependencies(ctx, params)
 	case "noise":
 		return handleTaskAnalysisNoise(ctx, params)
-	case "infer_ownership":
-		return handleTaskAnalysisInferOwnership(ctx, params)
-	case "hotspots":
-		return handleTaskAnalysisHotspots(ctx, params)
-	case "stale":
-		return handleTaskAnalysisStale(ctx, params)
-	case "completable":
-		return handleTaskAnalysisCompletable(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -103,26 +92,13 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	includeTodo := cast.ToBool(params["include_todo"])
-	if raw := strings.TrimSpace(cast.ToString(params["include_statuses"])); raw != "" {
-		for _, p := range strings.Split(raw, ",") {
-			if strings.EqualFold(strings.TrimSpace(p), models.StatusTodo) {
-				includeTodo = true
-
-				break
-			}
-		}
-	}
-
-	taskOverlaps := DetectTaskOverlapConflicts(list)
-	fileConflicts := DetectFileConflictsWithPreflight(list, includeTodo)
-	forbiddenHits := DetectForbiddenOwnershipConflictsWithPreflight(list, includeTodo)
-	hasConflict := len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbiddenHits) > 0
+	conflicts := DetectTaskOverlapConflicts(list)
+	hasConflict := len(conflicts) > 0
 	overlapping := make([]string, 0)
 
 	if hasConflict {
 		seen := make(map[string]bool)
-		for _, c := range taskOverlaps {
+		for _, c := range conflicts {
 			if !seen[c.DepTaskID] {
 				seen[c.DepTaskID] = true
 
@@ -135,46 +111,18 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 				overlapping = append(overlapping, c.TaskID)
 			}
 		}
-		for _, c := range fileConflicts {
-			for _, id := range c.TaskIDs {
-				if !seen[id] {
-					seen[id] = true
-					overlapping = append(overlapping, id)
-				}
-			}
-		}
-		for _, c := range forbiddenHits {
-			if !seen[c.TaskID] {
-				seen[c.TaskID] = true
-				overlapping = append(overlapping, c.TaskID)
-			}
-
-			if !seen[c.OtherTaskID] {
-				seen[c.OtherTaskID] = true
-				overlapping = append(overlapping, c.OtherTaskID)
-			}
-		}
 	}
 
 	out := map[string]interface{}{
-		"conflict":            hasConflict,
-		"conflicts":           taskOverlaps,
-		"file_conflicts":      fileConflicts,
-		"ownership_conflicts": forbiddenHits,
-		"overlapping":         overlapping,
-		"include_todo":        includeTodo,
+		"conflict":    hasConflict,
+		"conflicts":   conflicts,
+		"overlapping": overlapping,
 	}
 
 	if hasConflict {
-		reasons := make([]string, 0, len(taskOverlaps)+len(fileConflicts)+len(forbiddenHits))
-		for _, c := range taskOverlaps {
-			reasons = append(reasons, c.Reason)
-		}
-		for _, c := range fileConflicts {
-			reasons = append(reasons, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share "+strings.Join(c.Files, ", "))
-		}
-		for _, c := range forbiddenHits {
-			reasons = append(reasons, "Ownership: "+c.TaskID+" touches "+c.Path+" forbidden by "+c.OtherTaskID+" ("+c.Reason+")")
+		reasons := make([]string, len(conflicts))
+		for i, c := range conflicts {
+			reasons[i] = c.Reason
 		}
 
 		out["reasons"] = reasons
@@ -202,11 +150,14 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 
 	// Use config default, allow override from params
 	similarityThreshold := config.SimilarityThreshold()
-	if v, ok := ParamFloat64OK(params, "similarity_threshold"); ok {
-		similarityThreshold = v
+	if threshold, ok := params["similarity_threshold"].(float64); ok {
+		similarityThreshold = threshold
 	}
 
-	autoFix := ParamBool(params, "auto_fix", false)
+	autoFix := false
+	if fix, ok := params["auto_fix"].(bool); ok {
+		autoFix = fix
+	}
 
 	// Find duplicates
 	duplicates := findDuplicateTasks(tasks, similarityThreshold)
@@ -245,13 +196,10 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 		result["tasks_after_merge"] = len(tasks)
 	}
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DUPLICATES.md", params)
 	if outputPath != "" {
-		if err := EnsureParentDir(outputPath); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 	}
@@ -260,68 +208,6 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 	resp := &proto.TaskAnalysisResponse{Action: "duplicates", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
-}
-
-// handleTaskAnalysisStale surfaces stale-tag / metadata-flagged backlog tasks using the same
-// heuristics as task_workflow cleanup (always dry_run; no deletions).
-func handleTaskAnalysisStale(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	cleanupParams := map[string]interface{}{
-		"dry_run":                 true,
-		"include_legacy":         ParamBool(params, "include_legacy", false),
-		"stale_threshold_hours":  ParamFloat64(params, "stale_threshold_hours", 2.0),
-	}
-
-	contents, err := handleTaskWorkflowCleanup(ctx, cleanupParams)
-	if err != nil {
-		return nil, fmt.Errorf("stale analysis: %w", err)
-	}
-
-	if len(contents) == 0 {
-		return nil, fmt.Errorf("stale analysis: empty result")
-	}
-
-	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(contents[0].Text), &payload); err != nil {
-		return nil, fmt.Errorf("stale analysis: parse cleanup result: %w", err)
-	}
-
-	payload["action"] = "stale"
-
-	return framework.FormatResult(payload, ParamString(params, "output_path"))
-}
-
-// handleTaskAnalysisCompletable runs infer_task_progress heuristics and labels the payload for task_analysis clients.
-func handleTaskAnalysisCompletable(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	inferParams := make(map[string]interface{}, len(params))
-	for k, v := range params {
-		if k == "action" {
-			continue
-		}
-
-		inferParams[k] = v
-	}
-
-	if _, ok := inferParams["dry_run"]; !ok {
-		inferParams["dry_run"] = true
-	}
-
-	contents, err := handleInferTaskProgressNative(ctx, inferParams)
-	if err != nil {
-		return nil, fmt.Errorf("completable analysis: %w", err)
-	}
-
-	if len(contents) == 0 {
-		return nil, fmt.Errorf("completable analysis: empty result")
-	}
-
-	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(contents[0].Text), &payload); err != nil {
-		return nil, fmt.Errorf("completable analysis: parse infer result: %w", err)
-	}
-
-	payload["action"] = "completable"
-
-	return framework.FormatResult(payload, ParamString(params, "output_path"))
 }
 
 // CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.

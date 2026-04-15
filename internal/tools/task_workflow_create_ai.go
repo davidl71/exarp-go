@@ -63,31 +63,13 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 		return nil, fmt.Errorf("tasks array is empty")
 	}
 
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task store: %w", err)
-	}
-
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load existing tasks for dependency validation: %w", err)
-	}
-
-	existingTasks := make([]Todo2Task, len(list))
-	existingTaskMap := make(map[string]bool)
-	for i, t := range list {
-		existingTasks[i] = *t
-		existingTaskMap[t.ID] = true
-	}
-
-	autoEstimate := cast.ToBool(params["auto_estimate"])
-	if _, hasAutoEstimate := params["auto_estimate"]; !hasAutoEstimate {
-		autoEstimate = true
+	// Shared params inherited by all tasks unless overridden per-task
+	sharedPlanningDoc := cast.ToString(params["planning_doc"])
+	sharedEpicID := cast.ToString(params["epic_id"])
+	sharedParentID := cast.ToString(params["parent_id"])
+	autoEstimate := true
+	if _, ok := params["auto_estimate"]; ok {
+		autoEstimate = cast.ToBool(params["auto_estimate"])
 	}
 
 	var createdTasks []map[string]interface{}
@@ -97,20 +79,20 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 	for i, def := range taskDefs {
 		merged := make(map[string]interface{})
 		merged["auto_estimate"] = autoEstimate
-		if sharedVal := cast.ToString(params["planning_doc"]); sharedVal != "" {
-			merged["planning_doc"] = sharedVal
+		if sharedPlanningDoc != "" {
+			merged["planning_doc"] = sharedPlanningDoc
 		}
-		if sharedVal := cast.ToString(params["epic_id"]); sharedVal != "" {
-			merged["epic_id"] = sharedVal
+		if sharedEpicID != "" {
+			merged["epic_id"] = sharedEpicID
 		}
-		if sharedVal := cast.ToString(params["parent_id"]); sharedVal != "" {
-			merged["parent_id"] = sharedVal
+		if sharedParentID != "" {
+			merged["parent_id"] = sharedParentID
 		}
 		for k, v := range def {
 			merged[k] = v
 		}
 
-		result, err := handleTaskWorkflowCreateSingleWithDeps(ctx, store, projectRoot, merged, existingTasks, existingTaskMap)
+		result, err := handleTaskWorkflowCreateSingle(ctx, merged)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("task[%d] %q: %v", i, cast.ToString(def["name"]), err))
 			continue
@@ -123,7 +105,6 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 					createdTasks = append(createdTasks, taskData)
 					if id, ok := taskData["id"].(string); ok {
 						createdIDs = append(createdIDs, id)
-						existingTaskMap[id] = true
 					}
 				}
 			}
@@ -142,188 +123,8 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 		batchResult["success"] = len(createdTasks) > 0
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	return framework.FormatResult(batchResult, outputPath)
-}
-
-// handleTaskWorkflowCreateSingleWithDeps creates a single task with pre-loaded existing tasks.
-// This avoids repeated ListTasks calls in batch mode.
-func handleTaskWorkflowCreateSingleWithDeps(
-	ctx context.Context,
-	store database.TaskStore,
-	projectRoot string,
-	params map[string]interface{},
-	existingTasks []Todo2Task,
-	existingTaskMap map[string]bool,
-) ([]framework.TextContent, error) {
-	name := cast.ToString(params["name"])
-	if name == "" {
-		return nil, fmt.Errorf("name is required for task creation")
-	}
-
-	longDescription := cast.ToString(params["long_description"])
-	if longDescription == "" {
-		longDescription = name
-	}
-
-	status := config.DefaultTaskStatus()
-	if rawStatus, err := ParamEnum(params, "status",
-		[]string{"Todo", "In Progress", "Review", "Done", "Blocked", "Cancelled"},
-		""); err != nil {
-		return nil, fmt.Errorf("create: %w", err)
-	} else if rawStatus != "" {
-		status = normalizeStatus(rawStatus)
-	}
-
-	priority := config.DefaultTaskPriority()
-	if rawPriority, err := ParamEnum(params, "priority",
-		[]string{"low", "medium", "high", "critical"},
-		""); err != nil {
-		return nil, fmt.Errorf("create: %w", err)
-	} else if rawPriority != "" {
-		priority = normalizePriority(rawPriority)
-	}
-
-	priorityRank := ParamInt(params, "priority_rank", 0)
-
-	tags := config.DefaultTaskTags()
-	if len(tags) == 0 {
-		tags = []string{}
-	}
-	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
-		tags = append(tags, extra...)
-	}
-	tags = models.NormalizeTags(tags)
-
-	dependencies := ParamTaskDependencyIDs(params, "dependencies")
-	if dependencies == nil {
-		dependencies = []string{}
-	}
-
-	nextID := generateEpochTaskID()
-
-	for _, dep := range dependencies {
-		if err := ValidateTaskReferenceInStore(ctx, store, dep, existingTasks); err != nil {
-			return nil, fmt.Errorf("dependency %s: %w", dep, err)
-		}
-	}
-
-	var planningDoc string
-	if pd := cast.ToString(params["planning_doc"]); pd != "" {
-		planningDoc = pd
-		if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
-			return nil, fmt.Errorf("invalid planning document link: %w", err)
-		}
-	}
-
-	var epicID string
-	if eid := cast.ToString(params["epic_id"]); eid != "" {
-		epicID = eid
-		if err := ValidateTaskReferenceInStore(ctx, store, epicID, existingTasks); err != nil {
-			return nil, fmt.Errorf("invalid epic ID: %w", err)
-		}
-	}
-
-	parentID := cast.ToString(params["parent_id"])
-	if parentID != "" {
-		if err := ValidateTaskReferenceInStore(ctx, store, parentID, existingTasks); err != nil {
-			return nil, fmt.Errorf("invalid parent_id: %w", err)
-		}
-	}
-
-	task := &models.Todo2Task{
-		ID:              nextID,
-		Name:            name,
-		Content:         name,
-		LongDescription: longDescription,
-		Status:          status,
-		Priority:        priority,
-		PriorityRank:    priorityRank,
-		Tags:            tags,
-		Dependencies:    dependencies,
-		Completed:       false,
-		Metadata:        make(map[string]interface{}),
-	}
-
-	if task.ProjectID == "" && projectRoot != "" {
-		task.ProjectID = filepath.Base(projectRoot)
-	}
-
-	if parentID != "" {
-		task.ParentID = parentID
-	} else if epicID != "" {
-		task.ParentID = epicID
-	}
-
-	if planningDoc != "" || epicID != "" {
-		linkMeta := &PlanningLinkMetadata{
-			PlanningDoc: planningDoc,
-			EpicID:      epicID,
-		}
-		SetPlanningLinkMetadata(task, linkMeta)
-	}
-
-	if backend := strings.TrimSpace(strings.ToLower(cast.ToString(params["local_ai_backend"]))); backend != "" {
-		if backend == "mlx" {
-			backend = ""
-		}
-		if backend == "fm" || backend == "ollama" {
-			task.Metadata[MetadataKeyPreferredBackend] = backend
-		}
-	}
-
-	if recommendedTools := parseRecommendedToolsFromParams(params); len(recommendedTools) > 0 {
-		slice := make([]interface{}, len(recommendedTools))
-		for i, t := range recommendedTools {
-			slice[i] = t
-		}
-		task.Metadata[MetadataKeyRecommendedTools] = slice
-	}
-
-	// Handle ownership metadata (owned_files, lane, etc.)
-	if ownership := parseOwnershipFromParams(params); ownership != nil {
-		models.SetTaskOwnership(task, ownership)
-	}
-
-	if err := store.CreateTask(ctx, task); err != nil {
-		return nil, fmt.Errorf("failed to create task: %w", err)
-	}
-
-	result := map[string]interface{}{
-		"success": true, "method": "store",
-		"task": map[string]interface{}{
-			"id": task.ID, "name": task.Name, "long_description": task.LongDescription,
-			"status": task.Status, "priority": task.Priority, "priority_rank": task.PriorityRank, "tags": task.Tags, "dependencies": task.Dependencies,
-		},
-	}
-
-	autoEstimate := cast.ToBool(params["auto_estimate"])
-	if _, hasAutoEstimate := params["auto_estimate"]; !hasAutoEstimate {
-		autoEstimate = true
-	}
-
-	if autoEstimate {
-		if err := addEstimateComment(ctx, projectRoot, task, name, longDescription, tags, priority); err != nil {
-			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
-				metadata["estimation_error"] = err.Error()
-			} else {
-				result["metadata"] = map[string]interface{}{
-					"estimation_error": err.Error(),
-				}
-			}
-		} else {
-			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
-				metadata["estimation_added"] = true
-			} else {
-				result["metadata"] = map[string]interface{}{
-					"estimation_added": true,
-				}
-			}
-		}
-	}
-
-	outputPath := ParamOutputPath(params)
-	return framework.FormatResult(result, outputPath)
 }
 
 // ─── handleTaskWorkflowCreateSingle ─────────────────────────────────────────
@@ -350,37 +151,52 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	status := config.DefaultTaskStatus()
-	if rawStatus, err := ParamEnum(params, "status",
-		[]string{"Todo", "In Progress", "Review", "Done", "Blocked", "Cancelled"},
-		""); err != nil {
-		return nil, fmt.Errorf("create: %w", err)
-	} else if rawStatus != "" {
-		status = normalizeStatus(rawStatus)
+	if v, ok := params["status"]; ok && cast.ToString(v) != "" {
+		status = normalizeStatus(cast.ToString(v))
 	}
 
 	priority := config.DefaultTaskPriority()
-	if rawPriority, err := ParamEnum(params, "priority",
-		[]string{"low", "medium", "high", "critical"},
-		""); err != nil {
-		return nil, fmt.Errorf("create: %w", err)
-	} else if rawPriority != "" {
-		priority = normalizePriority(rawPriority)
+	if v, ok := params["priority"]; ok && cast.ToString(v) != "" {
+		priority = normalizePriority(cast.ToString(v))
 	}
-
-	priorityRank := ParamInt(params, "priority_rank", 0)
 
 	tags := config.DefaultTaskTags()
 	if len(tags) == 0 {
 		tags = []string{}
 	}
-	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
-		tags = append(tags, extra...)
-	}
-	tags = models.NormalizeTags(tags)
 
-	dependencies := ParamTaskDependencyIDs(params, "dependencies")
-	if dependencies == nil {
-		dependencies = []string{}
+	if t, ok := params["tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok {
+				tags = append(tags, tagStr)
+			}
+		}
+	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
+		tagList := strings.Split(tStr, ",")
+		for _, tag := range tagList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
+
+	dependencies := []string{}
+
+	if d, ok := params["dependencies"].([]interface{}); ok {
+		for _, dep := range d {
+			if depStr, ok := dep.(string); ok {
+				dependencies = append(dependencies, depStr)
+			}
+		}
+	} else if dStr := cast.ToString(params["dependencies"]); dStr != "" {
+		depList := strings.Split(dStr, ",")
+		for _, dep := range depList {
+			dep = strings.TrimSpace(dep)
+			if dep != "" {
+				dependencies = append(dependencies, dep)
+			}
+		}
 	}
 
 	list, err := store.ListTasks(ctx, nil)
@@ -389,17 +205,20 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	tasks := make([]Todo2Task, len(list))
-	taskMap := make(map[string]bool)
 	for i, t := range list {
 		tasks[i] = *t
-		taskMap[t.ID] = true
 	}
 
 	nextID := generateEpochTaskID()
 
+	taskMap := make(map[string]bool)
+	for _, task := range tasks {
+		taskMap[task.ID] = true
+	}
+
 	for _, dep := range dependencies {
-		if err := ValidateTaskReferenceInStore(ctx, store, dep, tasks); err != nil {
-			return nil, fmt.Errorf("dependency %s: %w", dep, err)
+		if !taskMap[dep] {
+			return nil, fmt.Errorf("dependency %s does not exist", dep)
 		}
 	}
 
@@ -414,14 +233,14 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	var epicID string
 	if eid := cast.ToString(params["epic_id"]); eid != "" {
 		epicID = eid
-		if err := ValidateTaskReferenceInStore(ctx, store, epicID, tasks); err != nil {
+		if err := ValidateTaskReference(epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic ID: %w", err)
 		}
 	}
 
 	parentID := cast.ToString(params["parent_id"])
 	if parentID != "" {
-		if err := ValidateTaskReferenceInStore(ctx, store, parentID, tasks); err != nil {
+		if err := ValidateTaskReference(parentID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid parent_id: %w", err)
 		}
 	}
@@ -432,7 +251,6 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		LongDescription: longDescription,
 		Status:          status,
 		Priority:        priority,
-		PriorityRank:    priorityRank,
 		Tags:            tags,
 		Dependencies:    dependencies,
 		Completed:       false,
@@ -458,10 +276,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	if backend := strings.TrimSpace(strings.ToLower(cast.ToString(params["local_ai_backend"]))); backend != "" {
-		if backend == "mlx" {
-			backend = ""
-		}
-		if backend == "fm" || backend == "ollama" {
+		if backend == "fm" || backend == "mlx" || backend == "ollama" {
 			task.Metadata[MetadataKeyPreferredBackend] = backend
 		}
 	}
@@ -474,11 +289,6 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		task.Metadata[MetadataKeyRecommendedTools] = slice
 	}
 
-	// Handle ownership metadata (owned_files, lane, etc.)
-	if ownership := parseOwnershipFromParams(params); ownership != nil {
-		models.SetTaskOwnership(task, ownership)
-	}
-
 	if err := store.CreateTask(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
@@ -487,7 +297,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		"success": true, "method": "store",
 		"task": map[string]interface{}{
 			"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
-			"status": task.Status, "priority": task.Priority, "priority_rank": task.PriorityRank, "tags": task.Tags, "dependencies": task.Dependencies,
+			"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
 		},
 	}
 
@@ -516,7 +326,8 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		}
 	}
 
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
+
 	return framework.FormatResult(result, outputPath)
 }
 
@@ -542,12 +353,13 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		return nil, fmt.Errorf("enrich_tool_hints: failed to load tasks: %w", err)
 	}
 
-	var updates []database.TaskMetadataUpdate
+	var updatedIDs []string
 	for _, t := range list {
 		if t == nil {
 			continue
 		}
-		if !models.IsOpenStatus(t.Status) {
+		status := strings.TrimSpace(strings.ToLower(t.Status))
+		if status != strings.ToLower(models.StatusTodo) && status != strings.ToLower(models.StatusInProgress) {
 			continue
 		}
 
@@ -567,19 +379,10 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		}
 		t.Metadata[MetadataKeyRecommendedTools] = slice
 
-		updates = append(updates, database.TaskMetadataUpdate{
-			TaskID:   t.ID,
-			Metadata: t.Metadata,
-		})
-	}
-
-	var updatedIDs []string
-	if len(updates) > 0 {
-		if _, err := database.BatchUpdateTaskMetadata(ctx, updates); err == nil {
-			for _, u := range updates {
-				updatedIDs = append(updatedIDs, u.TaskID)
-			}
+		if err := store.UpdateTask(ctx, t); err != nil {
+			continue
 		}
+		updatedIDs = append(updatedIDs, t.ID)
 	}
 
 	if len(updatedIDs) > 0 {
@@ -594,27 +397,35 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		"updated_count": len(updatedIDs),
 		"task_ids":      updatedIDs,
 	}
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	return framework.FormatResult(result, outputPath)
 }
 
 // ─── handleTaskWorkflowFixInvalidIDs ────────────────────────────────────────
-// handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN), assigns new epoch IDs,
+// handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN from JS), assigns new epoch IDs,
 // updates dependencies, removes old DB rows, and saves. Use after sanity_check reports invalid_task_id.
-// SQLite is canonical; JSON-only tasks are not supported.
+// Loads from both DB and JSON so tasks that exist only in JSON (e.g. created by Todo2 extension) are found.
 func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Load from DB.
+	// Load from both DB and JSON: DB-first, then add JSON-only tasks (e.g. T-NaN from Todo2 extension)
 	taskMap := make(map[string]Todo2Task)
 
 	if dbList, err := database.ListTasks(ctx, nil); err == nil {
 		for _, t := range dbList {
 			if t != nil {
 				taskMap[t.ID] = *t
+			}
+		}
+	}
+
+	if jsonTasks, err := loadTodo2TasksFromJSON(projectRoot); err == nil {
+		for _, t := range jsonTasks {
+			if _, ok := taskMap[t.ID]; !ok {
+				taskMap[t.ID] = t
 			}
 		}
 	}
@@ -698,7 +509,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 // Nanosecond precision avoids UNIQUE constraint failures when creating many tasks in a tight loop
 // (e.g. task_discovery create_tasks). Format remains T-<digits> for IsValidTaskID compatibility.
 func generateEpochTaskID() string {
-	return database.GenerateTaskID()
+	return fmt.Sprintf("T-%d", time.Now().UnixNano())
 }
 
 // ─── normalizePriority ──────────────────────────────────────────────────────
@@ -711,7 +522,7 @@ func normalizePriority(priority string) string {
 // ─── addEstimateComment ─────────────────────────────────────────────────────
 // addEstimateComment estimates task duration and adds it as a comment
 // This is called after task creation succeeds, and failures are handled gracefully.
-// Uses task.Metadata["preferred_backend"] (fm|ollama) when set for local AI backend.
+// Uses task.Metadata["preferred_backend"] (fm|mlx|ollama) when set for local AI backend.
 func addEstimateComment(ctx context.Context, projectRoot string, task *models.Todo2Task, name, details string, tags []string, priority string) error {
 	estimationParams := map[string]interface{}{
 		"action":         "estimate",

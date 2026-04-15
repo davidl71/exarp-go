@@ -25,46 +25,6 @@ func TestNewServer_GoSDK(t *testing.T) {
 	}
 }
 
-func TestNewServer_GoSDKAdvertisesExarpExtension(t *testing.T) {
-	server, err := NewServer(config.FrameworkGoSDK, "test-server", "1.0.0")
-	if err != nil {
-		t.Fatalf("NewServer() error = %v", err)
-	}
-
-	reporter, ok := server.(framework.ServerExtensionReporter)
-	if !ok {
-		t.Fatalf("server does not implement ServerExtensionReporter")
-	}
-
-	extensions := reporter.ServerExtensions()
-	if extensions == nil {
-		t.Fatal("ServerExtensions() = nil, want advertised extensions")
-	}
-
-	raw, ok := extensions["davidl71/exarp-go"]
-	if !ok {
-		t.Fatalf("davidl71/exarp-go extension not advertised: %#v", extensions)
-	}
-
-	settings, ok := raw.(map[string]any)
-	if !ok {
-		t.Fatalf("extension settings type = %T, want map[string]any", raw)
-	}
-
-	for _, key := range []string{
-		"projectRootContext",
-		"resourceTemplates",
-		"toolFiltering",
-		"resourceSubscriptions",
-		"agentRunner",
-		"fmPlanExecute",
-	} {
-		if settings[key] != true {
-			t.Errorf("extension setting %q = %#v, want true", key, settings[key])
-		}
-	}
-}
-
 func TestNewServer_UnknownFramework(t *testing.T) {
 	server, err := NewServer("unknown-framework", "test-server", "1.0.0")
 	if err == nil {

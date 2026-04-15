@@ -1,53 +1,37 @@
-// health_check.go — MCP "health" tool: server, git, docs, dod, cicd, tools, database, ctags checks.
+// health_check.go — MCP "health" tool: server, git, docs, dod, cicd, tools, ctags checks.
 package tools
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
 
-var (
-	healthModuleRe  = regexp.MustCompile(`module\s+([^\s]+)`)
-	healthVersionRe = regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
-)
-
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
 const designLimitTools = 40
 
-// ExpectedToolCountBase is the number of tools registered by RegisterAllTools (kept in sync with cmd/sanity-check).
-const ExpectedToolCountBase = 36
+// ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
+// With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
+const ExpectedToolCountBase = 37 // 37 base (38 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
-// Implements all actions: "server", "git", "docs", "dod", "cicd", "tools", "database"
+// Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
 // Note: Some actions provide basic functionality; complex features may fall back to Python bridge.
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Get action (default: "server") — prefer typed decode to reduce stringly-typed drift.
+	// Get action (default: "server")
 	action := strings.TrimSpace(cast.ToString(params["action"]))
-	if action == "" {
-		var typed struct {
-			Action string `json:"action"`
-		}
-		if err := MapToStructViaJSON(params, &typed); err == nil {
-			action = strings.TrimSpace(typed.Action)
-		}
-	}
-
 	if action == "" {
 		action = "server"
 	}
@@ -65,12 +49,10 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 		return handleHealthCICD(ctx, params)
 	case "tools":
 		return handleHealthTools(ctx, params)
-	case "database":
-		return handleHealthDatabase(ctx, params)
 	case "ctags":
 		return handleHealthCtags(ctx, params)
 	default:
-		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools, database, ctags)", action)
+		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools, ctags)", action)
 	}
 }
 
@@ -97,7 +79,7 @@ func HealthReportToMap(resp *proto.HealthReport) map[string]interface{} {
 	return out
 }
 
-// handleHealthTools handles the "tools" action - MCP tool count vs design limit.
+// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤34).
 // Used by daily automation as tool_count_health.
 func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	toolCount := ExpectedToolCountBase
@@ -111,73 +93,6 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "tools", ResultJson: string(resultJSON)}
-
-	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
-}
-
-// handleHealthDatabase handles explicit database health and maintenance actions.
-// Supported operations: status (default), checkpoint, vacuum, analyze.
-func handleHealthDatabase(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	operation := strings.TrimSpace(cast.ToString(params["operation"]))
-	if operation == "" {
-		operation = strings.TrimSpace(cast.ToString(params["sub_action"]))
-	}
-	if operation == "" {
-		operation = "status"
-	}
-
-	result := map[string]interface{}{
-		"action":    "database",
-		"operation": operation,
-		"method":    "native_go",
-	}
-
-	switch operation {
-	case "status":
-		status, err := database.GetDatabaseStatus(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("database status: %w", err)
-		}
-		result["success"] = true
-		result["database"] = status
-	case "checkpoint":
-		mode := strings.TrimSpace(cast.ToString(params["checkpoint_mode"]))
-		checkpoint, err := database.RunCheckpoint(ctx, mode)
-		if err != nil {
-			return nil, fmt.Errorf("database checkpoint: %w", err)
-		}
-		status, _ := database.GetDatabaseStatus(ctx)
-		result["success"] = true
-		result["checkpoint"] = checkpoint
-		if status != nil {
-			result["database"] = status
-		}
-	case "vacuum":
-		if err := database.VacuumDatabase(ctx); err != nil {
-			return nil, fmt.Errorf("database vacuum: %w", err)
-		}
-		status, _ := database.GetDatabaseStatus(ctx)
-		result["success"] = true
-		result["message"] = "VACUUM completed"
-		if status != nil {
-			result["database"] = status
-		}
-	case "analyze":
-		if err := database.AnalyzeDatabase(ctx); err != nil {
-			return nil, fmt.Errorf("database analyze: %w", err)
-		}
-		status, _ := database.GetDatabaseStatus(ctx)
-		result["success"] = true
-		result["message"] = "ANALYZE completed"
-		if status != nil {
-			result["database"] = status
-		}
-	default:
-		return nil, fmt.Errorf("database operation %q not supported (use: status, checkpoint, vacuum, analyze)", operation)
-	}
-
-	resultJSON, _ := json.Marshal(result)
-	resp := &proto.HealthReport{Action: "database", ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
@@ -202,7 +117,9 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		content, _, err := fileCache.ReadFile(goModPath)
 		if err == nil {
 			// Look for module declaration
-			matches := healthModuleRe.FindStringSubmatch(string(content))
+			moduleRegex := regexp.MustCompile(`module\s+([^\s]+)`)
+
+			matches := moduleRegex.FindStringSubmatch(string(content))
 			if len(matches) > 1 {
 				// Try to get version from git
 				gitCmd := exec.CommandContext(ctx, "git", "describe", "--tags", "--always")
@@ -226,7 +143,9 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 			content, _, err := fileCache.ReadFile(pyprojectPath)
 			if err == nil {
 				// Look for version = "x.y.z"
-				matches := healthVersionRe.FindStringSubmatch(string(content))
+				versionRegex := regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
+
+				matches := versionRegex.FindStringSubmatch(string(content))
 				if len(matches) > 1 {
 					version = matches[1]
 				}
@@ -234,28 +153,12 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// Process memory (heap + optional RSS; EXARP_MEMORY_LIMIT_MB for soft limit)
-	mem := GetProcessMemoryInfo()
-	memoryMB := mem.HeapSysMB
-	if mem.RSSMB > 0 {
-		memoryMB = mem.RSSMB
-	}
-	processMemory := map[string]interface{}{
-		"heap_alloc_mb": mem.HeapAllocMB,
-		"heap_sys_mb":   mem.HeapSysMB,
-		"rss_mb":        mem.RSSMB,
-		"limit_mb":      mem.LimitMB,
-		"memory_mb":     memoryMB,
-	}
-	if mem.Warning != "" {
-		processMemory["warning"] = mem.Warning
-	}
+	// Build result
 	result := map[string]interface{}{
-		"status":         "operational",
-		"version":        version,
-		"project_root":   projectRoot,
-		"timestamp":      time.Now().Unix(),
-		"process_memory": processMemory,
+		"status":       "operational",
+		"version":      version,
+		"project_root": projectRoot,
+		"timestamp":    time.Now().Unix(),
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "server", ResultJson: string(resultJSON)}
@@ -397,8 +300,8 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
-// handleHealthDocs handles the "docs" action for health tool.
-// Checks documentation health with a recursive scan and stale-reference detection.
+// handleHealthDocs handles the "docs" action for health tool
+// Checks documentation health (basic checks: README exists, docs directory exists).
 func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := GetProjectRootWithFallback()
@@ -407,26 +310,15 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Get parameters
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	createTasks := cast.ToBool(params["create_tasks"])
-	changedFiles := ParamString(params, "changed_files")
 
-	// Documentation checks
+	// Basic documentation checks
 	checks := map[string]interface{}{
-		"readme_exists":              false,
-		"docs_dir_exists":            false,
-		"readme_size":                0,
-		"docs_file_count":            0,
-		"live_docs_count":            0,
-		"archive_docs_count":         0,
-		"generated_docs_count":       0,
-		"stale_path_matches":         0,
-		"missing_reference_count":    0,
-		"excluded_generated_outputs": generatedDocOutputs(),
-	}
-	findings := map[string]interface{}{
-		"stale_paths":        []map[string]interface{}{},
-		"missing_references": []map[string]interface{}{},
+		"readme_exists":   false,
+		"docs_dir_exists": false,
+		"readme_size":     0,
+		"docs_file_count": 0,
 	}
 
 	// Check for README
@@ -445,65 +337,52 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	docsDir := filepath.Join(projectRoot, "docs")
 	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
 		checks["docs_dir_exists"] = true
-		stats, walkErr := collectDocsHealthStats(projectRoot, docsDir)
-		if walkErr != nil {
-			return nil, fmt.Errorf("scan docs: %w", walkErr)
+		// Count markdown files in docs
+		entries, _ := os.ReadDir(docsDir)
+		mdCount := 0
+
+		for _, entry := range entries {
+			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".md") || strings.HasSuffix(entry.Name(), ".rst")) {
+				mdCount++
+			}
 		}
 
-		checks["docs_file_count"] = stats.TotalDocs
-		checks["live_docs_count"] = stats.LiveDocs
-		checks["archive_docs_count"] = stats.ArchiveDocs
-		checks["generated_docs_count"] = stats.GeneratedDocs
-		checks["stale_path_matches"] = len(stats.StalePaths)
-		checks["missing_reference_count"] = len(stats.MissingReferences)
-		findings["stale_paths"] = stats.StalePaths
-		findings["missing_references"] = stats.MissingReferences
+		checks["docs_file_count"] = mdCount
 	}
 
-	// Calculate health score based on useful documentation and lack of stale references.
+	// Calculate basic health score
 	score := 0.0
 	if checks["readme_exists"].(bool) {
-		score += 20.0
+		score += 50.0
 	}
 
 	if checks["docs_dir_exists"].(bool) {
-		score += 20.0
+		score += 30.0
 	}
 
-	if checks["live_docs_count"].(int) > 0 {
-		score += 20.0
-	}
-	if checks["stale_path_matches"].(int) == 0 {
-		score += 20.0
-	}
-	if checks["missing_reference_count"].(int) == 0 {
+	if checks["docs_file_count"].(int) > 0 {
 		score += 20.0
 	}
 
 	// Build result
 	result := map[string]interface{}{
-		"status":        "completed",
-		"health_score":  score,
-		"checks":        checks,
-		"findings":      findings,
-		"project_root":  projectRoot,
-		"scan_mode":     "recursive",
-		"changed_files": changedFiles,
-		"timestamp":     time.Now().Unix(),
+		"status":       "completed",
+		"health_score": score,
+		"checks":       checks,
+		"project_root": projectRoot,
+		"timestamp":    time.Now().Unix(),
 	}
 
+	// Note: For full documentation analysis (broken links, format validation, etc.),
+	// this falls back to Python bridge. This is a simplified version.
 	if outputPath != "" {
-		fullPath := outputPath
-		if !filepath.IsAbs(fullPath) {
-			fullPath = filepath.Join(projectRoot, outputPath)
-		}
-		if err := writeDocsHealthReport(fullPath, result); err != nil {
-			return nil, fmt.Errorf("write docs health report: %w", err)
-		}
-		result["report_path"] = fullPath
+		result["report_path"] = outputPath
+		// Note: Full report generation would require Python bridge
 	}
 
 	if createTasks {
+		// Note: Task creation would require Todo2 integration
+		// For now, just note that tasks would be created
 		result["tasks_note"] = "Task creation requires Python bridge for full functionality"
 	}
 
@@ -513,248 +392,6 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
-type docsHealthStats struct {
-	TotalDocs         int
-	LiveDocs          int
-	ArchiveDocs       int
-	GeneratedDocs     int
-	StalePaths        []map[string]interface{}
-	MissingReferences []map[string]interface{}
-}
-
-func collectDocsHealthStats(projectRoot, docsDir string) (docsHealthStats, error) {
-	stats := docsHealthStats{
-		StalePaths:        []map[string]interface{}{},
-		MissingReferences: []map[string]interface{}{},
-	}
-
-	err := filepath.WalkDir(docsDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !isDocFile(path) {
-			return nil
-		}
-
-		stats.TotalDocs++
-
-		relPath, relErr := filepath.Rel(projectRoot, path)
-		if relErr != nil {
-			relPath = path
-		}
-		relPath = filepath.ToSlash(relPath)
-
-		switch {
-		case strings.HasPrefix(relPath, "docs/archive/"):
-			stats.ArchiveDocs++
-		case isGeneratedDocOutput(path):
-			stats.GeneratedDocs++
-		default:
-			stats.LiveDocs++
-		}
-
-		// Archive and generated snapshot docs are informational only.
-		if strings.HasPrefix(relPath, "docs/archive/") || isGeneratedDocOutput(path) {
-			return nil
-		}
-
-		content, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return readErr
-		}
-
-		stats.StalePaths = append(stats.StalePaths, findStalePathMatches(relPath, string(content))...)
-		stats.MissingReferences = append(stats.MissingReferences, findMissingDocReferences(projectRoot, path, string(content))...)
-
-		return nil
-	})
-	if err != nil {
-		return docsHealthStats{}, err
-	}
-
-	sortDocsHealthFindings(stats.StalePaths)
-	sortDocsHealthFindings(stats.MissingReferences)
-
-	return stats, nil
-}
-
-func isDocFile(path string) bool {
-	return strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".rst")
-}
-
-func generatedDocOutputs() []string {
-	return []string{
-		"ATTRIBUTION_COMPLIANCE_REPORT.md",
-		"CI_CD_VALIDATION_REPORT.md",
-		"DAILY_AUTOMATION_REPORT.md",
-		"DOCUMENTATION_HEALTH_REPORT.md",
-		"DOGFOODING_RESULTS.md",
-		"TEST_RESULTS.md",
-		"custom_report.md",
-	}
-}
-
-func isGeneratedDocOutput(path string) bool {
-	base := filepath.Base(path)
-	for _, name := range generatedDocOutputs() {
-		if base == name {
-			return true
-		}
-	}
-	return false
-}
-
-func findStalePathMatches(relPath, content string) []map[string]interface{} {
-	stalePatterns := []string{
-		"/Users/davidl/Projects/exarp-go",
-		"~/Projects/exarp-go",
-	}
-
-	var matches []map[string]interface{}
-	for _, pattern := range stalePatterns {
-		count := strings.Count(content, pattern)
-		if count == 0 {
-			continue
-		}
-		matches = append(matches, map[string]interface{}{
-			"file":    relPath,
-			"pattern": pattern,
-			"count":   count,
-		})
-	}
-	return matches
-}
-
-func findMissingDocReferences(projectRoot, docPath, content string) []map[string]interface{} {
-	linkPattern := regexp.MustCompile(`!?\[[^\]]*\]\(([^)]+)\)`)
-	matches := linkPattern.FindAllStringSubmatch(content, -1)
-	var missing []map[string]interface{}
-	seen := make(map[string]struct{})
-
-	for _, match := range matches {
-		if len(match) < 2 {
-			continue
-		}
-		target := strings.TrimSpace(match[1])
-		if target == "" ||
-			strings.HasPrefix(target, "#") ||
-			strings.Contains(target, "://") ||
-			strings.HasPrefix(target, "mailto:") ||
-			strings.HasPrefix(target, "file://") ||
-			strings.Contains(target, "{{") ||
-			// Exclude code-like targets (C++/Rust references in code blocks)
-			strings.Contains(target, "::") ||
-			strings.Contains(target, "& ") ||
-			strings.Contains(target, " *") ||
-			strings.Contains(target, " &") ||
-			// Exclude targets that look like code expressions
-			regexp.MustCompile(`^[a-z_]+\s*\(.*\)$`).MatchString(target) ||
-			// Exclude single-line code references like `Type var`
-			regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_][a-zA-Z0-9_]*`).MatchString(target) {
-			continue
-		}
-
-		target = strings.SplitN(target, "#", 2)[0]
-		target = strings.SplitN(target, "?", 2)[0]
-		if target == "" {
-			continue
-		}
-
-		var fullPath string
-		if filepath.IsAbs(target) {
-			fullPath = filepath.Clean(target)
-		} else {
-			fullPath = filepath.Clean(filepath.Join(filepath.Dir(docPath), filepath.FromSlash(target)))
-		}
-
-		if _, err := os.Stat(fullPath); err == nil {
-			continue
-		}
-
-		key := docPath + "->" + target
-		if _, exists := seen[key]; exists {
-			continue
-		}
-		seen[key] = struct{}{}
-
-		relPath, relErr := filepath.Rel(projectRoot, docPath)
-		if relErr != nil {
-			relPath = docPath
-		}
-
-		missing = append(missing, map[string]interface{}{
-			"file":   filepath.ToSlash(relPath),
-			"target": filepath.ToSlash(target),
-		})
-	}
-
-	return missing
-}
-
-func sortDocsHealthFindings(items []map[string]interface{}) {
-	sort.Slice(items, func(i, j int) bool {
-		left := fmt.Sprintf("%v:%v", items[i]["file"], items[i]["target"])
-		right := fmt.Sprintf("%v:%v", items[j]["file"], items[j]["target"])
-		return left < right
-	})
-}
-
-func writeDocsHealthReport(outputPath string, result map[string]interface{}) error {
-	if dir := filepath.Dir(outputPath); dir != "." {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return err
-		}
-	}
-
-	if strings.HasSuffix(strings.ToLower(outputPath), ".json") {
-		raw, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(outputPath, raw, 0644)
-	}
-
-	return os.WriteFile(outputPath, []byte(formatDocsHealthMarkdown(result)), 0644)
-}
-
-func formatDocsHealthMarkdown(result map[string]interface{}) string {
-	checks, _ := result["checks"].(map[string]interface{})
-	findings, _ := result["findings"].(map[string]interface{})
-	stalePaths, _ := findings["stale_paths"].([]map[string]interface{})
-	missingRefs, _ := findings["missing_references"].([]map[string]interface{})
-
-	var b strings.Builder
-	b.WriteString("# Documentation Health Report\n\n")
-	b.WriteString(fmt.Sprintf("- Health score: %.1f\n", cast.ToFloat64(result["health_score"])))
-	b.WriteString(fmt.Sprintf("- Project root: `%v`\n", result["project_root"]))
-	b.WriteString(fmt.Sprintf("- Scan mode: `%v`\n", result["scan_mode"]))
-	b.WriteString(fmt.Sprintf("- Live docs: %d\n", cast.ToInt(checks["live_docs_count"])))
-	b.WriteString(fmt.Sprintf("- Archive docs: %d\n", cast.ToInt(checks["archive_docs_count"])))
-	b.WriteString(fmt.Sprintf("- Generated docs excluded from score: %d\n", cast.ToInt(checks["generated_docs_count"])))
-	b.WriteString(fmt.Sprintf("- Stale path matches: %d\n", cast.ToInt(checks["stale_path_matches"])))
-	b.WriteString(fmt.Sprintf("- Missing references: %d\n", cast.ToInt(checks["missing_reference_count"])))
-
-	b.WriteString("\n## Stale Paths\n")
-	if len(stalePaths) == 0 {
-		b.WriteString("- None\n")
-	} else {
-		for _, item := range stalePaths {
-			b.WriteString(fmt.Sprintf("- `%v`: `%v` (%v)\n", item["file"], item["pattern"], item["count"]))
-		}
-	}
-
-	b.WriteString("\n## Missing References\n")
-	if len(missingRefs) == 0 {
-		b.WriteString("- None\n")
-	} else {
-		for _, item := range missingRefs {
-			b.WriteString(fmt.Sprintf("- `%v` -> `%v`\n", item["file"], item["target"]))
-		}
-	}
-
-	return b.String()
-}
-
 // handleHealthDOD handles the "dod" action for health tool
 // Checks definition of done for tasks.
 func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -762,7 +399,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	taskID := cast.ToString(params["task_id"])
 	changedFiles := cast.ToString(params["changed_files"])
 	autoCheck := cast.ToBool(params["auto_check"])
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	// Basic DOD checks
 	checks := map[string]interface{}{
@@ -835,7 +472,7 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	// Get parameters
 	workflowPath := cast.ToString(params["workflow_path"])
 	checkRunners := cast.ToBool(params["check_runners"])
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 
 	// Get project root
 	projectRoot, err := GetProjectRootWithFallback()

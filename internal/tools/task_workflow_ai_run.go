@@ -6,88 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/spf13/cast"
+	"strings"
 )
-
-// generateWithBackend handles the common backend selection and generation logic.
-func generateWithBackend(ctx context.Context, prompt, backend, operation string, maxTokens int, temperature float32) (string, error) {
-	backend = strings.TrimSpace(strings.ToLower(backend))
-	if backend == "mlx" {
-		backend = "fm"
-	}
-
-	var result string
-	var err error
-
-	switch backend {
-	case "ollama":
-		result, err = func() (string, error) {
-			p := map[string]interface{}{
-				"action": "generate",
-				"prompt": prompt,
-				"model":  "llama3.2",
-				"stream": false,
-			}
-
-			tc, e := DefaultOllama().Invoke(ctx, p)
-			if e != nil || len(tc) == 0 {
-				return "", fmt.Errorf("ollama generate failed: %w", e)
-			}
-
-			var genResp map[string]interface{}
-			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
-				if resp, ok := genResp["response"].(string); ok {
-					return strings.TrimSpace(resp), nil
-				}
-			}
-
-			return strings.TrimSpace(tc[0].Text), nil
-		}()
-	default: // "fm"
-		gen := DefaultFMProvider()
-		if gen == nil || !gen.Supported() {
-			p := map[string]interface{}{
-				"action": "generate",
-				"prompt": prompt,
-				"model":  "llama3.2",
-				"stream": false,
-			}
-
-			tc, e := DefaultOllama().Invoke(ctx, p)
-			if e != nil || len(tc) == 0 {
-				return "", fmt.Errorf("%s: FM and Ollama both unavailable", operation)
-			}
-
-			var genResp map[string]interface{}
-			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
-				if resp, ok := genResp["response"].(string); ok {
-					result = strings.TrimSpace(resp)
-				}
-			}
-
-			if result == "" {
-				result = strings.TrimSpace(tc[0].Text)
-			}
-		} else {
-			result, err = gen.Generate(ctx, prompt, maxTokens, temperature)
-		}
-	}
-
-	if err != nil {
-		return "", fmt.Errorf("%s: generation failed: %w", operation, err)
-	}
-
-	result = strings.TrimSpace(result)
-	if result == "" {
-		return "", fmt.Errorf("%s: empty response from %s backend", operation, backend)
-	}
-
-	return result, nil
-}
 
 // ─── Contents ───────────────────────────────────────────────────────────────
 //   handleTaskWorkflowSummarize — handleTaskWorkflowSummarize generates an AI summary of a task using the preferred local backend
@@ -96,7 +19,7 @@ func generateWithBackend(ctx context.Context, prompt, backend, operation string,
 
 // ─── handleTaskWorkflowSummarize ────────────────────────────────────────────
 // handleTaskWorkflowSummarize generates an AI summary of a task using the preferred local backend
-// (fm|ollama) and saves it as a comment. Uses BuildEstimationPrompt-style prompt building.
+// (fm|mlx|ollama) and saves it as a comment. Uses BuildEstimationPrompt-style prompt building.
 // Params: task_id (required), local_ai_backend (optional, overrides task metadata preferred_backend).
 func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
@@ -119,10 +42,8 @@ func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interfac
 
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
-		if b == "fm" || b == "ollama" {
+		if b == "fm" || b == "mlx" || b == "ollama" {
 			backend = b
-		} else if b == "mlx" {
-			backend = "fm"
 		}
 	}
 
@@ -152,13 +73,85 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 		task.Content, task.LongDescription, task.Priority, tagsStr)
 
 	// Generate summary using selected backend
-	summaryText, err := generateWithBackend(ctx, prompt, backend, "summarize", 256, 0.3)
-	if err != nil {
-		return nil, err
+	var summaryText string
+
+	switch backend {
+	case "ollama":
+		summaryText, err = func() (string, error) {
+			p := map[string]interface{}{
+				"action": "generate",
+				"prompt": prompt,
+				"model":  "llama3.2",
+				"stream": false,
+			}
+
+			tc, e := DefaultOllama().Invoke(ctx, p)
+			if e != nil || len(tc) == 0 {
+				return "", fmt.Errorf("ollama generate failed: %w", e)
+			}
+
+			var genResp map[string]interface{}
+			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
+				if resp, ok := genResp["response"].(string); ok {
+					return strings.TrimSpace(resp), nil
+				}
+			}
+
+			return strings.TrimSpace(tc[0].Text), nil
+		}()
+	case "mlx":
+		gen := DefaultMLXProvider()
+		if gen == nil || !gen.Supported() {
+			return nil, fmt.Errorf("summarize: MLX provider not available")
+		}
+
+		summaryText, err = gen.Generate(ctx, prompt, 256, 0.3)
+	default: // "fm"
+		gen := DefaultFMProvider()
+		if gen == nil || !gen.Supported() {
+			// Fall through to ollama if FM unavailable
+			p := map[string]interface{}{
+				"action": "generate",
+				"prompt": prompt,
+				"model":  "llama3.2",
+				"stream": false,
+			}
+
+			tc, e := DefaultOllama().Invoke(ctx, p)
+			if e != nil || len(tc) == 0 {
+				return nil, fmt.Errorf("summarize: FM and Ollama both unavailable")
+			}
+
+			var genResp map[string]interface{}
+			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
+				if resp, ok := genResp["response"].(string); ok {
+					summaryText = strings.TrimSpace(resp)
+				}
+			}
+
+			if summaryText == "" {
+				summaryText = strings.TrimSpace(tc[0].Text)
+			}
+		} else {
+			summaryText, err = gen.Generate(ctx, prompt, 256, 0.3)
+		}
 	}
 
-	// Save summary as a comment (default: save)
-	saveComment := ParamBool(params, "save_comment", true)
+	if err != nil {
+		return nil, fmt.Errorf("summarize: generation failed: %w", err)
+	}
+
+	summaryText = strings.TrimSpace(summaryText)
+	if summaryText == "" {
+		return nil, fmt.Errorf("summarize: empty response from %s backend", backend)
+	}
+
+	// Save summary as a comment
+	saveComment, _ := params["save_comment"].(bool)
+	if v, ok := params["save_comment"]; !ok {
+		_ = v
+		saveComment = true // default: save
+	}
 
 	if saveComment {
 		commentContent := fmt.Sprintf("## AI Summary (%s)\n\n%s", backend, summaryText)
@@ -218,10 +211,8 @@ func handleTaskWorkflowRunWithAI(ctx context.Context, params map[string]interfac
 
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
-		if b == "fm" || b == "ollama" {
+		if b == "fm" || b == "mlx" || b == "ollama" {
 			backend = b
-		} else if b == "mlx" {
-			backend = "fm"
 		}
 	}
 
@@ -259,9 +250,76 @@ INSTRUCTION:
 		task.ID, task.Content, task.LongDescription, task.Priority, tagsStr, task.Status, instruction)
 
 	// Generate using selected backend
-	outputText, err := generateWithBackend(ctx, prompt, backend, "run_with_ai", 512, 0.5)
+	var outputText string
+
+	switch backend {
+	case "ollama":
+		outputText, err = func() (string, error) {
+			p := map[string]interface{}{
+				"action": "generate",
+				"prompt": prompt,
+				"model":  "llama3.2",
+				"stream": false,
+			}
+
+			tc, e := DefaultOllama().Invoke(ctx, p)
+			if e != nil || len(tc) == 0 {
+				return "", fmt.Errorf("ollama generate failed: %w", e)
+			}
+
+			var genResp map[string]interface{}
+			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
+				if resp, ok := genResp["response"].(string); ok {
+					return strings.TrimSpace(resp), nil
+				}
+			}
+
+			return strings.TrimSpace(tc[0].Text), nil
+		}()
+	case "mlx":
+		gen := DefaultMLXProvider()
+		if gen == nil || !gen.Supported() {
+			return nil, fmt.Errorf("run_with_ai: MLX provider not available")
+		}
+
+		outputText, err = gen.Generate(ctx, prompt, 512, 0.5)
+	default: // "fm"
+		gen := DefaultFMProvider()
+		if gen == nil || !gen.Supported() {
+			p := map[string]interface{}{
+				"action": "generate",
+				"prompt": prompt,
+				"model":  "llama3.2",
+				"stream": false,
+			}
+
+			tc, e := DefaultOllama().Invoke(ctx, p)
+			if e != nil || len(tc) == 0 {
+				return nil, fmt.Errorf("run_with_ai: FM and Ollama both unavailable")
+			}
+
+			var genResp map[string]interface{}
+			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
+				if resp, ok := genResp["response"].(string); ok {
+					outputText = strings.TrimSpace(resp)
+				}
+			}
+
+			if outputText == "" {
+				outputText = strings.TrimSpace(tc[0].Text)
+			}
+		} else {
+			outputText, err = gen.Generate(ctx, prompt, 512, 0.5)
+		}
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("run_with_ai: generation failed: %w", err)
+	}
+
+	outputText = strings.TrimSpace(outputText)
+	if outputText == "" {
+		return nil, fmt.Errorf("run_with_ai: empty response from %s backend", backend)
 	}
 
 	result := map[string]interface{}{

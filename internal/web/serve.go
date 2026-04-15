@@ -1,3 +1,5 @@
+// serve.go — HTTP server for embedded web-based status dashboard.
+//
 // Package web provides an embedded HTTP server for the project status dashboard.
 package web
 
@@ -9,6 +11,11 @@ import (
 
 //go:embed static
 var staticFS embed.FS
+
+// FS returns the filesystem for the web UI (rooted at static/).
+func FS() (fs.FS, error) {
+	return fs.Sub(staticFS, "static")
+}
 
 // MustFS returns the embedded static FS rooted at static. Panics on error.
 func MustFS() fs.FS {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -33,7 +32,7 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -51,21 +50,21 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 
 		now := time.Now().Format(time.RFC3339)
 
-		placeholders := make([]string, len(comments))
-		args := make([]interface{}, 0, len(comments)*6)
-
 		for i := range comments {
 			comment := &comments[i]
 
+			// Ensure TaskID is set
 			if comment.TaskID == "" {
 				comment.TaskID = taskID
 			}
 
+			// Generate ID if not provided
 			if comment.ID == "" {
-				// Include index: UnixNano can repeat within the same tight loop iteration.
-				comment.ID = fmt.Sprintf("%s-C-%d-%d", taskID, time.Now().UnixNano(), i)
+				timestamp := time.Now().UnixNano()
+				comment.ID = fmt.Sprintf("%s-C-%d", taskID, timestamp)
 			}
 
+			// Set timestamps if not provided
 			if comment.Created == "" {
 				comment.Created = now
 			}
@@ -74,8 +73,12 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 				comment.LastModified = now
 			}
 
-			placeholders[i] = "(?, ?, ?, ?, ?, ?, strftime('%s', 'now'))"
-			args = append(args,
+			// Insert comment
+			_, err = tx.ExecContext(txCtx, `
+				INSERT INTO task_comments (
+					id, task_id, comment_type, content, created, last_modified, created_at
+				) VALUES (?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
+			`,
 				comment.ID,
 				comment.TaskID,
 				comment.Type,
@@ -83,16 +86,9 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 				comment.Created,
 				comment.LastModified,
 			)
-		}
-
-		_, err = tx.ExecContext(txCtx,
-			`INSERT INTO task_comments (
-				id, task_id, comment_type, content, created, last_modified, created_at
-			) VALUES `+strings.Join(placeholders, ", "),
-			args...,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert comments: %w", err)
+			if err != nil {
+				return fmt.Errorf("failed to insert comment %s: %w", comment.ID, err)
+			}
 		}
 
 		if err = tx.Commit(); err != nil {
@@ -114,7 +110,7 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 	var comments []Comment
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -195,7 +191,7 @@ func DeleteComment(ctx context.Context, commentID string) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		db, err := GetDB()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}

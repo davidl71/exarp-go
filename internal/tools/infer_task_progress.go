@@ -50,51 +50,6 @@ func InferTaskProgressResponseToMap(resp *proto.InferTaskProgressResponse) map[s
 	return out
 }
 
-// mergeInferTaskProgressRequest overlays proto-decoded infer_task_progress fields onto a raw JSON map.
-// Booleans are applied only when the corresponding key was present in the original JSON so defaults
-// (e.g. use_fm=true when omitted) match legacy Unmarshal behavior.
-func mergeInferTaskProgressRequest(raw map[string]interface{}, req *proto.InferTaskProgressRequest) map[string]interface{} {
-	if raw == nil {
-		raw = make(map[string]interface{})
-	}
-	if req == nil {
-		return raw
-	}
-	has := func(snake, camel string) bool {
-		_, ok1 := raw[snake]
-		_, ok2 := raw[camel]
-		return ok1 || ok2
-	}
-	if req.GetProjectRoot() != "" {
-		raw["project_root"] = req.GetProjectRoot()
-	}
-	if req.GetScanDepth() != 0 {
-		raw["scan_depth"] = int(req.GetScanDepth())
-	}
-	if req.GetConfidenceThreshold() != 0 {
-		raw["confidence_threshold"] = req.GetConfidenceThreshold()
-	}
-	if ex := req.GetFileExtensions(); len(ex) > 0 {
-		raw["file_extensions"] = ex
-	}
-	if req.GetStatusFilter() != "" {
-		raw["status_filter"] = req.GetStatusFilter()
-	}
-	if req.GetOutputPath() != "" {
-		raw["output_path"] = req.GetOutputPath()
-	}
-	if has("use_fm", "useFm") {
-		raw["use_fm"] = req.GetUseFm()
-	}
-	if has("dry_run", "dryRun") {
-		raw["dry_run"] = req.GetDryRun()
-	}
-	if has("auto_update_tasks", "autoUpdateTasks") {
-		raw["auto_update_tasks"] = req.GetAutoUpdateTasks()
-	}
-	return raw
-}
-
 // handleInferTaskProgressNative runs task completion inference (heuristics only in Iteration 1).
 // Loads tasks by status filter (default: In Progress), gathers codebase evidence, scores each task, returns JSON.
 // Does not call database.UpdateTask in this iteration.
@@ -109,18 +64,24 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 	}
 
 	scanDepth := 3
-	if d, ok := ParamIntOK(params, "scan_depth"); ok && d >= 1 && d <= 5 {
-		scanDepth = d
+	if d, ok := params["scan_depth"].(float64); ok && d >= 1 && d <= 5 {
+		scanDepth = int(d)
 	}
 
 	confidenceThreshold := 0.7
-	if t, ok := ParamFloat64OK(params, "confidence_threshold"); ok && t >= 0 && t <= 1 {
+	if t, ok := params["confidence_threshold"].(float64); ok && t >= 0 && t <= 1 {
 		confidenceThreshold = t
 	}
 
 	extensions := defaultInferTaskProgressExtensions
-	if ex := ParamStringSlice(params, "file_extensions"); len(ex) > 0 {
-		extensions = ex
+	if ex, ok := params["file_extensions"].([]interface{}); ok && len(ex) > 0 {
+		extensions = make([]string, 0, len(ex))
+
+		for _, e := range ex {
+			if s, ok := e.(string); ok && s != "" {
+				extensions = append(extensions, s)
+			}
+		}
 	}
 
 	if len(extensions) == 0 {
@@ -145,7 +106,10 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 
 	allScored := scoreAllTasksHeuristic(candidates, evidence)
 
-	useFM := ParamBool(params, "use_fm", true)
+	useFM := true
+	if u, ok := params["use_fm"].(bool); ok {
+		useFM = u
+	}
 
 	if useFM && FMAvailable() {
 		allScored = enhanceWithFM(ctx, candidates, allScored, evidence)
@@ -153,9 +117,15 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 
 	inferred := filterByThreshold(allScored, confidenceThreshold)
 
-	dryRun := ParamBool(params, "dry_run", true)
+	dryRun := true
+	if dr, ok := params["dry_run"].(bool); ok {
+		dryRun = dr
+	}
 
-	autoUpdate := ParamBool(params, "auto_update_tasks", false)
+	autoUpdate := false
+	if au, ok := params["auto_update_tasks"].(bool); ok {
+		autoUpdate = au
+	}
 
 	tasksUpdated := 0
 	if autoUpdate && !dryRun && len(inferred) > 0 {
@@ -303,6 +273,12 @@ func scoreAllTasksHeuristic(tasks []Todo2Task, evidence *CodebaseEvidence) []Inf
 	}
 
 	return results
+}
+
+// scoreTasksHeuristic scores each task and returns only those with confidence >= threshold (for tests).
+func scoreTasksHeuristic(tasks []Todo2Task, evidence *CodebaseEvidence, threshold float64) []InferredResult {
+	all := scoreAllTasksHeuristic(tasks, evidence)
+	return filterByThreshold(all, threshold)
 }
 
 func filterByThreshold(results []InferredResult, threshold float64) []InferredResult {

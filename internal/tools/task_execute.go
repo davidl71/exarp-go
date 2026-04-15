@@ -43,10 +43,13 @@ func handleTaskExecute(ctx context.Context, args json.RawMessage) ([]framework.T
 		projectRoot = root
 	}
 
-	apply := ParamBool(params, "apply", true)
+	apply := true
+	if v, ok := params["apply"].(bool); ok {
+		apply = v
+	}
 
 	minConfidence := defaultMinConfidence
-	if v, ok := ParamFloat64OK(params, "min_confidence"); ok && v >= 0 && v <= 1 {
+	if v, ok := params["min_confidence"].(float64); ok && v >= 0 && v <= 1 {
 		minConfidence = v
 	}
 
@@ -90,10 +93,6 @@ type RunTaskExecutionFlowResult struct {
 // parses the response, optionally applies file changes, and adds a result comment to the task.
 func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*RunTaskExecutionFlowResult, error) {
 	result := &RunTaskExecutionFlowResult{TaskID: p.TaskID}
-	minConfidence := p.MinConfidence
-	if minConfidence == 0 {
-		minConfidence = defaultMinConfidence
-	}
 
 	store := NewDefaultTaskStore(p.ProjectRoot)
 
@@ -124,8 +123,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	if router == nil {
 		router = DefaultModelRouter
 	}
-	requirements := ModelRequirements{AgentRole: AgentRoleFromTask(task)}
-	modelType := router.SelectModel("code_generation", requirements)
+	modelType := router.SelectModel("code_generation", ModelRequirements{})
 
 	text, err := router.Generate(ctx, modelType, prompt, defaultMaxTokens, defaultTemperature)
 	if err != nil {
@@ -144,7 +142,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	result.Confidence = parsed.Confidence
 	result.Explanation = parsed.Explanation
 
-	if p.Apply && parsed.Confidence >= minConfidence && len(parsed.Changes) > 0 {
+	if p.Apply && parsed.Confidence >= p.MinConfidence && len(parsed.Changes) > 0 {
 		applied, applyErr := ApplyChanges(p.ProjectRoot, parsed.Changes)
 		if applyErr != nil {
 			result.ApplyError = applyErr.Error()

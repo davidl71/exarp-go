@@ -2,7 +2,6 @@
 package tools
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,8 +27,6 @@ const (
 var skipDirNames = map[string]bool{
 	".git": true, "node_modules": true, "__pycache__": true, ".venv": true,
 	"vendor": true, ".idea": true, ".vscode": true, "dist": true, "build": true, "target": true,
-	".bfg-report": true, ".cursor": true, ".opencode": true,
-	"docs/archive": true, "out": true,
 }
 
 // GatherEvidence walks the project root up to scanDepth (1-5), restricted by file extensions,
@@ -78,12 +75,12 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 		Snippets: make(map[string]string),
 	}
 
-	err = filepath.WalkDir(rootAbs, func(path string, d fs.DirEntry, walkErr error) error {
+	err = filepath.Walk(rootAbs, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return nil
 		}
 
-		if d.IsDir() {
+		if info.IsDir() {
 			base := filepath.Base(path)
 			if skipDirNames[base] {
 				return filepath.SkipDir

@@ -1,3 +1,5 @@
+// detection.go — Platform detection: OS, arch, Apple FM support, hardware caps.
+//
 // Package platform provides OS/architecture detection and hardware capability checks.
 package platform
 

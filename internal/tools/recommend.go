@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/davidl71/devwisdom-go/pkg/wisdom"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -99,15 +100,28 @@ var MODEL_CATALOG = []ModelInfo{
 
 // handleRecommendModelNative handles the "model" action for recommend tool.
 func handleRecommendModelNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskDescription := ParamString(params, "task_description")
-	taskType := ParamString(params, "task_type")
-
-	optimizeFor := "quality"
-	if s := ParamString(params, "optimize_for"); s != "" {
-		optimizeFor = s
+	// Get task description
+	taskDescription := ""
+	if descRaw, ok := params["task_description"].(string); ok {
+		taskDescription = descRaw
 	}
 
-	includeAlternatives := ParamBool(params, "include_alternatives", true)
+	// Get task type if provided
+	taskType := ""
+	if typeRaw, ok := params["task_type"].(string); ok {
+		taskType = typeRaw
+	}
+
+	// Get optimization target
+	optimizeFor := "quality"
+	if optimizeRaw, ok := params["optimize_for"].(string); ok {
+		optimizeFor = optimizeRaw
+	}
+
+	includeAlternatives := true
+	if altRaw, ok := params["include_alternatives"].(bool); ok {
+		includeAlternatives = altRaw
+	}
 
 	// Find best matching model
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
@@ -219,19 +233,28 @@ func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInf
 
 // handleRecommendWorkflowNative handles the "workflow" action for recommend tool.
 func handleRecommendWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskDescription := ParamString(params, "task_description")
-	taskID := ParamString(params, "task_id")
+	// Get task description
+	taskDescription := ""
+	if descRaw, ok := params["task_description"].(string); ok {
+		taskDescription = descRaw
+	}
 
-	includeRationale := ParamBool(params, "include_rationale", true)
+	// Get task ID if provided
+	taskID := ""
+	if idRaw, ok := params["task_id"].(string); ok {
+		taskID = idRaw
+	}
+
+	includeRationale := true
+	if rationaleRaw, ok := params["include_rationale"].(bool); ok {
+		includeRationale = rationaleRaw
+	}
 
 	// If task_id provided, load task from database
 	if taskID != "" && taskDescription == "" {
-		store, err := getTaskStore(ctx)
+		task, err := database.GetTask(ctx, taskID)
 		if err == nil {
-			task, err := store.GetTask(ctx, taskID)
-			if err == nil {
-				taskDescription = task.Content + " " + task.LongDescription
-			}
+			taskDescription = task.Content + " " + task.LongDescription
 		}
 	}
 
@@ -426,15 +449,31 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 // handleRecommendAdvisorNative handles the "advisor" action for recommend tool
 // Uses devwisdom-go wisdom engine directly (no MCP client needed).
 func handleRecommendAdvisorNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	metric := ParamString(params, "metric")
-	tool := ParamString(params, "tool")
-	stage := ParamString(params, "stage")
-	advisorCtx := ParamString(params, "context")
+	// Extract parameters
+	var metric, tool, stage, context string
 
 	var score float64
 
-	if sc, ok := ParamFloat64OK(params, "score"); ok {
+	if m, ok := params["metric"].(string); ok {
+		metric = m
+	}
+
+	if t, ok := params["tool"].(string); ok {
+		tool = t
+	}
+
+	if st, ok := params["stage"].(string); ok {
+		stage = st
+	}
+
+	if c, ok := params["context"].(string); ok {
+		context = c
+	}
+
+	if sc, ok := params["score"].(float64); ok {
 		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
 	}
 	// Validate and clamp score to 0-100 range
 	if score < 0 {
@@ -505,7 +544,7 @@ func handleRecommendAdvisorNative(ctx context.Context, params map[string]interfa
 		"quote":             quote.Quote,
 		"quote_source":      quote.Source,
 		"encouragement":     quote.Encouragement,
-		"context":           advisorCtx,
+		"context":           context,
 	}
 
 	// Convert to JSON

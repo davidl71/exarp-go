@@ -107,20 +107,3 @@ func BenchmarkToolInvocationChain(b *testing.B) {
 		_, _ = handleHealthNative(ctx, map[string]interface{}{"action": "server"})
 	}
 }
-
-func BenchmarkHandleTaskWorkflowList(b *testing.B) {
-	ctx := context.Background()
-	params := map[string]interface{}{
-		"action":           "list",
-		"output_format":    "json",
-		"compact":          true,
-		"limit":            50,
-		"include_metadata": false,
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		_, _ = handleTaskWorkflowNative(ctx, params)
-	}
-}

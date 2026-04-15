@@ -224,15 +224,16 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	}, nil
 }
 
-func runGoTool(ctx context.Context, toolName, toolInstallHint, path string, fix bool) (*LintResult, error) {
-	if _, err := exec.LookPath(toolName); err != nil {
+// runGofmt runs gofmt.
+func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
+	if _, err := exec.LookPath("gofmt"); err != nil {
 		return &LintResult{
 			Success: false,
-			Linter:  toolName,
-			Output:  toolName + " not found. " + toolInstallHint,
+			Linter:  "gofmt",
+			Output:  "gofmt not found. Go must be installed.",
 			Errors: []LintError{
 				{
-					Message:  toolName + " binary not found in PATH",
+					Message:  "gofmt binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -255,17 +256,104 @@ func runGoTool(ctx context.Context, toolName, toolInstallHint, path string, fix 
 		args = append(args, ".")
 	}
 
-	cmd := exec.CommandContext(ctx, toolName, args...)
+	cmd := exec.CommandContext(ctx, "gofmt", args...)
 	cmd.Dir = projectRoot
 
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
 
+	// gofmt returns non-zero exit code when formatting issues are found
 	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
 
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
+		// Parse gofmt diff output
+		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "diff ") {
+				continue
+			}
+
+			if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
+				continue
+			}
+
+			if strings.HasPrefix(line, "@@") {
+				// Extract file and line info
+				parts := strings.Fields(line)
+				if len(parts) > 0 {
+					lintErrors = append(lintErrors, LintError{
+						Message:  fmt.Sprintf("Formatting issue at %s", parts[0]),
+						Severity: "warning",
+					})
+				}
+			} else if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "+") {
+				// Formatting change
+				lintErrors = append(lintErrors, LintError{
+					Message:  line,
+					Severity: "info",
+				})
+			}
+		}
+	}
+
+	return &LintResult{
+		Success: success,
+		Linter:  "gofmt",
+		Output:  outputStr,
+		Errors:  lintErrors,
+		Fixed:   fix && success,
+	}, nil
+}
+
+// runGoimports runs goimports.
+func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, error) {
+	// Check if goimports is available
+	if _, err := exec.LookPath("goimports"); err != nil {
+		return &LintResult{
+			Success: false,
+			Linter:  "goimports",
+			Output:  "goimports not found. Install it with: go install golang.org/x/tools/cmd/goimports@latest",
+			Errors: []LintError{
+				{
+					Message:  "goimports binary not found in PATH",
+					Severity: "error",
+				},
+			},
+		}, nil
+	}
+
+	projectRoot, _, relPath, err := resolveLintPaths(path)
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{"-d"}
+	if fix {
+		args = []string{"-w"}
+	}
+
+	if relPath != "." && relPath != "" {
+		args = append(args, relPath)
+	} else {
+		args = append(args, ".")
+	}
+
+	cmd := exec.CommandContext(ctx, "goimports", args...)
+	cmd.Dir = projectRoot
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	// goimports returns non-zero exit code when import issues are found
+	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
+
+	var lintErrors []LintError
+
+	if !success && outputStr != "" {
+		// Parse goimports diff output (similar to gofmt)
 		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
@@ -281,36 +369,26 @@ func runGoTool(ctx context.Context, toolName, toolInstallHint, path string, fix 
 				parts := strings.Fields(line)
 				if len(parts) > 0 {
 					lintErrors = append(lintErrors, LintError{
-						Message:  fmt.Sprintf("Formatting issue at %s", parts[0]),
+						Message:  fmt.Sprintf("Import issue at %s", parts[0]),
 						Severity: "warning",
 					})
 				}
-				continue
+			} else if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "+") {
+				lintErrors = append(lintErrors, LintError{
+					Message:  line,
+					Severity: "info",
+				})
 			}
-
-			lintErrors = append(lintErrors, LintError{
-				Message:  line,
-				Severity: "warning",
-			})
 		}
 	}
 
 	return &LintResult{
 		Success: success,
-		Linter:  toolName,
+		Linter:  "goimports",
 		Output:  outputStr,
 		Errors:  lintErrors,
+		Fixed:   fix && success,
 	}, nil
-}
-
-// runGofmt runs gofmt.
-func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
-	return runGoTool(ctx, "gofmt", "Go must be installed.", path, fix)
-}
-
-// runGoimports runs goimports.
-func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, error) {
-	return runGoTool(ctx, "goimports", "Install it with: go install golang.org/x/tools/cmd/goimports@latest", path, fix)
 }
 
 // runDeadcode runs deadcode.

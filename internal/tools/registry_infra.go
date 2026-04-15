@@ -11,46 +11,14 @@ func registerInfraTools(server framework.MCPServer) error {
 	// automation
 	if err := server.RegisterTool(
 		"automation",
-		"[HINT: action=daily|nightly|sprint|discover|execution_cockpit|schedule|unschedule. Scheduled automation workflows. Use for routine maintenance, sprint automation, cockpit job generation, discovering actionable tasks, or installing OS-native schedules.]",
+		"[HINT: action=daily|nightly|sprint|discover. Scheduled automation workflows. Use for routine maintenance, sprint automation, or discovering actionable tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"daily", "nightly", "sprint", "discover", "execution_cockpit", "schedule", "unschedule"},
+					"enum":    []string{"daily", "nightly", "sprint", "discover"},
 					"default": "daily",
-				},
-				"target_action": map[string]interface{}{
-					"type":        "string",
-					"enum":        []string{"daily", "nightly", "sprint", "discover", "execution_cockpit"},
-					"default":     "daily",
-					"description": "Automation action to run from the scheduled job.",
-				},
-				"schedule_label": map[string]interface{}{
-					"type":        "string",
-					"description": "Stable identifier for the schedule and overlap guard. Defaults to a derived label.",
-				},
-				"interval_seconds": map[string]interface{}{
-					"type":        "integer",
-					"default":     86400,
-					"description": "Recurrence interval for schedule install. Launchd uses StartInterval; systemd uses OnUnitActiveSec.",
-				},
-				"interval_minutes": map[string]interface{}{
-					"type":        "integer",
-					"default":     1440,
-					"description": "Alternative recurrence interval in minutes.",
-				},
-				"run_at_load": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
-				},
-				"enabled": map[string]interface{}{
-					"type":    "boolean",
-					"default": true,
-				},
-				"project_root": map[string]interface{}{
-					"type":        "string",
-					"description": "Optional project root override for the scheduled command.",
 				},
 				"tasks": map[string]interface{}{
 					"type":  "array",
@@ -195,7 +163,7 @@ func registerInfraTools(server framework.MCPServer) error {
 	// testing
 	if err := server.RegisterTool(
 		"testing",
-		"[HINT: action=run|coverage|suggest|validate. Go testing tool. Execute tests, analyze coverage, suggest tests. run|coverage|validate require Go projects (go.mod). For non-Go projects, use automation tool with test commands.]",
+		"[HINT: action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest tests. Today, run|coverage|validate are Go-project flows; use when running tests or checking coverage.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -258,7 +226,7 @@ func registerInfraTools(server framework.MCPServer) error {
 	// lint
 	if err := server.RegisterTool(
 		"lint",
-		"[HINT: action=run|analyze. Multi-language linter. linter=auto detects from extension. Supports Go, Markdown, Shell, C/C++, Python, Rust, PHP, LaTeX.]",
+		"[HINT: action=run|analyze. Run linters or analyze results. Go: golangci-lint, go-vet, gofmt, goimports, deadcode. Markdown: markdownlint. Shell: shellcheck. C/C++: clang-tidy, cppcheck, clang-format. Python: ruff, flake8, pylint. Rust: clippy, rustfmt. PHP: phpcs, phpstan, php-cs-fixer. LaTeX: chktex, lacheck. linter=auto detects from file extension.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -351,6 +319,21 @@ func registerInfraTools(server framework.MCPServer) error {
 		handleSecurity,
 	); err != nil {
 		return fmt.Errorf("failed to register security: %w", err)
+	}
+
+	// scan_dependency_security — alias for security action=scan (multilang: Go, Python, Rust, Node)
+	if err := server.RegisterTool(
+		"scan_dependency_security",
+		"[HINT: Run dependency vulnerability scan for Go/Python/Rust/Node. Same as security(action=scan). Use in hooks or when checking dependencies.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"quick": map[string]interface{}{"type": "boolean"},
+			},
+		},
+		handleScanDependencySecurity,
+	); err != nil {
+		return fmt.Errorf("failed to register scan_dependency_security: %w", err)
 	}
 
 	// generate_config

@@ -7,56 +7,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-// Package-level lookup tables (not per-call map literals) to avoid GC churn on hot paths.
-var (
-	statusLowerToCanonical = map[string]string{
-		"pending":         "todo",
-		"not started":     "todo",
-		"new":             "todo",
-		"in progress":     "in_progress",
-		"in-progress":     "in_progress",
-		"in_progress":     "in_progress",
-		"working":         "in_progress",
-		"active":          "in_progress",
-		"inprogress":      "in_progress",
-		"review":          "review",
-		"needs review":    "review",
-		"awaiting review": "review",
-		"completed":       "completed",
-		"done":            "completed",
-		"finished":        "completed",
-		"closed":          "completed",
-		"blocked":         "blocked",
-		"waiting":         "blocked",
-		"cancelled":       "cancelled",
-		"canceled":        "cancelled",
-		"abandoned":       "cancelled",
-		"todo":            "todo",
-	}
-
-	canonicalLowerToTitle = map[string]string{
-		"todo":        models.StatusTodo,
-		"in_progress": models.StatusInProgress,
-		"review":      models.StatusReview,
-		"completed":   models.StatusDone,
-		"done":        models.StatusDone,
-		"blocked":     models.StatusBlocked,
-		"cancelled":   models.StatusCancelled,
-	}
-
-	priorityLowerToCanonical = map[string]string{
-		"low":      "low",
-		"medium":   "medium",
-		"high":     "high",
-		"critical": "critical",
-		"lowest":   "low",
-		"highest":  "critical",
-		"urgent":   "critical",
-		"normal":   "medium",
-		"standard": "medium",
-	}
-)
-
 // NormalizeStatus normalizes task status to canonical lowercase form.
 //
 // Handles case-insensitive matching and variant status values.
@@ -78,14 +28,53 @@ var (
 //   - NormalizeStatus("in-progress") -> "in_progress"
 //   - NormalizeStatus("") -> "todo"
 func NormalizeStatus(status string) string {
-	s := strings.TrimSpace(status)
-	if s == "" {
+	if strings.TrimSpace(status) == "" {
 		return "todo"
 	}
-	statusLower := strings.ToLower(s)
-	if canonical, ok := statusLowerToCanonical[statusLower]; ok {
+
+	statusLower := strings.ToLower(strings.TrimSpace(status))
+
+	// Map variants to canonical forms
+	statusMap := map[string]string{
+		// Pending/Todo variants
+		"pending":     "todo",
+		"not started": "todo",
+		"new":         "todo",
+
+		// In Progress variants
+		"in progress": "in_progress",
+		"in-progress": "in_progress",
+		"in_progress": "in_progress",
+		"working":     "in_progress",
+		"active":      "in_progress",
+		"inprogress":  "in_progress",
+
+		// Review variants
+		"review":          "review",
+		"needs review":    "review",
+		"awaiting review": "review",
+
+		// Completed variants (normalize "done" to "completed")
+		"completed": "completed",
+		"done":      "completed", // Normalize "done" to "completed"
+		"finished":  "completed",
+		"closed":    "completed",
+
+		// Blocked variants
+		"blocked": "blocked",
+		"waiting": "blocked",
+
+		// Cancelled variants
+		"cancelled": "cancelled",
+		"canceled":  "cancelled", // US spelling
+		"abandoned": "cancelled",
+	}
+
+	if canonical, ok := statusMap[statusLower]; ok {
 		return canonical
 	}
+
+	// Return lowercase if not in map (allow custom statuses)
 	return statusLower
 }
 
@@ -109,11 +98,25 @@ func NormalizeStatusToTitleCase(status string) string {
 		return models.StatusTodo
 	}
 
+	// First normalize to canonical lowercase form
 	normalized := NormalizeStatus(status)
-	if titleCase, ok := canonicalLowerToTitle[normalized]; ok {
+
+	// Map canonical lowercase to Title Case
+	titleCaseMap := map[string]string{
+		"todo":        models.StatusTodo,
+		"in_progress": models.StatusInProgress,
+		"review":      models.StatusReview,
+		"completed":   models.StatusDone,
+		"done":        models.StatusDone,
+		"blocked":     models.StatusBlocked,
+		"cancelled":   models.StatusCancelled,
+	}
+
+	if titleCase, ok := titleCaseMap[normalized]; ok {
 		return titleCase
 	}
 
+	// Fallback: capitalize first letter of each word
 	words := strings.Fields(normalized)
 	for i, word := range words {
 		if len(word) > 0 {
@@ -141,14 +144,31 @@ func NormalizeStatusToTitleCase(status string) string {
 //   - NormalizePriority("MEDIUM") -> "medium"
 //   - NormalizePriority("") -> "medium"
 func NormalizePriority(priority string) string {
-	s := strings.TrimSpace(priority)
-	if s == "" {
+	if strings.TrimSpace(priority) == "" {
 		return "medium"
 	}
-	priorityLower := strings.ToLower(s)
-	if canonical, ok := priorityLowerToCanonical[priorityLower]; ok {
+
+	priorityLower := strings.ToLower(strings.TrimSpace(priority))
+
+	// Map variants to canonical forms
+	priorityMap := map[string]string{
+		"low":      "low",
+		"medium":   "medium",
+		"high":     "high",
+		"critical": "critical",
+		// Common variants
+		"lowest":   "low",
+		"highest":  "critical",
+		"urgent":   "critical",
+		"normal":   "medium",
+		"standard": "medium",
+	}
+
+	if canonical, ok := priorityMap[priorityLower]; ok {
 		return canonical
 	}
+
+	// Return lowercase if not in map (allow custom priorities)
 	return priorityLower
 }
 

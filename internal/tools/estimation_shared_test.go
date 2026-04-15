@@ -220,7 +220,7 @@ func TestGetPreferredBackend(t *testing.T) {
 		{"empty", map[string]interface{}{}, ""},
 		{"ollama", map[string]interface{}{MetadataKeyPreferredBackend: "ollama"}, "ollama"},
 		{"fm", map[string]interface{}{MetadataKeyPreferredBackend: "fm"}, "fm"},
-		{"legacy mlx maps to auto", map[string]interface{}{MetadataKeyPreferredBackend: "mlx"}, ""},
+		{"mlx", map[string]interface{}{MetadataKeyPreferredBackend: "mlx"}, "mlx"},
 		{"uppercase", map[string]interface{}{MetadataKeyPreferredBackend: "OLLAMA"}, "ollama"},
 		{"invalid", map[string]interface{}{MetadataKeyPreferredBackend: "other"}, ""},
 	}

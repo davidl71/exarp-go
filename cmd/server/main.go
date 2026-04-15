@@ -7,26 +7,22 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"runtime/pprof"
 	"strings"
-	"time"
 
 	"github.com/davidl71/exarp-go/internal/acp"
 	"github.com/davidl71/exarp-go/internal/api"
 	"github.com/davidl71/exarp-go/internal/cli"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
-	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/davidl71/exarp-go/internal/web"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func main() {
@@ -35,14 +31,8 @@ func main() {
 	// -serve :8080 runs HTTP API + embedded PWA UI only. Only parse when -serve is present
 	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
 	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
-	// -mcp-http :8081 runs MCP Streamable HTTP server.
-	// -benchprof <task-id> runs benchmark with CPU profiling.
-	// -cpuprof=<file> enables CPU profiling for MCP stdio mode and for CLI mode (e.g. task list).
 	hasServe := false
 	hasACP := false
-	hasMCPHTTP := false
-	benchTaskID := ""
-	cpuProfFile := ""
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
@@ -50,36 +40,11 @@ func main() {
 		if arg == "-acp" {
 			hasACP = true
 		}
-		if arg == "-mcp-http" || strings.HasPrefix(arg, "-mcp-http=") {
-			hasMCPHTTP = true
-		}
-		if strings.HasPrefix(arg, "-benchprof=") {
-			benchTaskID = strings.TrimPrefix(arg, "-benchprof=")
-		}
-		if strings.HasPrefix(arg, "-cpuprof=") {
-			cpuProfFile = strings.TrimPrefix(arg, "-cpuprof=")
-		}
-	}
-
-	if benchTaskID != "" {
-		runBenchmark(benchTaskID)
-		return
 	}
 
 	if hasACP {
 		runACPMode()
 		return
-	}
-
-	if hasMCPHTTP {
-		mcpHTTPFs := flag.NewFlagSet("", flag.ContinueOnError)
-		mcpHTTPAddr := mcpHTTPFs.String("mcp-http", "", "Listen address for MCP Streamable HTTP (e.g. :8081)")
-		_ = mcpHTTPFs.Parse(os.Args[1:])
-
-		if *mcpHTTPAddr != "" {
-			runMCPHTTPMode(*mcpHTTPAddr)
-			return
-		}
 	}
 
 	if hasServe {
@@ -109,22 +74,6 @@ func main() {
 	// Check for CLI flags (completion, list, -tool, task, config, tui, etc.) - work without TTY
 	// Use DetectMode for TTY-based mode; explicit flags take precedence.
 	if cli.HasCLIFlags(os.Args) || cli.DetectMode() == cli.ModeCLI {
-		if cpuProfFile != "" {
-			// Strip -cpuprof= so mcp-go-core ParseArgs does not treat it as an unknown task flag.
-			os.Args = stripCPUProfArg(os.Args)
-			f, err := os.Create(cpuProfFile)
-			if err != nil {
-				logging.Fatal("Failed to create CPU profile file: %v", err)
-			}
-			if err := pprof.StartCPUProfile(f); err != nil {
-				_ = f.Close()
-				logging.Fatal("Failed to start CPU profile: %v", err)
-			}
-			defer func() {
-				pprof.StopCPUProfile()
-				_ = f.Close()
-			}()
-		}
 		// CLI mode - run command line interface
 		if err := cli.Run(); err != nil {
 			logging.Fatal("CLI error: %v", err)
@@ -136,19 +85,31 @@ func main() {
 	// Reset flag parsing for MCP mode (in case it was partially parsed)
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	// MCP server mode — overlap DB init with server construction (registration stays serial below)
-	server, _, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
+	// Initialize config and database (before server creation)
+	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logging.Fatal("Failed to load config or create server: %v", err)
+		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+	} else {
+		cli.EnsureConfigAndDatabase(projectRoot)
+
+		if database.DB != nil {
+			defer func() {
+				if err := database.Close(); err != nil {
+					logging.Error("Error closing database: %v", err)
+				}
+			}()
+		}
 	}
-	if rootErr != nil {
-		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", rootErr)
-	} else if database.DB != nil {
-		defer func() {
-			if err := database.Close(); err != nil {
-				logging.Error("Error closing database: %v", err)
-			}
-		}()
+
+	// MCP server mode - run as stdio server
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
+	if err != nil {
+		logging.Fatal("Failed to create server: %v", err)
 	}
 
 	if err := tools.RegisterAllTools(server); err != nil {
@@ -164,18 +125,6 @@ func main() {
 	}
 
 	ctx := context.Background()
-
-	if cpuProfFile != "" {
-		f, err := os.Create(cpuProfFile)
-		if err != nil {
-			logging.Fatal("Failed to create CPU profile file: %v", err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-		defer f.Close()
-		fmt.Println("CPU profiling enabled, write 'exit' to stop...")
-	}
-
 	if err := server.Run(ctx, nil); err != nil {
 		// Normal MCP shutdown when client disconnects (e.g. stdin closed) — exit 0, don't log as fatal.
 		if errors.Is(err, io.EOF) || strings.Contains(err.Error(), "server is closing") {
@@ -186,15 +135,15 @@ func main() {
 }
 
 func runServeMode(addr string) {
-	server, projectRoot, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
+	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logging.Fatal("Failed to load config or create server: %v", err)
-	}
-	if rootErr != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
+		logging.Warn("Could not find project root: %v (database unavailable)", err)
+
 		projectRoot = "."
 	} else {
 		os.Setenv("PROJECT_ROOT", projectRoot)
+		cli.EnsureConfigAndDatabase(projectRoot)
+
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -202,6 +151,16 @@ func runServeMode(addr string) {
 				}
 			}()
 		}
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
+	if err != nil {
+		logging.Fatal("Failed to create server: %v", err)
 	}
 
 	if err := tools.RegisterAllTools(server); err != nil {
@@ -227,15 +186,13 @@ func runServeMode(addr string) {
 }
 
 func runACPMode() {
-	mcpServer, projectRoot, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
+	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logging.Fatal("Failed to load config or create MCP server: %v", err)
-	}
-	if rootErr != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
+		logging.Warn("Could not find project root: %v (database unavailable)", err)
 		projectRoot = "."
 	} else {
 		os.Setenv("PROJECT_ROOT", projectRoot)
+		cli.EnsureConfigAndDatabase(projectRoot)
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -243,6 +200,16 @@ func runACPMode() {
 				}
 			}()
 		}
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	mcpServer, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
+	if err != nil {
+		logging.Fatal("Failed to create MCP server: %v", err)
 	}
 
 	if err := tools.RegisterAllTools(mcpServer); err != nil {
@@ -262,142 +229,4 @@ func runACPMode() {
 	if err := acpServer.Run(ctx); err != nil {
 		logging.Fatal("ACP server error: %v", err)
 	}
-}
-
-func runMCPHTTPMode(addr string) {
-	logging.Warn("Starting MCP Streamable HTTP server on %s", addr)
-
-	server, _, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
-	if err != nil {
-		logging.Fatal("Failed to load config or create server: %v", err)
-	}
-	if rootErr != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
-	} else if database.DB != nil {
-		defer func() {
-			if err := database.Close(); err != nil {
-				logging.Error("Error closing database: %v", err)
-			}
-		}()
-	}
-
-	if err := tools.RegisterAllTools(server); err != nil {
-		logging.Fatal("Failed to register tools: %v", err)
-	}
-
-	if err := prompts.RegisterAllPrompts(server); err != nil {
-		logging.Fatal("Failed to register prompts: %v", err)
-	}
-
-	if err := resources.RegisterAllResources(server); err != nil {
-		logging.Fatal("Failed to register resources: %v", err)
-	}
-
-	mcpSrv := factory.UnwrapGoSDKServer(server)
-	if mcpSrv == nil {
-		logging.Fatal("MCP HTTP: could not unwrap underlying go-sdk server")
-	}
-
-	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
-		return mcpSrv
-	}, nil)
-
-	wrappedMCP := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if name := r.Header.Get("X-Client-Name"); name != "" {
-			r = r.WithContext(framework.WithClientName(r.Context(), name))
-		}
-		streamHandler.ServeHTTP(w, r)
-	})
-
-	mux := http.NewServeMux()
-	mux.Handle("/mcp", wrappedMCP)
-	mux.Handle("/mcp/", wrappedMCP)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			http.Redirect(w, r, "/mcp", http.StatusFound)
-			return
-		}
-		http.NotFound(w, r)
-	})
-
-	logging.Warn("MCP Streamable HTTP server ready at http://%s/mcp", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		logging.Fatal("HTTP server error: %v", err)
-	}
-}
-
-// stripCPUProfArg returns a copy of args with any -cpuprof=<path> element removed (argv[0] preserved).
-func stripCPUProfArg(args []string) []string {
-	if len(args) == 0 {
-		return args
-	}
-	out := make([]string, 0, len(args))
-	out = append(out, args[0])
-	for _, a := range args[1:] {
-		if strings.HasPrefix(a, "-cpuprof=") {
-			continue
-		}
-		out = append(out, a)
-	}
-	return out
-}
-
-func runBenchmark(taskID string) {
-	f, err := os.Create("/tmp/cpu.prof")
-	if err != nil {
-		fmt.Printf("Could not create CPU profile: %v\n", err)
-		return
-	}
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
-
-	projectRoot, err := tools.FindProjectRoot()
-	if err != nil {
-		fmt.Printf("FindProjectRoot error: %v\n", err)
-		return
-	}
-	os.Setenv("PROJECT_ROOT", projectRoot)
-
-	if err := database.Init(projectRoot); err != nil {
-		fmt.Printf("Database.Init error: %v\n", err)
-		return
-	}
-
-	ctx := context.Background()
-
-	priority := "high"
-	update := database.TaskFieldUpdate{
-		TaskID:   taskID,
-		Priority: &priority,
-	}
-
-	start := time.Now()
-	for i := 0; i < 100; i++ {
-		if err := database.UpdateTaskFields(ctx, update); err != nil {
-			fmt.Printf("UpdateTaskFields error: %v\n", err)
-			return
-		}
-	}
-	elapsed := time.Since(start)
-
-	fmt.Printf("100 updates took %v (avg %.2fµs per update)\n", elapsed, float64(elapsed.Nanoseconds())/100/1000)
-
-	mf, err := os.Create("/tmp/mem.prof")
-	if err != nil {
-		fmt.Printf("Could not create memory profile: %v\n", err)
-		return
-	}
-	pprof.WriteHeapProfile(mf)
-	mf.Close()
-
-	gf, err := os.Create("/tmp/goroutine.prof")
-	if err != nil {
-		fmt.Printf("Could not create goroutine profile: %v\n", err)
-		return
-	}
-	pprof.Lookup("goroutine").WriteTo(gf, 0)
-	gf.Close()
-
-	fmt.Println("Profiles written to /tmp/*.prof")
-	fmt.Println("View with: go tool pprof -http=:8080 /tmp/cpu.prof")
 }

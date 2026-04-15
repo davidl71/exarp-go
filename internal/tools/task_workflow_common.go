@@ -58,14 +58,14 @@ type taskStoreKeyType struct{}
 
 var taskStoreKey = &taskStoreKeyType{}
 
-// getTaskStore returns the TaskStore from context, or builds one from the resolved project root if not set.
+// getTaskStore returns the TaskStore from context, or builds one from FindProjectRoot() if not set.
 // Use this in handlers to access task storage; allows tests to inject database.NewMockTaskStore().
 func getTaskStore(ctx context.Context) (database.TaskStore, error) {
 	if s, ok := ctx.Value(taskStoreKey).(database.TaskStore); ok && s != nil {
 		return s, nil
 	}
 
-	projectRoot, err := GetProjectRootWithFallback()
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +113,7 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 			}
 
 			if len(t.Tags) > 0 {
-				// Clone to avoid leaking references to internal slices.
-				m["tags"] = append([]string(nil), t.Tags...)
+				m["tags"] = t.Tags
 			}
 
 			if t.LongDescription != "" {
@@ -122,13 +121,11 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 			}
 
 			if len(t.Dependencies) > 0 {
-				// Clone to avoid leaking references to internal slices.
-				m["dependencies"] = append([]string(nil), t.Dependencies...)
+				m["dependencies"] = t.Dependencies
 			}
 
 			if len(t.RecommendedTools) > 0 {
-				// Clone to avoid leaking references to internal slices.
-				m["recommended_tools"] = append([]string(nil), t.RecommendedTools...)
+				m["recommended_tools"] = t.RecommendedTools
 			}
 
 			tasks[i] = m
@@ -161,10 +158,9 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 		Content:          t.Content,
 		Status:           t.Status,
 		Priority:         t.Priority,
-		PriorityRank:     models.ClampPriorityRankForProto(t.PriorityRank),
-		Tags:             append([]string(nil), t.Tags...),
+		Tags:             t.Tags,
 		LongDescription:  t.LongDescription,
-		Dependencies:     append([]string(nil), t.Dependencies...),
+		Dependencies:     t.Dependencies,
 		RecommendedTools: GetRecommendedTools(t.Metadata),
 	}
 }

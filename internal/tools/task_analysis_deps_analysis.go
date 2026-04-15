@@ -6,12 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"strings"
-
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/exarp-go/proto"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -72,74 +72,12 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 		"total":           len(classifications),
 	}
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_COMPLEXITY.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
-}
-
-// buildParallelizationPendingTagFilter returns nil when no tag filter is requested.
-// When set, maps Todo task ID -> true for tasks whose tags match filter_tag or any
-// filter_tags entry (exact string match; same rules as execution_plan).
-func buildParallelizationPendingTagFilter(tasks []Todo2Task, params map[string]interface{}) map[string]bool {
-	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
-		out := make(map[string]bool)
-
-		for _, t := range tasks {
-			if !IsPendingStatus(t.Status) {
-				continue
-			}
-
-			for _, tag := range t.Tags {
-				if tag == ft {
-					out[t.ID] = true
-
-					break
-				}
-			}
-		}
-
-		return out
-	}
-
-	if fts, ok := params["filter_tags"].(string); ok && fts != "" {
-		allowed := strings.Split(fts, ",")
-
-		for i := range allowed {
-			allowed[i] = strings.TrimSpace(allowed[i])
-		}
-
-		out := make(map[string]bool)
-
-		for _, t := range tasks {
-			if !IsPendingStatus(t.Status) {
-				continue
-			}
-
-			for _, tag := range t.Tags {
-				for _, a := range allowed {
-					if a != "" && tag == a {
-						out[t.ID] = true
-
-						break
-					}
-				}
-
-				if out[t.ID] {
-					break
-				}
-			}
-		}
-
-		return out
-	}
-
-	return nil
 }
 
 // ─── handleTaskAnalysisParallelization ──────────────────────────────────────
@@ -157,14 +95,18 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 
 	tasks := tasksFromPtrs(list)
 
-	durationWeight := ParamFloat64(params, "duration_weight", 0.3)
+	durationWeight := 0.3
+	if weight, ok := params["duration_weight"].(float64); ok {
+		durationWeight = weight
+	}
 
-	tagFilter := buildParallelizationPendingTagFilter(tasks, params)
+	// Find parallelizable tasks
+	parallelGroups := findParallelizableTasks(tasks, durationWeight)
 
-	// Find parallelizable tasks (full graph; pending slice may be tag-filtered)
-	parallelGroups := findParallelizableTasks(tasks, durationWeight, tagFilter)
-
-	outputFormat := ParamOutputFormat(params, "json")
+	outputFormat := "json"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
 
 	result := map[string]interface{}{
 		"success":         true,
@@ -175,29 +117,16 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 		"recommendations": buildParallelizationRecommendations(parallelGroups),
 	}
 
-	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
-		result["filter_tag"] = ft
-	}
-
-	if fts, ok := params["filter_tags"].(string); ok && fts != "" {
-		result["filter_tags"] = fts
-	}
-
-	if tagFilter != nil {
-		result["parallelization_scope_count"] = len(tagFilter)
-	}
-
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatParallelizationAnalysisText(result)
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_PARALLELIZATION.md", params)
 	if outputFormat == "json" {
-		if err := EnsureParentDir(outputPath); err != nil {
-			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -209,7 +138,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	output := formatParallelizationAnalysisText(result)
 
 	if outputPath != "" {
-		if err := EnsureParentDir(outputPath); err != nil {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
@@ -244,7 +173,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
-	missing := findMissingDependencies(ctx, store, tasks, tg)
+	missing := findMissingDependencies(tasks, tg)
 	if len(missing) == 0 {
 		out := map[string]interface{}{
 			"success":     true,
@@ -342,7 +271,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
-	missing := findMissingDependencies(ctx, store, tasks, tg)
+	missing := findMissingDependencies(tasks, tg)
 	result := map[string]interface{}{
 		"success":       true,
 		"method":        "native_go",
@@ -351,7 +280,10 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		"missing_count": len(missing),
 	}
 
-	includeHierarchy := ParamBool(params, "include_hierarchy", false)
+	includeHierarchy := false
+	if h, ok := params["include_hierarchy"].(bool); ok {
+		includeHierarchy = h
+	}
 
 	if includeHierarchy && FMAvailable() {
 		hierResult, err := handleTaskAnalysisHierarchy(ctx, params)
@@ -413,26 +345,16 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 	}
 
 	noiseCandidates := findNoiseTasks(tasks)
-	safeDeleteTaskIDs, rewriteTaskIDs := classifyNoiseCandidates(noiseCandidates)
-	summary := buildNoiseSummary(len(noiseCandidates), len(safeDeleteTaskIDs), len(rewriteTaskIDs))
-	agentHint := buildNoiseAgentHint(len(safeDeleteTaskIDs), len(rewriteTaskIDs))
 	result := map[string]interface{}{
-		"success":              true,
-		"method":               "native_go",
-		"filter_tag":           filterTag,
-		"tasks_scanned":        len(tasks),
-		"noise_count":          len(noiseCandidates),
-		"noise_candidates":     noiseCandidates,
-		"safe_delete_task_ids": safeDeleteTaskIDs,
-		"rewrite_task_ids":     rewriteTaskIDs,
-		"summary":              summary,
-		"agent_hint":           agentHint,
+		"success":          true,
+		"method":           "native_go",
+		"filter_tag":       filterTag,
+		"tasks_scanned":    len(tasks),
+		"noise_count":      len(noiseCandidates),
+		"noise_candidates": noiseCandidates,
 	}
 
-	projectRoot, err := GetProjectRootWithFallback()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project root: %w", err)
-	}
+	projectRoot, _ := FindProjectRoot()
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_NOISE.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "noise", OutputPath: outputPath, ResultJson: string(resultJSON)}
@@ -443,13 +365,23 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 // ─── findNoiseTasks ─────────────────────────────────────────────────────────
 // findNoiseTasks applies heuristics to detect sentence fragments and junk tasks.
 func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
+	// Fragment starters: mid-sentence phrases, not actionable
+	fragmentStarters := []string{
+		"that ", "and ", "which ", "the ", "this ", "it ", "these ", "those ",
+		"of ", "in ", "for ", "to ", "by ", "is ", "are ", "was ", "were ",
+	}
+	// Action verbs that suggest real tasks
+	actionVerbs := []string{
+		"add", "fix", "implement", "create", "update", "migrate", "document",
+		"test", "refactor", "remove", "replace", "extract", "integrate",
+		"verify", "validate", "support", "handle", "allow", "enable",
+		"ensure", "improve", "optimize", "complete", "run", "build",
+	}
+
 	var candidates []map[string]interface{}
 	for _, t := range tasks {
-		title := strings.TrimSpace(t.Content)
-		description := strings.TrimSpace(t.LongDescription)
-		content := strings.TrimSpace(title + " " + description)
+		content := strings.TrimSpace(t.Content + " " + t.LongDescription)
 		contentLower := strings.ToLower(content)
-		titleLower := strings.ToLower(title)
 		var reason string
 
 		if len(content) < 20 {
@@ -457,10 +389,10 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 		} else if strings.Contains(content, "...") && len(content) < 80 {
 			reason = "truncated/ellipsis"
 		} else {
-			firstWord := strings.Fields(titleLower)
+			firstWord := strings.Fields(contentLower)
 			if len(firstWord) > 0 {
 				first := firstWord[0]
-				for _, starter := range noiseFragmentStarters {
+				for _, starter := range fragmentStarters {
 					if strings.HasPrefix(contentLower, starter) {
 						reason = "sentence fragment (starts with \"" + starter + "\")"
 						break
@@ -468,41 +400,14 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 				}
 				if reason == "" {
 					hasAction := false
-					for _, verb := range noiseActionVerbs {
-						if first == verb || strings.HasPrefix(first, verb) || strings.Contains(titleLower, " "+verb+" ") {
+					for _, verb := range actionVerbs {
+						if strings.HasPrefix(first, verb) || strings.Contains(contentLower, " "+verb+" ") {
 							hasAction = true
 							break
 						}
 					}
-					meaningfulContext := false
-					if len(t.Metadata) > 0 {
-						if ParamString(t.Metadata, "discovered_from") != "" {
-							meaningfulContext = true
-						}
-					}
-					if !meaningfulContext {
-						for _, tag := range t.Tags {
-							if noiseMeaningfulTags[strings.ToLower(tag)] {
-								meaningfulContext = true
-								break
-							}
-						}
-					}
-					isStatePhrase := false
-					for _, phrase := range noiseStatePhrases {
-						if strings.Contains(titleLower, phrase) {
-							isStatePhrase = true
-							break
-						}
-					}
-					titleWords := strings.Fields(title)
-					shortTitle := len(title) < 45 || len(titleWords) <= 4
-					if !hasAction && shortTitle {
-						if isStatePhrase {
-							reason = "title is a vague state phrase"
-						} else if !meaningfulContext {
-							reason = "title is a short generic noun phrase"
-						}
+					if !hasAction && len(content) < 60 {
+						reason = "no action verb, short content"
 					}
 				}
 			}
@@ -517,52 +422,4 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 		}
 	}
 	return candidates
-}
-
-func classifyNoiseCandidates(candidates []map[string]interface{}) (safeDelete []string, rewrite []string) {
-	safeDelete = make([]string, 0)
-	rewrite = make([]string, 0)
-
-	for _, candidate := range candidates {
-		id := ParamString(candidate, "id")
-		reason := ParamString(candidate, "reason")
-		content := strings.ToLower(strings.TrimSpace(ParamString(candidate, "content")))
-		if id == "" {
-			continue
-		}
-
-		if strings.Contains(reason, "sentence fragment") ||
-			strings.Contains(reason, "truncated/ellipsis") ||
-			strings.HasPrefix(content, "that ") ||
-			strings.HasPrefix(content, "this ") ||
-			strings.HasPrefix(content, "the ") {
-			safeDelete = append(safeDelete, id)
-			continue
-		}
-
-		rewrite = append(rewrite, id)
-	}
-
-	return safeDelete, rewrite
-}
-
-func buildNoiseSummary(noiseCount, safeDeleteCount, rewriteCount int) string {
-	if noiseCount == 0 {
-		return "No likely noise tasks found."
-	}
-
-	return fmt.Sprintf("%d noisy tasks found; %d look safe to delete and %d should be rewritten.", noiseCount, safeDeleteCount, rewriteCount)
-}
-
-func buildNoiseAgentHint(safeDeleteCount, rewriteCount int) string {
-	switch {
-	case safeDeleteCount > 0 && rewriteCount > 0:
-		return "Delete the obvious fragments first, then rewrite the remaining short legacy task titles."
-	case safeDeleteCount > 0:
-		return "Delete the obvious fragment tasks; they do not look actionable."
-	case rewriteCount > 0:
-		return "Rewrite the remaining short legacy task titles rather than deleting them."
-	default:
-		return "No cleanup action needed."
-	}
 }

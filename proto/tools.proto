@@ -4,280 +4,6 @@ package exarp.tools;
 
 option go_package = "github.com/davidl71/exarp-go/proto";
 
-import "google/protobuf/timestamp.proto";
-
-// OutputFormat is a shared output formatting selector used across tools.
-// Keep string fields for compatibility; internal code should prefer output_format_enum.
-enum OutputFormat {
-  OUTPUT_FORMAT_UNSPECIFIED = 0;
-  OUTPUT_FORMAT_TEXT = 1;
-  OUTPUT_FORMAT_MARKDOWN = 2;
-  OUTPUT_FORMAT_JSON = 3;
-}
-
-// ReportAction selects the report action.
-enum ReportAction {
-  REPORT_ACTION_UNSPECIFIED = 0;
-  REPORT_ACTION_OVERVIEW = 1;
-  REPORT_ACTION_SCORECARD = 2;
-  REPORT_ACTION_BRIEFING = 3;
-  REPORT_ACTION_PRD = 4;
-  REPORT_ACTION_EXECUTION_BRIEFING = 5;
-  REPORT_ACTION_PLAN = 6;
-  REPORT_ACTION_SCORECARD_PLANS = 7;
-  REPORT_ACTION_PARALLEL_EXECUTION_PLAN = 8;
-  REPORT_ACTION_UPDATE_WAVES_FROM_PLAN = 9;
-}
-
-// TaskWorkflowAction selects the task_workflow action.
-enum TaskWorkflowAction {
-  TASK_WORKFLOW_ACTION_UNSPECIFIED = 0;
-  TASK_WORKFLOW_ACTION_SYNC = 1;
-  TASK_WORKFLOW_ACTION_APPROVE = 2;
-  TASK_WORKFLOW_ACTION_CLARIFY = 3;
-  TASK_WORKFLOW_ACTION_CLARITY = 4;
-  TASK_WORKFLOW_ACTION_CLEANUP = 5;
-  TASK_WORKFLOW_ACTION_CREATE = 6;
-  TASK_WORKFLOW_ACTION_UPDATE = 7;
-  TASK_WORKFLOW_ACTION_DELETE = 8;
-  TASK_WORKFLOW_ACTION_LIST = 9;
-  TASK_WORKFLOW_ACTION_SHOW = 10;
-  TASK_WORKFLOW_ACTION_FIX_DATES = 11;
-  TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS = 12;
-  TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES = 13;
-  TASK_WORKFLOW_ACTION_SANITY_CHECK = 14;
-  TASK_WORKFLOW_ACTION_FIX_INVALID_IDS = 15;
-  TASK_WORKFLOW_ACTION_LINK_PLANNING = 16;
-  TASK_WORKFLOW_ACTION_ADD_COMMENT = 17;
-  TASK_WORKFLOW_ACTION_REQUEST_APPROVAL = 18;
-  TASK_WORKFLOW_ACTION_SYNC_APPROVALS = 19;
-  TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT = 20;
-  TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN = 21;
-  TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS = 22;
-  TASK_WORKFLOW_ACTION_SUMMARIZE = 23;
-  TASK_WORKFLOW_ACTION_RUN_WITH_AI = 24;
-  TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS = 25;
-  TASK_WORKFLOW_ACTION_CLAIM = 26;
-  TASK_WORKFLOW_ACTION_BATCH_CLAIM = 27;
-  TASK_WORKFLOW_ACTION_RELEASE = 28;
-  TASK_WORKFLOW_ACTION_AGENT_STATUS = 29;
-  TASK_WORKFLOW_ACTION_START_RUN = 30;
-  TASK_WORKFLOW_ACTION_END_RUN = 31;
-  TASK_WORKFLOW_ACTION_LIST_RUNS = 32;
-  TASK_WORKFLOW_ACTION_SHOW_RUN = 33;
-  TASK_WORKFLOW_ACTION_VERIFY = 34;
-  TASK_WORKFLOW_ACTION_ADD_PROGRESS = 35;
-  TASK_WORKFLOW_ACTION_SPLIT = 36;
-  TASK_WORKFLOW_ACTION_IMPORT_SQLITE = 37;
-}
-
-// TaskAnalysisAction selects the task_analysis action.
-enum TaskAnalysisAction {
-  TASK_ANALYSIS_ACTION_UNSPECIFIED = 0;
-  TASK_ANALYSIS_ACTION_DUPLICATES = 1;
-  TASK_ANALYSIS_ACTION_TAGS = 2;
-  TASK_ANALYSIS_ACTION_DISCOVER_TAGS = 3;
-  TASK_ANALYSIS_ACTION_HIERARCHY = 4;
-  TASK_ANALYSIS_ACTION_DEPENDENCIES = 5;
-  TASK_ANALYSIS_ACTION_PARALLELIZATION = 6;
-  TASK_ANALYSIS_ACTION_CONFLICTS = 7;
-  TASK_ANALYSIS_ACTION_SUGGEST_DEPS = 8;
-  TASK_ANALYSIS_ACTION_STALE = 9;
-  TASK_ANALYSIS_ACTION_COMPLETABLE = 10;
-  TASK_ANALYSIS_ACTION_NEXT_BATCH = 11;
-  TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS = 12;
-  TASK_ANALYSIS_ACTION_VALIDATE = 13;
-  TASK_ANALYSIS_ACTION_EXECUTION_PLAN = 14;
-  TASK_ANALYSIS_ACTION_COMPLEXITY = 15;
-  TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY = 16;
-  TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES = 17;
-  TASK_ANALYSIS_ACTION_NOISE = 18;
-  TASK_ANALYSIS_ACTION_INFER_OWNERSHIP = 19;
-  TASK_ANALYSIS_ACTION_HOTSPOTS = 20;
-}
-
-// SessionAction selects the session tool action.
-enum SessionAction {
-  SESSION_ACTION_UNSPECIFIED = 0;
-  SESSION_ACTION_PRIME = 1;
-  SESSION_ACTION_HANDOFF = 2;
-  SESSION_ACTION_PROMPTS = 3;
-  SESSION_ACTION_ASSIGNEE = 4;
-}
-
-// HealthAction selects the health tool action.
-enum HealthAction {
-  HEALTH_ACTION_UNSPECIFIED = 0;
-  HEALTH_ACTION_SERVER = 1;
-  HEALTH_ACTION_GIT = 2;
-  HEALTH_ACTION_DOCS = 3;
-  HEALTH_ACTION_DOD = 4;
-  HEALTH_ACTION_CICD = 5;
-  HEALTH_ACTION_TOOLS = 6;
-  HEALTH_ACTION_CTAGS = 7;
-}
-
-// SecurityAction selects the security tool action.
-enum SecurityAction {
-  SECURITY_ACTION_UNSPECIFIED = 0;
-  SECURITY_ACTION_SCAN = 1;
-  SECURITY_ACTION_ALERTS = 2;
-  SECURITY_ACTION_REPORT = 3;
-}
-
-// LintAction selects the lint tool action.
-enum LintAction {
-  LINT_ACTION_UNSPECIFIED = 0;
-  LINT_ACTION_RUN = 1;
-  LINT_ACTION_ANALYZE = 2;
-}
-
-// TestingAction selects the testing tool action.
-enum TestingAction {
-  TESTING_ACTION_UNSPECIFIED = 0;
-  TESTING_ACTION_RUN = 1;
-  TESTING_ACTION_COVERAGE = 2;
-  TESTING_ACTION_SUGGEST = 3;
-  TESTING_ACTION_VALIDATE = 4;
-}
-
-// AutomationAction selects the automation tool action.
-enum AutomationAction {
-  AUTOMATION_ACTION_UNSPECIFIED = 0;
-  AUTOMATION_ACTION_DAILY = 1;
-  AUTOMATION_ACTION_NIGHTLY = 2;
-  AUTOMATION_ACTION_SPRINT = 3;
-  AUTOMATION_ACTION_DISCOVER = 4;
-}
-
-// GitToolsAction selects the git_tools tool action.
-enum GitToolsAction {
-  GIT_TOOLS_ACTION_UNSPECIFIED = 0;
-  GIT_TOOLS_ACTION_COMMITS = 1;
-  GIT_TOOLS_ACTION_BRANCHES = 2;
-  GIT_TOOLS_ACTION_TASKS = 3;
-  GIT_TOOLS_ACTION_DIFF = 4;
-  GIT_TOOLS_ACTION_GRAPH = 5;
-  GIT_TOOLS_ACTION_MERGE = 6;
-  GIT_TOOLS_ACTION_SET_BRANCH = 7;
-  GIT_TOOLS_ACTION_LOCAL_COMMITS = 8;
-}
-
-// GitMergeConflictStrategy selects merge conflict resolution for git_tools merge.
-enum GitMergeConflictStrategy {
-  GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED = 0;
-  GIT_MERGE_CONFLICT_STRATEGY_NEWER = 1;
-  GIT_MERGE_CONFLICT_STRATEGY_SOURCE = 2;
-  GIT_MERGE_CONFLICT_STRATEGY_TARGET = 3;
-}
-
-// SessionHandoffSubAction selects session handoff sub_action (when action_enum is HANDOFF).
-enum SessionHandoffSubAction {
-  SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED = 0;
-  SESSION_HANDOFF_SUB_ACTION_END = 1;
-  SESSION_HANDOFF_SUB_ACTION_RESUME = 2;
-  SESSION_HANDOFF_SUB_ACTION_LATEST = 3;
-  SESSION_HANDOFF_SUB_ACTION_LIST = 4;
-  SESSION_HANDOFF_SUB_ACTION_SYNC = 5;
-  SESSION_HANDOFF_SUB_ACTION_EXPORT = 6;
-  SESSION_HANDOFF_SUB_ACTION_CLOSE = 7;
-  SESSION_HANDOFF_SUB_ACTION_APPROVE = 8;
-  SESSION_HANDOFF_SUB_ACTION_DELETE = 9;
-}
-
-// SessionSyncDirection selects handoff sync direction.
-enum SessionSyncDirection {
-  SESSION_SYNC_DIRECTION_UNSPECIFIED = 0;
-  SESSION_SYNC_DIRECTION_BOTH = 1;
-  SESSION_SYNC_DIRECTION_PULL = 2;
-  SESSION_SYNC_DIRECTION_PUSH = 3;
-}
-
-// WorkflowModeAction selects workflow_mode action.
-enum WorkflowModeAction {
-  WORKFLOW_MODE_ACTION_UNSPECIFIED = 0;
-  WORKFLOW_MODE_ACTION_FOCUS = 1;
-  WORKFLOW_MODE_ACTION_SUGGEST = 2;
-  WORKFLOW_MODE_ACTION_STATS = 3;
-}
-
-// SetupHooksAction selects setup_hooks action.
-enum SetupHooksAction {
-  SETUP_HOOKS_ACTION_UNSPECIFIED = 0;
-  SETUP_HOOKS_ACTION_GIT = 1;
-  SETUP_HOOKS_ACTION_PATTERNS = 2;
-}
-
-// MemoryMaintAction selects memory_maint action.
-enum MemoryMaintAction {
-  MEMORY_MAINT_ACTION_UNSPECIFIED = 0;
-  MEMORY_MAINT_ACTION_HEALTH = 1;
-  MEMORY_MAINT_ACTION_GC = 2;
-  MEMORY_MAINT_ACTION_PRUNE = 3;
-  MEMORY_MAINT_ACTION_CONSOLIDATE = 4;
-  MEMORY_MAINT_ACTION_DREAM = 5;
-}
-
-// MemoryMaintMergeStrategy selects consolidate merge strategy.
-enum MemoryMaintMergeStrategy {
-  MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED = 0;
-  MEMORY_MAINT_MERGE_STRATEGY_NEWEST = 1;
-  MEMORY_MAINT_MERGE_STRATEGY_OLDEST = 2;
-  MEMORY_MAINT_MERGE_STRATEGY_LONGEST = 3;
-}
-
-// MemoryMaintScope selects maintenance scope (e.g. dream/consolidate windows).
-enum MemoryMaintScope {
-  MEMORY_MAINT_SCOPE_UNSPECIFIED = 0;
-  MEMORY_MAINT_SCOPE_DAY = 1;
-  MEMORY_MAINT_SCOPE_WEEK = 2;
-  MEMORY_MAINT_SCOPE_MONTH = 3;
-  MEMORY_MAINT_SCOPE_ALL = 4;
-}
-
-// MemoryToolAction selects memory tool action.
-enum MemoryToolAction {
-  MEMORY_TOOL_ACTION_UNSPECIFIED = 0;
-  MEMORY_TOOL_ACTION_SAVE = 1;
-  MEMORY_TOOL_ACTION_RECALL = 2;
-  MEMORY_TOOL_ACTION_SEARCH = 3;
-  MEMORY_TOOL_ACTION_LIST = 4;
-}
-
-// ContextToolAction selects context tool action (summarize / budget / batch).
-enum ContextToolAction {
-  CONTEXT_TOOL_ACTION_UNSPECIFIED = 0;
-  CONTEXT_TOOL_ACTION_SUMMARIZE = 1;
-  CONTEXT_TOOL_ACTION_BUDGET = 2;
-  CONTEXT_TOOL_ACTION_BATCH = 3;
-}
-
-// LocalLLMSummaryLevel selects summary depth (context + ollama summary).
-enum LocalLLMSummaryLevel {
-  LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED = 0;
-  LOCAL_LLM_SUMMARY_LEVEL_BRIEF = 1;
-  LOCAL_LLM_SUMMARY_LEVEL_DETAILED = 2;
-  LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS = 3;
-  LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE = 4;
-}
-
-// LocalLLMDocstringStyle selects docstring style hints (ollama docs action).
-enum LocalLLMDocstringStyle {
-  LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED = 0;
-  LOCAL_LLM_DOCSTRING_STYLE_GOOGLE = 1;
-  LOCAL_LLM_DOCSTRING_STYLE_NUMPY = 2;
-  LOCAL_LLM_DOCSTRING_STYLE_SPHINX = 3;
-}
-
-// LocalLLMBackend selects preferred on-device / local LLM backend (estimation, routers).
-enum LocalLLMBackend {
-  LOCAL_LLM_BACKEND_UNSPECIFIED = 0;
-  LOCAL_LLM_BACKEND_FM = 1;
-  reserved 2; // was LOCAL_LLM_BACKEND_MLX (removed)
-  LOCAL_LLM_BACKEND_OLLAMA = 3;
-  LOCAL_LLM_BACKEND_AUTO = 4;
-}
-
 // ============================================================================
 // Memory Tool Messages
 // ============================================================================
@@ -305,7 +31,6 @@ message MemoryRequest {
   bool include_related = 7;  // default: true
   string query = 8;
   int32 limit = 9;  // default: 10
-  MemoryToolAction action_enum = 10;
 }
 
 // MemoryResponse represents the response from the memory tool
@@ -347,8 +72,6 @@ message ContextRequest {
   string items = 7;  // JSON array string (budget/batch actions)
   int32 budget_tokens = 8;  // default: 4000
   bool combine = 9;  // default: true (batch action)
-  ContextToolAction action_enum = 10;
-  LocalLLMSummaryLevel level_enum = 11;
 }
 
 // ContextResponse represents the response from the context tool
@@ -375,9 +98,7 @@ message ContextSummary {
 
 // ReportRequest represents a request to the report tool
 message ReportRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "overview", "scorecard", "briefing", "prd"
-  // Deprecated: prefer output_format_enum. output_format will be removed after the compatibility window.
   string output_format = 2;  // default: "text"
   string output_path = 3;
   bool include_recommendations = 4;  // default: true
@@ -391,8 +112,6 @@ message ReportRequest {
   bool include_architecture = 12;  // default: true
   bool include_metrics = 13;  // default: true
   bool include_tasks = 14;  // default: true
-  ReportAction action_enum = 15;
-  OutputFormat output_format_enum = 16;
 }
 
 // ReportResponse represents the response from the report tool
@@ -400,7 +119,7 @@ message ReportResponse {
   bool success = 1;
   string report = 2;  // Generated report text
   string output_path = 3;
-  AIInsights ai_insights = 4;  // LLM-enhanced insights (if available)
+  AIInsights ai_insights = 4;  // MLX-enhanced insights (if available)
   string error = 5;
 }
 
@@ -454,7 +173,7 @@ message ProjectOverviewData {
   PlanningSnippet planning = 9;
 }
 
-// ScorecardData represents Go scorecard result for report path (type-safe)
+// ScorecardData represents Go scorecard result for report/MLX path (type-safe)
 message ScorecardData {
   double score = 1;
   repeated string recommendations = 2;
@@ -538,14 +257,12 @@ message AnalyzeAlignmentRequest {
 
 // TaskAnalysisRequest represents a request for task analysis
 message TaskAnalysisRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization"
   double similarity_threshold = 2;  // default: 0.85
   bool auto_fix = 3;  // default: false
   bool dry_run = 4;  // default: true
   string custom_rules = 5;
   string remove_tags = 6;
-  // Deprecated: prefer output_format_enum. output_format will be removed after the compatibility window.
   string output_format = 7;  // default: "text"
   bool include_recommendations = 8;  // default: true
   string output_path = 9;
@@ -555,9 +272,7 @@ message TaskAnalysisRequest {
   bool backlog_only = 13;  // For discover_tags: only match/apply tags to Todo2 backlog (Todo + In Progress).
   bool use_llm_semantic = 14;  // For action=tags: use Apple FM or Ollama to suggest tags from task title and content (batched).
   bool match_existing_only = 15;  // For action=tags+use_llm_semantic: quick FM inference matching only from existing tags (canonical + project/cache).
-  bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama for faster inference before larger models.
-  TaskAnalysisAction action_enum = 17;
-  OutputFormat output_format_enum = 18;
+  bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama then MLX TinyLlama for faster inference.
 }
 
 // TaskAnalysisResponse holds action-specific result (result_json is JSON-encoded payload for MCP response).
@@ -592,19 +307,6 @@ message InferTaskProgressResponse {
   string result_json = 2;
 }
 
-// InferTaskProgressRequest is the type-safe request for infer_task_progress.
-message InferTaskProgressRequest {
-  string project_root = 1;
-  int32 scan_depth = 2;  // default: 3, range 1-5
-  double confidence_threshold = 3;  // default: 0.7
-  repeated string file_extensions = 4;
-  string status_filter = 5;
-  bool use_fm = 6;  // default: true
-  bool dry_run = 7;  // default: true
-  bool auto_update_tasks = 8;  // default: false
-  string output_path = 9;
-}
-
 // TaskDiscoveryRequest represents a request for task discovery
 message TaskDiscoveryRequest {
   string action = 1;  // "comments", "markdown", "orphans", "git_json", "all"
@@ -618,7 +320,6 @@ message TaskDiscoveryRequest {
 
 // TaskWorkflowRequest represents a request to the task workflow tool
 message TaskWorkflowRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "sync", "approve", "clarify", "clarity", "cleanup", "create"
   bool dry_run = 2;  // default: false
   bool external = 3;  // default: false
@@ -634,7 +335,6 @@ message TaskWorkflowRequest {
   string decisions_json = 13;
   bool move_to_todo = 14;  // default: true
   bool auto_apply = 15;  // default: false
-  // Deprecated: prefer output_format_enum. output_format will be removed after the compatibility window.
   string output_format = 16;  // default: "text"
   double stale_threshold_hours = 17;  // default: 2.0
   bool include_legacy = 18;  // default: false
@@ -645,50 +345,6 @@ message TaskWorkflowRequest {
   repeated string dependencies = 23;  // For create action
   bool auto_estimate = 24;  // default: true
   bool confirm_via_elicitation = 25;  // When true and client supports MCP elicitation, prompt to confirm approve/delete
-  TaskWorkflowAction action_enum = 26;
-  OutputFormat output_format_enum = 27;
-  // content is action-dependent:
-  // - action=create: optional shorthand for name/title (name wins if both set)
-  // - action=add_comment: the comment body text
-  string content = 28;
-  // For action=add_comment: type of comment (result, note, research_with_links, manualsetup).
-  string comment_type = 29;
-
-  // --- Execution / multi-agent (start_run, end_run, list_runs, show_run, verify, add_progress, split, claim) ---
-  // These fields are absent from earlier revisions; protojson previously dropped them (unknown fields), breaking MCP/typed clients.
-  string run_id = 30;
-  string summary = 31;
-  string notes = 32;
-  repeated string files_touched = 33;
-  repeated string commands_run = 34;
-  string kind = 35;
-  string command = 36;
-  string details = 37;
-  string remaining_work = 38;
-  repeated string files = 39;
-  string children = 40;
-  string dependency_mode = 41;
-  int32 limit = 42;
-  // end_run status, verify outcome, apply_approval_result (approved/rejected), etc.
-  string result = 43;
-  string agent_id = 44;
-  int32 lease_minutes = 45;
-
-  // import_sqlite: merge external Todo2 SQLite DBs into the current PROJECT_ROOT database.
-  // import_sources: JSON array of paths — each may be a path to todo2.db or a project directory (uses .todo2/todo2.db).
-  string import_sources = 46;
-  // import_scan_mode: none | immediate | recursive — when a source path is a directory, discover child project DBs.
-  string import_scan_mode = 47;
-  // import_on_conflict: fail (default) or skip — when a task id exists in the target with a different content hash.
-  string import_on_conflict = 48;
-  // import_default_project_id: when set, used for tasks with empty project_id instead of the source folder label.
-  string import_default_project_id = 49;
-  // import_sync_json: when true (default), run SQLite↔JSON sync after a successful non-dry import.
-  bool import_sync_json = 50;
-  // import_max_depth: for import_scan_mode immediate|recursive, max directory depth below each source dir for a project root containing .todo2 (0 = unlimited).
-  int32 import_max_depth = 51;
-  // priority_rank: optional sort key for create/update; lower sorts earlier within the same named priority.
-  int32 priority_rank = 52;
 }
 
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).
@@ -701,7 +357,6 @@ message TaskSummary {
   string long_description = 6;
   repeated string dependencies = 7;
   repeated string recommended_tools = 8;
-  int32 priority_rank = 9;
 }
 
 // SyncResults holds sync action result details (validated_tasks, issues, etc.).
@@ -731,7 +386,6 @@ message TaskWorkflowResponse {
 
 // AutomationRequest represents a request to the automation tool
 message AutomationRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "daily", "nightly", "sprint", "discover"
   repeated string tasks = 2;
   bool include_slow = 3;  // default: false
@@ -747,7 +401,6 @@ message AutomationRequest {
   double min_value_score = 13;  // default: 0.7
   bool dry_run = 14;  // default: false
   string output_path = 15;
-  AutomationAction action_enum = 16;
 }
 
 // ============================================================================
@@ -756,7 +409,6 @@ message AutomationRequest {
 
 // TestingRequest represents a request to the testing tool
 message TestingRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "run", "coverage", "suggest", "validate"
   string test_path = 2;
   string test_framework = 3;  // default: "auto"
@@ -769,7 +421,6 @@ message TestingRequest {
   double min_confidence = 10;  // default: 0.7
   string framework = 11;
   string output_path = 12;
-  TestingAction action_enum = 13;
 }
 
 // TestingResponse holds testing tool result (run, coverage, suggest, validate).
@@ -802,7 +453,6 @@ message GenerateConfigRequest {
 
 // HealthRequest represents a request to the health check tool
 message HealthRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "server", "git", "docs", "dod", "cicd"
   string agent_name = 2;
   bool check_remote = 3;  // default: true
@@ -813,7 +463,6 @@ message HealthRequest {
   bool auto_check = 8;  // default: true
   string workflow_path = 9;
   bool check_runners = 10;  // default: true
-  HealthAction action_enum = 11;
 }
 
 // ============================================================================
@@ -822,14 +471,12 @@ message HealthRequest {
 
 // SecurityRequest represents a request to the security tool
 message SecurityRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "scan", "alerts", "report"
   string repo = 2;  // default: "davidl71/exarp-go"
   repeated string languages = 3;
   string config_path = 4;
   string state = 5;  // default: "open"
   bool include_dismissed = 6;  // default: false
-  SecurityAction action_enum = 7;
 }
 
 // ============================================================================
@@ -838,7 +485,6 @@ message SecurityRequest {
 
 // LintRequest represents a request to the linting tool
 message LintRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "run", "analyze"
   string path = 2;
   string linter = 3;  // default: "golangci-lint"
@@ -849,7 +495,6 @@ message LintRequest {
   string problems_json = 8;
   bool include_hints = 9;  // default: true
   string output_path = 10;
-  LintAction action_enum = 11;
 }
 
 // ============================================================================
@@ -866,11 +511,9 @@ message EstimationRequest {
   string priority = 6;  // default: "medium"
   bool use_historical = 7;  // default: true
   bool detailed = 8;  // default: false
-  bool use_mlx = 9 [deprecated = true];  // ignored; reserved for backward compatibility
-  double mlx_weight = 10 [deprecated = true];  // ignored; reserved for backward compatibility
-  string local_ai_backend = 11;  // optional: fm|ollama — preferred local LLM for estimate
-  LocalLLMBackend local_ai_backend_enum = 12;
-  LocalLLMSummaryLevel summary_level_enum = 13;
+  bool use_mlx = 9;  // default: true
+  double mlx_weight = 10;  // default: 0.3
+  string local_ai_backend = 11;  // optional: fm|mlx|ollama — preferred local LLM for estimate
 }
 
 // ============================================================================
@@ -879,7 +522,6 @@ message EstimationRequest {
 
 // GitToolsRequest represents a request to the git tools
 message GitToolsRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "commits", "branches", "tasks", "diff", "graph", "merge", "set_branch"
   string task_id = 2;
   string branch = 3;
@@ -888,7 +530,6 @@ message GitToolsRequest {
   string commit2 = 6;
   string time1 = 7;
   string time2 = 8;
-  // Deprecated: prefer format_enum. format will be removed after the compatibility window.
   string format = 9;  // default: "text"
   string output_path = 10;
   int32 max_commits = 11;  // default: 50
@@ -897,9 +538,6 @@ message GitToolsRequest {
   string conflict_strategy = 14;  // default: "newer"
   string author = 15;  // default: "system"
   bool dry_run = 16;  // default: false
-  GitToolsAction action_enum = 17;
-  OutputFormat format_enum = 18;
-  GitMergeConflictStrategy conflict_strategy_enum = 19;
 }
 
 // GitToolsResponse holds git_tools result (commits, branches, tasks, diff, graph, merge, set_branch).
@@ -915,7 +553,6 @@ message GitToolsResponse {
 
 // SessionRequest represents a request to the session tool
 message SessionRequest {
-  // Deprecated: prefer action_enum. action will be removed after the client compatibility window.
   string action = 1;  // "prime", "handoff", "prompts", "assignee"
   bool include_hints = 2;  // default: true
   bool include_tasks = 3;  // default: true
@@ -945,9 +582,6 @@ message SessionRequest {
   bool include_unassigned = 27;  // default: false
   int32 max_tasks_per_agent = 28;  // default: 5
   bool ask_preferences = 29;  // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
-  SessionAction action_enum = 30;
-  SessionHandoffSubAction sub_action_enum = 31;
-  SessionSyncDirection direction_enum = 32;
 }
 
 // SessionDetection holds prime detection (agent, mode, etc.)
@@ -1023,7 +657,6 @@ message WorkflowModeRequest {
   bool status = 5;  // default: false
   string text = 6;
   bool auto_switch = 7;  // default: false
-  WorkflowModeAction action_enum = 8;
 }
 
 // ============================================================================
@@ -1038,7 +671,6 @@ message SetupHooksRequest {
   string config_path = 4;
   bool install = 5;  // default: true
   bool dry_run = 6;  // default: false
-  SetupHooksAction action_enum = 7;
 }
 
 // ============================================================================
@@ -1083,9 +715,6 @@ message MemoryMaintRequest {
   bool save_dream = 13;  // default: true
   bool dry_run = 14;  // default: true
   bool interactive = 15;  // default: true
-  MemoryMaintAction action_enum = 16;
-  MemoryMaintMergeStrategy merge_strategy_enum = 17;
-  MemoryMaintScope scope_enum = 18;
 }
 
 // ============================================================================
@@ -1119,8 +748,20 @@ message OllamaRequest {
   bool include_suggestions = 13;  // default: true
   string data = 14;
   string level = 15;  // default: "brief"
-  LocalLLMDocstringStyle style_enum = 16;
-  LocalLLMSummaryLevel level_enum = 17;
+}
+
+// ============================================================================
+// MLX Tool Messages
+// ============================================================================
+
+// MLXRequest represents a request to the MLX tool
+message MLXRequest {
+  string action = 1;  // "status", "hardware", "models", "generate"
+  string prompt = 2;
+  string model = 3;  // default: "mlx-community/Phi-3.5-mini-instruct-4bit"
+  int32 max_tokens = 4;  // default: 512
+  double temperature = 5;  // default: 0.7
+  bool verbose = 6;  // default: false
 }
 
 // ============================================================================
@@ -1170,17 +811,4 @@ message InferSessionModeRequest {
 message ContextBudgetRequest {
   string items = 1;  // JSON array string (required)
   int32 budget_tokens = 2;  // default: 4000
-}
-
-// ============================================================================
-// Internal caching messages (not exposed as MCP tools)
-// ============================================================================
-
-// CachedTaskExecutionPack stores a derived execution-pack resource as JSON bytes,
-// wrapped in a protobuf message so the DB cache can store a stable binary payload.
-message CachedTaskExecutionPack {
-  string task_id = 1;
-  int64 task_version = 2;
-  bytes json_payload = 3;
-  google.protobuf.Timestamp generated_at = 4;
 }

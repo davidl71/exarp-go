@@ -103,11 +103,12 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 // ─── handleOllamaHardware ───────────────────────────────────────────────────
 // handleOllamaHardware returns hardware info and recommendations.
 func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) {
+	// Simple hardware detection (can be enhanced)
 	result := map[string]interface{}{
 		"success": true,
 		"method":  "native_go",
-		"message": "Use environment variables OLLAMA_NUM_GPU and OLLAMA_NUM_THREADS for optimization",
-		"tip":     "Run 'ollama run llama3.2' to verify GPU acceleration",
+		"message": "Hardware detection not yet implemented in native Go. Use Python bridge for detailed hardware info.",
+		"tip":     "Set OLLAMA_NUM_GPU and OLLAMA_NUM_THREADS environment variables for optimization",
 	}
 
 	return framework.FormatResult(result, "")
@@ -119,11 +120,6 @@ func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host s
 	filePath, _ := params["file_path"].(string)
 	if filePath == "" {
 		return nil, fmt.Errorf("file_path parameter required for docs action")
-	}
-
-	// Validate path against MCP Roots if available
-	if _, err := ValidatePathAgainstMCPRoots(ctx, filePath); err != nil {
-		return nil, fmt.Errorf("path validation failed: %w", err)
 	}
 
 	outputPath, _ := params["output_path"].(string)
@@ -215,12 +211,10 @@ func handleOllamaQuality(ctx context.Context, params map[string]interface{}, hos
 		return nil, fmt.Errorf("file_path parameter required for quality action")
 	}
 
-	// Validate path against MCP Roots if available
-	if _, err := ValidatePathAgainstMCPRoots(ctx, filePath); err != nil {
-		return nil, fmt.Errorf("path validation failed: %w", err)
+	includeSuggestions := true
+	if suggestions, ok := params["include_suggestions"].(bool); ok {
+		includeSuggestions = suggestions
 	}
-
-	includeSuggestions := ParamBool(params, "include_suggestions", true)
 
 	model := getOllamaModelParam(params, "codellama")
 

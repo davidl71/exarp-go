@@ -93,46 +93,46 @@ fi
 	hookConfigs := map[string]string{
 		"pre-commit": `#!/bin/sh
 # Exarp pre-commit hook
-# In exarp-go repo: run build only. Keep docs/alignment/security on pre-push so commits stay fast.
-# In other repos: no-op if exarp-go is not found. Gracefully skips if exarp-go not found.
+# In exarp-go repo: run build and docs health (no vulnerability scan; run make pre-release before release)
+# In other repos: run docs health (exarp-go from PATH). Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs and ANSI colors in git hook context
+# Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-export NO_COLOR=1
 ` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # In exarp-go repo, block commit if build fails (use make silent for minimal output)
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
-  NO_COLOR=1 make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
+  make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
+  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
+else
+  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 fi
 `,
 		"pre-push": `#!/bin/sh
 # Exarp pre-push hook
-# Run docs health, task alignment, and security scan. Gracefully skips if exarp-go not found.
+# Run task alignment and security scan. Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs and ANSI colors in git hook context
+# Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-export NO_COLOR=1
 ` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # Use explicit JSON args to avoid key=value parsing issues in hooks
-"$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
 "$EXARP_GO" -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
 "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 `,
 		"post-commit": `#!/bin/sh
 # Exarp post-commit hook (no-op; run 'exarp-go -tool automation -args '"'"'{"action":"discover"}'"'"' manually if needed)
 export GIT_HOOK=1
-export NO_COLOR=1
 # Automation discover removed from hook to avoid slow/noisy runs after every commit
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
 # Run duplicate detection and task sync (non-blocking). Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs and ANSI colors in git hook context
+# Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-export NO_COLOR=1
 ` + exarpGoPreamble + `
 "$EXARP_GO" -tool task_analysis -args '{"action":"duplicates"}' </dev/null || true
 "$EXARP_GO" -tool task_workflow -args '{"action":"sync"}' </dev/null || true
@@ -297,6 +297,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 
 		// Setup integration points
 		setupGitHooksIntegration(projectRoot, patterns, results)
+		setupFileWatcherIntegration(projectRoot, patterns, results)
 		setupTaskStatusIntegration(projectRoot, patterns, results)
 	}
 
@@ -307,7 +308,23 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
 		"file_patterns": map[string]interface{}{
-			"go": []string{"**/*.go"},
+			"docs/**/*.md": map[string]interface{}{
+				"on_change":   "check_documentation_health_tool",
+				"on_create":   "add_external_tool_hints_tool",
+				"description": "Documentation files",
+			},
+			"requirements.txt|Cargo.toml|package.json|pyproject.toml": map[string]interface{}{
+				"on_change":   "scan_dependency_security_tool",
+				"description": "Dependency files",
+			},
+			".todo2/state.todo2.json": map[string]interface{}{
+				"on_change":   "detect_duplicate_tasks_tool",
+				"description": "Todo2 state file",
+			},
+			"CMakeLists.txt|CMakePresets.json": map[string]interface{}{
+				"on_change":   "validate_ci_cd_workflow_tool",
+				"description": "CMake configuration",
+			},
 		},
 		"git_events": map[string]interface{}{
 			"pre_commit": map[string]interface{}{
@@ -414,6 +431,30 @@ func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{
 	}
 }
 
+// setupFileWatcherIntegration sets up file watcher integration for pattern triggers.
+func setupFileWatcherIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
+	if filePatterns, ok := patterns["file_patterns"].(map[string]interface{}); ok && len(filePatterns) > 0 {
+		watcherScript := filepath.Join(projectRoot, ".cursor", "exarp_file_watcher.py")
+
+		watcherContent := generateFileWatcherScript()
+
+		if err := os.WriteFile(watcherScript, []byte(watcherContent), 0755); err != nil {
+			results["patterns_skipped"] = append(results["patterns_skipped"].([]map[string]interface{}), map[string]interface{}{
+				"category": "file_patterns",
+				"reason":   fmt.Sprintf("Failed to create watcher script: %v", err),
+			})
+
+			return
+		}
+
+		results["file_watcher_integration"] = map[string]interface{}{
+			"status": "configured",
+			"script": watcherScript,
+			"note":   "Run manually or via cron: python3 .cursor/exarp_file_watcher.py",
+		}
+	}
+}
+
 // setupTaskStatusIntegration sets up task status change integration.
 func setupTaskStatusIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if taskStatus, ok := patterns["task_status_changes"].(map[string]interface{}); ok && len(taskStatus) > 0 {
@@ -424,4 +465,58 @@ func setupTaskStatusIntegration(projectRoot string, patterns map[string]interfac
 	}
 }
 
-// Helper types and functions
+// generateFileWatcherScript generates the file watcher script content.
+func generateFileWatcherScript() string {
+	return `#!/usr/bin/env python3
+"""
+Exarp File Watcher
+
+Monitors file changes and triggers exarp tools based on patterns.
+Run manually or via cron job.
+"""
+
+import json
+import sys
+from pathlib import Path
+from typing import Dict, List, Optional
+
+# Load pattern configuration
+CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "exarp_patterns.json"
+
+def load_patterns() -> Dict:
+    """Load pattern configuration."""
+    if not CONFIG_FILE.exists():
+        return {}
+
+    with open(CONFIG_FILE, 'r') as f:
+        config = json.load(f)
+        return config.get("file_patterns", {})
+
+def check_file_changes() -> List[Dict]:
+    """Check for file changes and return matching patterns."""
+    # This is a placeholder - implement actual file watching logic
+    # For now, returns empty list
+    return []
+
+def trigger_tool(tool_name: str) -> bool:
+    """Trigger an exarp tool."""
+    # This is a placeholder - implement actual tool triggering
+    # For now, just prints what would be triggered
+    print(f"Would trigger: {tool_name}")
+    return True
+
+if __name__ == "__main__":
+    patterns = load_patterns()
+    changes = check_file_changes()
+
+    for change in changes:
+        file_path = change["file"]
+        for pattern, config in patterns.items():
+            # Simple pattern matching (implement proper glob/regex matching)
+            if pattern in file_path or file_path.endswith(pattern.split("/")[-1]):
+                if "on_change" in config:
+                    trigger_tool(config["on_change"])
+                if "on_create" in config and change.get("created"):
+                    trigger_tool(config["on_create"])
+`
+}

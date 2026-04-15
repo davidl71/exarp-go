@@ -1,7 +1,7 @@
 //go:build darwin && arm64 && cgo
 // +build darwin,arm64,cgo
 
-// task_discovery_native_scanners.go — Task discovery: Apple FM enhancement and planning doc scanner (git JSON: task_discovery_common.go).
+// task_discovery_native_scanners.go — Task discovery: Apple FM enhancement, planning doc scanner, and git JSON scanner.
 // See also: task_discovery_native.go
 package tools
 
@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -19,6 +20,7 @@ import (
 //   enhanceTaskWithAppleFM
 //   enhancePlanningDocWithAppleFM — enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents.
 //   scanPlanningDocs — scanPlanningDocs scans markdown files for planning document structure and task/epic links.
+//   scanGitJSON — scanGitJSON scans git repository for JSON files containing tasks
 // ────────────────────────────────────────────────────────────────────────────
 
 // ─── enhanceTaskWithAppleFM ─────────────────────────────────────────────────
@@ -119,7 +121,7 @@ Return JSON only (no other text):
 
 // ─── scanPlanningDocs ───────────────────────────────────────────────────────
 // scanPlanningDocs scans markdown files for planning document structure and task/epic links.
-func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, ignorePaths []string, useAppleFM bool) []map[string]interface{} {
+func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -136,7 +138,9 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, i
 		}
 
 		if info.IsDir() {
-			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 
@@ -202,3 +206,155 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, i
 
 	return discoveries
 }
+
+// ─── scanGitJSON ────────────────────────────────────────────────────────────
+// scanGitJSON scans git repository for JSON files containing tasks
+// Finds JSON files committed in git and extracts tasks from them.
+func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	// Default pattern: look for .todo2/state.todo2.json files
+	if jsonPattern == "" {
+		jsonPattern = "**/.todo2/state.todo2.json"
+	}
+
+	// Use git to find JSON files
+	// First, try git ls-files to find tracked JSON files
+	ctx := context.Background()
+	cmd := exec.CommandContext(ctx, "git", "ls-files", "*.json", "**/*.json")
+	cmd.Dir = projectRoot
+
+	output, err := cmd.Output()
+	if err != nil {
+		// Git not available or not a git repo - return empty
+		return discoveries
+	}
+
+	// Parse git output to get list of JSON files
+	jsonFiles := []string{}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	defaultPattern := "**/.todo2/state.todo2.json"
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Use default pattern if not specified
+		patternToUse := jsonPattern
+		if patternToUse == "" {
+			patternToUse = defaultPattern
+		}
+
+		// Filter by pattern
+		matched := false
+		if patternToUse == defaultPattern {
+			// Default: only match state.todo2.json files
+			matched = strings.Contains(line, "state.todo2.json")
+		} else {
+			// Custom pattern: try exact match first
+			matched, _ = filepath.Match(patternToUse, line)
+			if !matched {
+				// Try with ** prefix for glob matching
+				if strings.HasPrefix(patternToUse, "**/") {
+					pattern := strings.TrimPrefix(patternToUse, "**/")
+					matched, _ = filepath.Match(pattern, filepath.Base(line))
+				}
+				// Also try simple contains match for flexibility
+				if !matched && strings.Contains(line, strings.TrimPrefix(patternToUse, "**/")) {
+					matched = true
+				}
+			}
+		}
+
+		if matched {
+			jsonFiles = append(jsonFiles, line)
+		}
+	}
+
+	// For each JSON file, extract tasks
+	for _, jsonFile := range jsonFiles {
+		fullPath := filepath.Join(projectRoot, jsonFile)
+
+		// Try to read file from git history (all commits)
+		// Use git log to find all versions of this file
+		cmd = exec.CommandContext(ctx, "git", "log", "--all", "--pretty=format:%H", "--", jsonFile)
+		cmd.Dir = projectRoot
+
+		commitOutput, err := cmd.Output()
+		if err != nil {
+			// If git log fails, try reading current file
+			tasks, _, err := LoadJSONStateFromFile(fullPath)
+			if err == nil {
+				for _, task := range tasks {
+					discoveries = append(discoveries, map[string]interface{}{
+						"type":      "JSON_TASK",
+						"text":      task.Content,
+						"task_id":   task.ID,
+						"status":    task.Status,
+						"priority":  task.Priority,
+						"file":      jsonFile,
+						"source":    "git_json",
+						"completed": task.Completed,
+					})
+				}
+			}
+
+			continue
+		}
+
+		// Process each commit that modified this file
+		commits := strings.Split(strings.TrimSpace(string(commitOutput)), "\n")
+		processedTasks := make(map[string]bool) // Track unique task IDs to avoid duplicates
+
+		for _, commit := range commits {
+			commit = strings.TrimSpace(commit)
+			if commit == "" {
+				continue
+			}
+
+			// Get file content from this commit
+			cmd = exec.CommandContext(ctx, "git", "show", commit+":"+jsonFile)
+			cmd.Dir = projectRoot
+
+			fileContent, err := cmd.Output()
+			if err != nil {
+				continue
+			}
+
+			// Parse JSON and extract tasks
+			tasks, _, err := LoadJSONStateFromContent(fileContent)
+			if err != nil {
+				continue
+			}
+
+			// Add tasks to discoveries (avoid duplicates)
+			for _, task := range tasks {
+				// Use task ID + commit as unique key to track tasks across commits
+				uniqueKey := fmt.Sprintf("%s:%s", task.ID, commit)
+				if processedTasks[uniqueKey] {
+					continue
+				}
+
+				processedTasks[uniqueKey] = true
+
+				discoveries = append(discoveries, map[string]interface{}{
+					"type":      "JSON_TASK",
+					"text":      task.Content,
+					"task_id":   task.ID,
+					"status":    task.Status,
+					"priority":  task.Priority,
+					"file":      jsonFile,
+					"commit":    commit[:8], // Short commit hash
+					"source":    "git_json",
+					"completed": task.Completed,
+				})
+			}
+		}
+	}
+
+	return discoveries
+}
+
+// LoadJSONStateFromFile and LoadJSONStateFromContent are now in todo2_json.go

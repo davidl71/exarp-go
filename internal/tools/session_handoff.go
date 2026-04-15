@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -144,19 +145,19 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	// Get current tasks in progress and optionally full task list for point-in-time snapshot
-	var tasksInProgress []TaskInProgressHandoff
+	var tasksInProgress []map[string]interface{}
 	var allTasksForSnapshot []Todo2Task
-	taskStore := NewDefaultTaskStore(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
 
 	if _, has := params["include_tasks"]; !has || cast.ToBool(params["include_tasks"]) {
-		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, taskStore)
+		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, store)
 		if err == nil {
 			for _, task := range tasks {
 				if task.Status == models.StatusInProgress {
-					tasksInProgress = append(tasksInProgress, TaskInProgressHandoff{
-						ID:      task.ID,
-						Content: task.Content,
-						Status:  task.Status,
+					tasksInProgress = append(tasksInProgress, map[string]interface{}{
+						"id":      task.ID,
+						"content": task.Content,
+						"status":  task.Status,
 					})
 				}
 			}
@@ -166,7 +167,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	includePointInTimeSnapshot := cast.ToBool(params["include_point_in_time_snapshot"])
 	if includePointInTimeSnapshot && len(allTasksForSnapshot) == 0 {
-		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, taskStore)
+		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, store)
 		if err == nil {
 			allTasksForSnapshot = tasks
 		}
@@ -174,9 +175,11 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	// Optional: task journal (modified tasks this session). Caller can pass modified_task_ids or task_journal.
 	var taskJournal []map[string]interface{}
-	if ids := ParamStringSliceTrimmedCommaSeparated(params, "modified_task_ids"); len(ids) > 0 {
-		for _, id := range ids {
-			taskJournal = append(taskJournal, map[string]interface{}{"id": id, "action": "modified"})
+	if ids, ok := params["modified_task_ids"].([]interface{}); ok {
+		for _, v := range ids {
+			if id, ok := v.(string); ok && id != "" {
+				taskJournal = append(taskJournal, map[string]interface{}{"id": id, "action": "modified"})
+			}
 		}
 	}
 	if journal, ok := params["task_journal"].([]interface{}); ok && len(taskJournal) == 0 {
@@ -209,85 +212,51 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		}
 	}
 
-	entry := HandoffEntry{
-		ID:              fmt.Sprintf("handoff-%d", time.Now().Unix()),
-		Timestamp:       time.Now().Format(time.RFC3339),
-		Host:            hostname,
-		Summary:         summary,
-		Blockers:        blockers,
-		NextSteps:       nextSteps,
-		TasksInProgress: tasksInProgress,
-	}
-	if includeGitStatus && len(gitStatus) > 0 {
-		entry.GitStatus = gitStatusFromMap(gitStatus)
+	// Create handoff note
+	handoff := map[string]interface{}{
+		"id":                fmt.Sprintf("handoff-%d", time.Now().Unix()),
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"host":              hostname,
+		"summary":           summary,
+		"blockers":          blockers,
+		"next_steps":        nextSteps,
+		"git_status":        gitStatus,
+		"tasks_in_progress": tasksInProgress,
 	}
 	if len(taskJournal) > 0 {
-		entry.TaskJournal = taskJournalFromMaps(taskJournal)
+		handoff["task_journal"] = taskJournal
 	}
 	if pointInTimeSnapshot != "" {
-		entry.PointInTimeSnapshot = pointInTimeSnapshot
-		entry.PointInTimeSnapshotFormat = pointInTimeSnapshotFormat
-		entry.PointInTimeSnapshotTaskCount = len(allTasksForSnapshot)
-	}
-
-	var ledgerPath string
-	ledgerTasks := make([]Todo2Task, 0, len(tasksInProgress))
-	for _, tip := range tasksInProgress {
-		if tip.ID == "" {
-			continue
-		}
-		if task, err := taskStore.GetTask(ctx, tip.ID); err == nil && task != nil {
-			ledgerTasks = append(ledgerTasks, *task)
-		}
+		handoff["point_in_time_snapshot"] = pointInTimeSnapshot
+		handoff["point_in_time_snapshot_format"] = pointInTimeSnapshotFormat
+		handoff["point_in_time_snapshot_task_count"] = len(allTasksForSnapshot)
 	}
 
 	if !dryRun {
-		if err := saveHandoff(projectRoot, entry); err != nil {
+		// Save handoff
+		if err := saveHandoff(projectRoot, handoff); err != nil {
 			return nil, fmt.Errorf("failed to save handoff: %w", err)
 		}
 
-		writtenLedgerPath, ledgerErr := writeContinuityLedger(ctx, projectRoot, continuityLedgerOptions{
-			Reason:          "handoff",
-			Summary:         summary,
-			Blockers:        blockers,
-			NextSteps:       nextSteps,
-			TaskJournal:     taskJournal,
-			TasksInProgress: ledgerTasks,
-		})
-		// Match prior behavior: ledger path/warning appear in API response only (disk handoff already saved).
-		if ledgerErr != nil {
-			entry.LedgerWriteWarning = ledgerErr.Error()
-		} else if writtenLedgerPath != "" {
-			ledgerPath = writtenLedgerPath
-			entry.ContinuityLedgerPath = ledgerPath
-		}
-
+		// Unassign tasks if requested (release lock for current agent on in-progress tasks)
 		if unassignMyTasks {
 			agentID, err := database.GetAgentID()
 			if err == nil {
-				for _, tip := range tasksInProgress {
-					if tip.ID != "" {
-						_ = database.ReleaseTask(ctx, tip.ID, agentID)
+				for _, m := range tasksInProgress {
+					if id, ok := m["id"].(string); ok && id != "" {
+						_ = database.ReleaseTask(ctx, id, agentID)
 					}
 				}
 			}
 		}
 	}
 
-	handoffMap, err := handoffEntryToMap(entry)
-	if err != nil {
-		return nil, fmt.Errorf("handoff response map: %w", err)
-	}
-
 	result := map[string]interface{}{
 		"success": true,
 		"method":  "native_go",
 		"dry_run": dryRun,
-		"handoff": handoffMap,
+		"handoff": handoff,
 		"message": "Session ended. Handoff note created.",
-	}
-	if ledgerPath != "" {
-		result["continuity_ledger_path"] = ledgerPath
 	}
 
 	if dryRun {
@@ -300,14 +269,8 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		t := suggested[0]
 
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
-		if t.Lane != "" {
-			taskMap["lane"] = t.Lane
-		}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
-		}
-		if t.Lane != "" {
-			result["suggested_lane"] = t.Lane
 		}
 
 		if includeCliCommand {
@@ -321,34 +284,45 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 }
 
 func listTasksForSessionHandoff(ctx context.Context, projectRoot string, store database.TaskStore) ([]Todo2Task, error) {
+	list, err := store.ListTasks(ctx, nil)
+	if err == nil && len(list) > 0 {
+		return tasksFromPtrs(list), nil
+	}
+
 	projectID := filepath.Base(projectRoot)
 	if projectID == "" || projectID == "." {
 		projectID = "default"
 	}
 
-	// Use TaskStore which handles DB-first, JSON-fallback automatically
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, err
+	if db, dbErr := database.GetDB(); dbErr == nil && db != nil {
+		all, listErr := database.ListTasks(ctx, nil)
+		if listErr == nil {
+			legacyScoped := filterTasksForProjectOrLegacy(tasksFromPtrs(all), projectID)
+			if len(legacyScoped) > 0 {
+				return legacyScoped, nil
+			}
+		}
 	}
 
-	// Filter for this project or legacy tasks (no project ID)
-	legacyScoped := filterTasksForProjectOrLegacy(tasksFromPtrs(list), projectID)
-	if len(legacyScoped) > 0 {
-		return legacyScoped, nil
-	}
-
-	// Fallback: try loading legacy tasks that may not have ProjectID set
-	allTasks, loadErr := LoadTodo2Tasks(projectRoot)
+	tasks, loadErr := LoadTodo2Tasks(projectRoot)
 	if loadErr != nil {
 		if err != nil {
 			return nil, err
 		}
+
 		return nil, loadErr
 	}
 
-	legacyFiltered := filterTasksForProjectOrLegacy(allTasks, projectID)
-	return legacyFiltered, nil
+	legacyScoped := filterTasksForProjectOrLegacy(tasks, projectID)
+	if len(legacyScoped) > 0 {
+		return legacyScoped, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }
 
 func filterTasksForProjectOrLegacy(tasks []Todo2Task, projectID string) []Todo2Task {
@@ -364,7 +338,9 @@ func filterTasksForProjectOrLegacy(tasks []Todo2Task, projectID string) []Todo2T
 
 // handleSessionResume resumes a session by reviewing latest handoff.
 func handleSessionResume(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	if !handoffsAnyFileExists(projectRoot) {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		result := map[string]interface{}{
 			"success":     true,
 			"method":      "native_go",
@@ -375,11 +351,21 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		return framework.FormatResult(result, "")
 	}
 
-	store, err := loadHandoffStore(projectRoot)
+	// Load handoff history (using file cache)
+	fileCache := cache.GetGlobalFileCache()
+
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load handoff store: %w", err)
+		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
-	if len(store.Handoffs) == 0 {
+
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return nil, fmt.Errorf("failed to parse handoff file: %w", err)
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	if len(handoffs) == 0 {
 		result := map[string]interface{}{
 			"success":     true,
 			"method":      "native_go",
@@ -390,14 +376,16 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		return framework.FormatResult(result, "")
 	}
 
-	latest := store.Handoffs[len(store.Handoffs)-1]
-	handoffMap, err := handoffEntryToMap(latest)
-	if err != nil {
-		return nil, fmt.Errorf("handoff map: %w", err)
+	// Get latest handoff (last in array)
+	latestHandoff := handoffs[len(handoffs)-1]
+
+	handoffMap, ok := latestHandoff.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid handoff format")
 	}
 
 	hostname, _ := os.Hostname()
-	handoffHost := latest.Host
+	handoffHost, _ := handoffMap["host"].(string)
 
 	result := map[string]interface{}{
 		"success":        true,
@@ -407,9 +395,6 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		"from_same_host": handoffHost == hostname,
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
-	if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
-		result["latest_ledger"] = latestLedger
-	}
 
 	// Add suggested_next_action; add cursor_cli_suggestion only when include_cli_command is true (default false).
 	includeCliCommand := cast.ToBool(params["include_cli_command"])
@@ -417,14 +402,8 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		t := suggested[0]
 
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
-		if t.Lane != "" {
-			taskMap["lane"] = t.Lane
-		}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
-		}
-		if t.Lane != "" {
-			result["suggested_lane"] = t.Lane
 		}
 
 		if includeCliCommand {
@@ -439,7 +418,9 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 
 // handleSessionLatest gets the most recent handoff note.
 func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	if !handoffsAnyFileExists(projectRoot) {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		result := map[string]interface{}{
 			"success":     false,
 			"method":      "native_go",
@@ -450,11 +431,20 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 		return framework.FormatResult(result, "")
 	}
 
-	store, err := loadHandoffStore(projectRoot)
+	fileCache := cache.GetGlobalFileCache()
+
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load handoff store: %w", err)
+		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
-	if len(store.Handoffs) == 0 {
+
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return nil, fmt.Errorf("failed to parse handoff file: %w", err)
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	if len(handoffs) == 0 {
 		result := map[string]interface{}{
 			"success":     false,
 			"method":      "native_go",
@@ -465,20 +455,13 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 		return framework.FormatResult(result, "")
 	}
 
-	latest := store.Handoffs[len(store.Handoffs)-1]
-	handoffMap, err := handoffEntryToMap(latest)
-	if err != nil {
-		return nil, fmt.Errorf("handoff map: %w", err)
-	}
+	latestHandoff := handoffs[len(handoffs)-1]
 
 	result := map[string]interface{}{
 		"success":     true,
 		"method":      "native_go",
 		"has_handoff": true,
-		"handoff":     handoffMap,
-	}
-	if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
-		result["latest_ledger"] = latestLedger
+		"handoff":     latestHandoff,
 	}
 
 	return framework.FormatResult(result, "")
@@ -491,7 +474,9 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 		limit = int(l)
 	}
 
-	if !handoffsAnyFileExists(projectRoot) {
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		result := map[string]interface{}{
 			"success":  true,
 			"method":   "native_go",
@@ -502,48 +487,57 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 		return framework.FormatResult(result, "")
 	}
 
-	store, err := loadHandoffStore(projectRoot)
+	fileCache := cache.GetGlobalFileCache()
+
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load handoff store: %w", err)
+		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
 
-	handoffs := store.Handoffs
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return nil, fmt.Errorf("failed to parse handoff file: %w", err)
+	}
 
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+
+	// Filter closed/approved if include_closed is false (default)
 	includeClosed := true
 	if _, ok := params["include_closed"]; ok {
 		includeClosed = cast.ToBool(params["include_closed"])
 	}
 
 	if !includeClosed {
-		var open []HandoffEntry
-		for _, h := range handoffs {
-			if h.Status != "closed" && h.Status != "approved" {
-				open = append(open, h)
+		var open []interface{}
+
+		for _, v := range handoffs {
+			h, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			status, _ := h["status"].(string)
+			if status != "closed" && status != "approved" {
+				open = append(open, v)
 			}
 		}
+
 		handoffs = open
 	}
 
+	// Get last N handoffs
 	start := len(handoffs) - limit
 	if start < 0 {
 		start = 0
 	}
-	recent := handoffs[start:]
 
-	recentIface := make([]interface{}, 0, len(recent))
-	for _, e := range recent {
-		m, err := handoffEntryToMap(e)
-		if err != nil {
-			return nil, err
-		}
-		recentIface = append(recentIface, m)
-	}
+	recentHandoffs := handoffs[start:]
 
 	result := map[string]interface{}{
 		"success":  true,
 		"method":   "native_go",
-		"handoffs": recentIface,
-		"count":    len(recentIface),
+		"handoffs": recentHandoffs,
+		"count":    len(recentHandoffs),
 		"total":    len(handoffs),
 	}
 
@@ -636,7 +630,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 // handleSessionExport exports handoff data to a JSON file for sharing between agents.
 func handleSessionExport(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	outputPath := ParamOutputPath(params)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath == "" {
 		// Default to handoff-export-{timestamp}.json in project root
 		outputPath = filepath.Join(projectRoot, fmt.Sprintf("handoff-export-%d.json", time.Now().Unix()))
@@ -653,8 +647,12 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		exportLatest = cast.ToBool(params["export_latest"])
 	}
 
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	// Load handoff data
 	var handoffData map[string]interface{}
-	if !handoffsAnyFileExists(projectRoot) {
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
+		// No handoffs file - return empty export
 		handoffData = map[string]interface{}{
 			"handoffs":    []interface{}{},
 			"exported_at": time.Now().Format(time.RFC3339),
@@ -662,30 +660,29 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 			"count":       0,
 		}
 	} else {
-		store, err := loadHandoffStore(projectRoot)
+		fileCache := cache.GetGlobalFileCache()
+
+		data, _, err := fileCache.ReadFile(handoffFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load handoff store: %w", err)
+			return nil, fmt.Errorf("failed to read handoff file: %w", err)
 		}
-		entries := store.Handoffs
-		exportType := "all"
-		if exportLatest && len(entries) > 0 {
-			entries = []HandoffEntry{entries[len(entries)-1]}
-			exportType = "latest"
+
+		if err := json.Unmarshal(data, &handoffData); err != nil {
+			return nil, fmt.Errorf("failed to parse handoff file: %w", err)
 		}
-		handoffsOut := make([]interface{}, 0, len(entries))
-		for _, e := range entries {
-			m, err := handoffEntryToMap(e)
-			if err != nil {
-				return nil, err
-			}
-			handoffsOut = append(handoffsOut, m)
+
+		handoffs, _ := handoffData["handoffs"].([]interface{})
+
+		// If exporting latest only, keep only the last handoff
+		if exportLatest && len(handoffs) > 0 {
+			handoffData["handoffs"] = []interface{}{handoffs[len(handoffs)-1]}
+			handoffData["export_type"] = "latest"
+		} else {
+			handoffData["export_type"] = "all"
 		}
-		handoffData = map[string]interface{}{
-			"handoffs":    handoffsOut,
-			"exported_at": time.Now().Format(time.RFC3339),
-			"export_type": exportType,
-			"count":       len(handoffsOut),
-		}
+
+		handoffData["exported_at"] = time.Now().Format(time.RFC3339)
+		handoffData["count"] = len(handoffData["handoffs"].([]interface{}))
 	}
 
 	// Write to output file
@@ -697,7 +694,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 	}
 
 	// Ensure directory exists
-	if err := EnsureParentDir(outputPath); err != nil {
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -737,146 +734,6 @@ func DecodePointInTimeSnapshot(encoded string) ([]byte, error) {
 		return nil, fmt.Errorf("gzip read: %w", err)
 	}
 	return out.Bytes(), nil
-}
-
-// handleSessionRestore restores tasks from a point-in-time snapshot.
-// Takes a base64-encoded gzip snapshot and optionally merges or replaces tasks.
-func handleSessionRestore(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	snapshot := cast.ToString(params["point_in_time_snapshot"])
-	if snapshot == "" {
-		return nil, fmt.Errorf("point_in_time_snapshot is required for restore")
-	}
-
-	restoreStrategy := cast.ToString(params["restore_strategy"])
-	if restoreStrategy == "" {
-		restoreStrategy = "merge"
-	}
-
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	// Decode snapshot
-	decoded, err := DecodePointInTimeSnapshot(snapshot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode snapshot: %w", err)
-	}
-
-	// Parse snapshot tasks
-	var stateData map[string]interface{}
-	if err := json.Unmarshal(decoded, &stateData); err != nil {
-		return nil, fmt.Errorf("failed to parse snapshot JSON: %w", err)
-	}
-
-	snapshotTodos, ok := stateData["todos"].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("invalid snapshot format: missing todos array")
-	}
-
-	// Convert to Todo2Task
-	snapshotTasks := make([]Todo2Task, 0, len(snapshotTodos))
-	for _, t := range snapshotTodos {
-		if tm, ok := t.(map[string]interface{}); ok {
-			task := Todo2Task{
-				ID:              GetString(tm, "id"),
-				Content:         GetString(tm, "content"),
-				Status:          GetString(tm, "status"),
-				Priority:        GetString(tm, "priority"),
-				Tags:            GetStringSlice(tm, "tags"),
-				CreatedAt:       GetString(tm, "created_at"),
-				CompletedAt:     GetString(tm, "completed_at"),
-				ParentID:        GetString(tm, "parent_id"),
-				AssignedTo:      GetString(tm, "assigned_to"),
-				LongDescription: GetString(tm, "long_description"),
-				Dependencies:    GetStringSlice(tm, "dependencies"),
-			}
-			snapshotTasks = append(snapshotTasks, task)
-		}
-	}
-
-	if len(snapshotTasks) == 0 {
-		return nil, fmt.Errorf("no tasks found in snapshot")
-	}
-
-	// Load existing tasks
-	store := NewDefaultTaskStore(projectRoot)
-	existingList, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load existing tasks: %w", err)
-	}
-	existingTasks := tasksFromPtrs(existingList)
-
-	// Build task maps for quick lookup
-	existingByID := make(map[string]Todo2Task)
-	for _, t := range existingTasks {
-		existingByID[t.ID] = t
-	}
-
-	var tasksToSave []Todo2Task
-	var mergedCount, replacedCount, skippedCount int
-
-	if restoreStrategy == "replace" {
-		// Replace: use all snapshot tasks
-		tasksToSave = snapshotTasks
-		replacedCount = len(existingTasks)
-	} else {
-		// Merge: add missing tasks from snapshot
-		for _, st := range snapshotTasks {
-			if _, exists := existingByID[st.ID]; !exists {
-				tasksToSave = append(tasksToSave, st)
-				mergedCount++
-			} else {
-				skippedCount++
-			}
-		}
-
-		// If no new tasks to add, just return success
-		if len(tasksToSave) == 0 {
-			result := map[string]interface{}{
-				"success":        true,
-				"method":         "native_go",
-				"strategy":       restoreStrategy,
-				"snapshot_tasks": len(snapshotTasks),
-				"existing_tasks": len(existingTasks),
-				"merged":         0,
-				"skipped":        len(snapshotTasks),
-				"message":        "No new tasks to merge (all snapshot tasks already exist)",
-			}
-			return framework.FormatResult(result, "")
-		}
-	}
-
-	// Save tasks
-	var savedCount int
-	for _, task := range tasksToSave {
-		// Check if task exists - use UpdateTask or CreateTask accordingly
-		if _, exists := existingByID[task.ID]; exists {
-			if err := store.UpdateTask(ctx, &task); err != nil {
-				return nil, fmt.Errorf("failed to update task %s: %w", task.ID, err)
-			}
-		} else {
-			if err := store.CreateTask(ctx, &task); err != nil {
-				return nil, fmt.Errorf("failed to create task %s: %w", task.ID, err)
-			}
-		}
-		savedCount++
-	}
-
-	result := map[string]interface{}{
-		"success":        true,
-		"method":         "native_go",
-		"strategy":       restoreStrategy,
-		"snapshot_tasks": len(snapshotTasks),
-		"existing_tasks": len(existingTasks),
-		"merged":         mergedCount,
-		"replaced":       replacedCount,
-		"skipped":        skippedCount,
-		"saved":          savedCount,
-		"message":        fmt.Sprintf("Restored %d tasks from snapshot", savedCount),
-	}
-
-	return framework.FormatResult(result, "")
 }
 
 // Helper types and functions

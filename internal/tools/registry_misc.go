@@ -161,37 +161,35 @@ func registerMiscTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register infer_session_mode: %w", err)
 	}
 
-	// ask_client - uses MCP Sampling to request LLM generation from client
+	// context_budget
+	// Note: Individual Python bridge tools (context_summarize, context_batch, prompt_log, prompt_analyze,
+	// recommend_model, recommend_workflow) were removed in favor of unified tools in registry_ai.go:
+	// - context(action=summarize|budget|batch)
+	// - prompt_tracking(action=log|analyze)
+	// - recommend(action=model|workflow|advisor).
+	// Note: list_models tool removed - converted to stdio://models resource
+	// See internal/resources/models.go for resource implementation
 	if err := server.RegisterTool(
-		"ask_client",
-		"[HINT: Use client LLM for analysis. Requests the MCP client to generate a response using its LLM via Sampling protocol.]",
+		"context_budget",
+		"[HINT: Estimate token usage and suggest context reduction. Use when managing context window limits. Related: context.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
-				"prompt": map[string]interface{}{
+				"items": map[string]interface{}{
 					"type":        "string",
-					"description": "Prompt to send to the client LLM",
+					"description": "JSON array of items to analyze",
 				},
-				"system_prompt": map[string]interface{}{
-					"type":        "string",
-					"description": "Optional system prompt to guide the LLM",
-				},
-				"temperature": map[string]interface{}{
-					"type":        "number",
-					"description": "Sampling temperature (0.0-1.0)",
-					"default":     0.7,
-				},
-				"max_tokens": map[string]interface{}{
+				"budget_tokens": map[string]interface{}{
 					"type":        "integer",
-					"description": "Maximum tokens to generate",
-					"default":     512,
+					"default":     4000,
+					"description": "Target token budget",
 				},
 			},
-			Required: []string{"prompt"},
+			Required: []string{"items"},
 		},
-		handleAskClientWrapper,
+		handleContextBudget,
 	); err != nil {
-		return fmt.Errorf("failed to register ask_client: %w", err)
+		return fmt.Errorf("failed to register context_budget: %w", err)
 	}
 
 	if err := RegisterResourcesAsTools(server); err != nil {

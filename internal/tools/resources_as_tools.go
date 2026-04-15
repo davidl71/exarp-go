@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -86,7 +85,7 @@ func handleReadResource(ctx context.Context, args json.RawMessage) ([]framework.
 	resourceRegistryMu.RLock()
 	var handler framework.ResourceHandler
 	for _, entry := range resourceRegistry {
-		if entry.URI == params.URI || resourceTemplateMatches(entry.URI, params.URI) {
+		if entry.URI == params.URI {
 			handler = entry.handler
 			break
 		}
@@ -110,32 +109,6 @@ func handleReadResource(ctx context.Context, args json.RawMessage) ([]framework.
 	out, _ := json.MarshalIndent(result, "", "  ")
 
 	return []framework.TextContent{{Text: string(out)}}, nil
-}
-
-func resourceTemplateMatches(templateURI, actualURI string) bool {
-	if templateURI == actualURI {
-		return true
-	}
-
-	templateParts := strings.Split(templateURI, "/")
-	actualParts := strings.Split(actualURI, "/")
-	if len(templateParts) != len(actualParts) {
-		return false
-	}
-
-	for i := range templateParts {
-		part := templateParts[i]
-		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
-			if actualParts[i] == "" {
-				return false
-			}
-			continue
-		}
-		if part != actualParts[i] {
-			return false
-		}
-	}
-	return true
 }
 
 type resourceListEntry struct {
@@ -164,17 +137,4 @@ func handleListResources(_ context.Context, _ json.RawMessage) ([]framework.Text
 	}
 
 	return []framework.TextContent{{Text: string(data)}}, nil
-}
-
-// ListTrackedResourceURIs returns a sorted list of the registered resource URIs.
-func ListTrackedResourceURIs() []string {
-	resourceRegistryMu.RLock()
-	defer resourceRegistryMu.RUnlock()
-
-	uris := make([]string, 0, len(resourceRegistry))
-	for _, entry := range resourceRegistry {
-		uris = append(uris, entry.URI)
-	}
-	sort.Strings(uris)
-	return uris
 }

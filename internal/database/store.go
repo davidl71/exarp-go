@@ -4,10 +4,8 @@ import (
 	"context"
 )
 
-// TaskStore is a Repository pattern for task persistence.
-// It abstracts task CRUD operations for testing and DB/file fallback.
-// Implementations may use the database (dbStore), JSON file, or an in-memory mock.
-// Note: TaskStore == TaskRepository (same pattern, different naming convention).
+// TaskStore abstracts task persistence for testing and DB/file fallback.
+// Implementations may use the database, JSON file, or an in-memory mock.
 type TaskStore interface {
 	GetTask(ctx context.Context, id string) (*Todo2Task, error)
 	UpdateTask(ctx context.Context, task *Todo2Task) error

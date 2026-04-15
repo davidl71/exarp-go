@@ -1,15 +1,7 @@
 #!/bin/bash
 # Test estimation tool via CLI with Apple FM support
 
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${PROJECT_ROOT:-$SCRIPT_DIR}"
-export GOCACHE="${GOCACHE:-$PROJECT_ROOT/.cache/go-build}"
-export GOMODCACHE="${GOMODCACHE:-$PROJECT_ROOT/.cache/go-mod}"
-mkdir -p "$GOCACHE" "$GOMODCACHE"
-
-cd "$SCRIPT_DIR"
+cd "$(dirname "$0")"
 
 # Force TTY by using expect or by running in interactive shell
 # For now, let's use a Go test program instead
@@ -82,5 +74,6 @@ func main() {
 }
 EOF
 
-cd "$PROJECT_ROOT"
+cd /Users/davidl/Projects/exarp-go
 go run /tmp/test_estimation.go 2>&1
+

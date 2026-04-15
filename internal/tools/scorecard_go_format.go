@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -54,7 +55,7 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	}
 
 	if !fastModeUsed && !health.GoTestPasses {
-		recommendations = append(recommendations, "Fix failing tests: make test")
+		recommendations = append(recommendations, "Fix failing Go tests: make test")
 	}
 
 	minCoverage := float64(config.MinCoverage())
@@ -62,12 +63,8 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%): make test-coverage", health.GoTestCoverage, minCoverage))
 	}
 
-	if !fastModeUsed && health.GoVulnCheckAvailable && !health.GoVulnCheckPasses {
+	if !fastModeUsed && !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Run 'make govulncheck' for security scanning")
-	}
-
-	if !fastModeUsed && !health.GoVulnCheckAvailable {
-		recommendations = append(recommendations, "Install or expose 'govulncheck' in PATH so the scorecard can verify dependency vulnerabilities")
 	}
 
 	autoFixable := !health.GoFmtCompliant || (!fastModeUsed && !health.GoModTidyPasses) || (!fastModeUsed && health.GoLintConfigured && !health.GoLintPasses)
@@ -87,61 +84,61 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	score := 0.0
 	maxScore := 0.0
 
-	// Module health (15%)
-	maxScore += 15
+	// Module health (20%)
+	maxScore += 20
 
 	if health.GoModExists {
-		score += 3.75
+		score += 5
 	}
 
 	if health.GoSumExists {
-		score += 3.75
+		score += 5
 	}
 
 	if health.GoModTidyPasses {
-		score += 3.75
+		score += 5
 	}
 
 	if health.GoVersionValid {
-		score += 3.75
+		score += 5
 	}
 
-	// Build & Quality (25%)
-	maxScore += 25
+	// Build & Quality (30%)
+	maxScore += 30
 
 	if health.GoBuildPasses {
-		score += 8.3333333333
+		score += 10
 	}
 
 	if health.GoVetPasses {
-		score += 4.1666666667
+		score += 5
 	}
 
 	if health.GoFmtCompliant {
-		score += 4.1666666667
+		score += 5
 	}
 
 	if health.GoLintConfigured {
-		score += 4.1666666667
+		score += 5
 	}
 
 	if health.GoLintPasses {
-		score += 4.1666666667
+		score += 5
 	}
 
-	// Testing (25%)
-	maxScore += 25
+	// Testing (30%)
+	maxScore += 30
 
 	if health.GoTestPasses {
-		score += 12.5
+		score += 15
 	}
 
 	if health.GoTestCoverage >= float64(config.MinCoverage()) {
-		score += 12.5
+		score += 15
 	} else if health.GoTestCoverage >= 50.0 {
-		score += 8.3333333333
+		score += 10
 	} else if health.GoTestCoverage > 0 {
-		score += 4.1666666667
+		score += 5
 	}
 
 	// Security (20%)
@@ -151,14 +148,10 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 		score += 20
 	} else {
 		// Partial credit if tool not installed
-		if !health.GoVulnCheckAvailable {
+		if _, err := exec.LookPath("govulncheck"); err != nil {
 			score += 5 // Tool not installed, but not a failure
 		}
 	}
-
-	// Documentation (15%)
-	maxScore += 15
-	score += (calculateDocsHealthScore(health) / 100.0) * 15
 
 	if maxScore == 0 {
 		return 0
@@ -184,7 +177,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	var sb strings.Builder
 
 	sb.WriteString("======================================================================\n")
-	sb.WriteString("  📊 PROJECT SCORECARD\n")
+	sb.WriteString("  📊 GO PROJECT SCORECARD\n")
 	sb.WriteString("======================================================================\n\n")
 
 	// Overall Score
@@ -250,7 +243,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
 	}
 
-	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMarkSkippedOrUnavailable(scorecard.Health.GoVulnCheckPasses, scorecard.FastModeUsed, !scorecard.Health.GoVulnCheckAvailable)))
+	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMarkOrSkipped(scorecard.Health.GoVulnCheckPasses, scorecard.FastModeUsed)))
 	sb.WriteString("\n")
 
 	// Security Features
@@ -259,30 +252,6 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    Rate limiting:             %s\n", checkMark(scorecard.Health.RateLimiting)))
 	sb.WriteString(fmt.Sprintf("    Access control:            %s\n", checkMark(scorecard.Health.AccessControl)))
 	sb.WriteString("\n")
-
-	// Other Languages (polyglot support)
-	if len(scorecard.OtherLanguages) > 0 {
-		sb.WriteString("  Other Languages:\n")
-		for _, lang := range scorecard.OtherLanguages {
-			title := strings.ToUpper(lang.Lang)
-			if lang.LangRoot != "" {
-				title += " (" + lang.LangRoot + ")"
-			}
-			sb.WriteString(fmt.Sprintf("    %s:\n", title))
-			sb.WriteString(fmt.Sprintf("      Files:  %d\n", lang.FileCount))
-			sb.WriteString(fmt.Sprintf("      Score: %.1f%%\n", lang.Score))
-			sb.WriteString(fmt.Sprintf("      Build: %s\n", checkMark(lang.BuildPasses)))
-			sb.WriteString(fmt.Sprintf("      Test:  %s\n", checkMark(lang.TestPasses)))
-			sb.WriteString(fmt.Sprintf("      Lint:  %s\n", checkMark(lang.LintPasses)))
-			sb.WriteString(fmt.Sprintf("      Fmt:   %s\n", checkMark(lang.FmtPasses)))
-			if len(lang.Recommendations) > 0 {
-				for _, rec := range lang.Recommendations {
-					sb.WriteString(fmt.Sprintf("      • %s\n", rec))
-				}
-			}
-		}
-		sb.WriteString("\n")
-	}
 
 	// Recommendations
 	if len(scorecard.Recommendations) > 0 {
@@ -363,22 +332,6 @@ func checkMarkOrSkipped(value, skipped bool) string {
 	return "❌"
 }
 
-func checkMarkSkippedOrUnavailable(value, skipped, unavailable bool) string {
-	if value {
-		return "✅"
-	}
-
-	if skipped {
-		return "— (skipped)"
-	}
-
-	if unavailable {
-		return "— (unavailable)"
-	}
-
-	return "❌"
-}
-
 // GenerateGoScorecard generates a Go-specific scorecard
 // If opts is nil, uses default options (full checks).
 func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *ScorecardOptions) (*GoScorecardResult, error) {
@@ -403,39 +356,11 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 
 	projectRoot = validatedRoot
 
-	// Collect all file stats in a single walk
-	allStats, err := collectAllFileStats(projectRoot)
+	// Collect metrics
+	metrics, err := collectGoMetrics(ctx, projectRoot)
 	if err != nil {
-		return nil, fmt.Errorf("failed to collect file stats: %w", err)
+		return nil, fmt.Errorf("failed to collect metrics: %w", err)
 	}
-
-	// Build metrics from collected stats
-	metrics := &GoProjectMetrics{
-		GoFiles:        allStats.GoFiles,
-		GoLines:        allStats.GoLines,
-		GoTestFiles:    allStats.TestFiles,
-		GoTestLines:    allStats.TestLines,
-		PythonFiles:    allStats.PythonFiles,
-		PythonLines:    allStats.PythonLines,
-		TotalCodeBytes: allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes,
-	}
-	metrics.TotalCodeBytes = allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes
-	metrics.EstimatedTokens = int(float64(metrics.TotalCodeBytes) * config.TokensPerChar())
-
-	// Check Go module
-	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-		metrics.GoModules = 1
-		deps, version, err := getGoModuleInfo(ctx, projectRoot)
-		if err == nil {
-			metrics.GoDependencies = deps
-			metrics.GoVersion = version
-		}
-	}
-
-	// MCP server counts
-	metrics.MCPTools = 24
-	metrics.MCPPrompts = 15
-	metrics.MCPResources = 17
 
 	// Perform health checks
 	health, err := performGoHealthChecks(ctx, projectRoot, opts)
@@ -446,10 +371,11 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	fastMode := opts != nil && opts.FastMode
 
 	// Multi-stage: per-file token/size → threshold filter → split/refactor candidates
-	largeCandidates := filterLargeFileCandidates(allStats.PerFileStats, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
-
-	// Collect multi-language health for non-Go languages (polyglot support)
-	otherLangs := collectOtherLanguagesHealth(ctx, projectRoot)
+	allFiles, err := collectPerFileCodeStats(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect per-file stats: %w", err)
+	}
+	largeCandidates := filterLargeFileCandidates(allFiles, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
 
 	// Generate recommendations (include large-file rec when applicable)
 	recommendations := generateGoRecommendations(health, metrics, fastMode, largeCandidates)
@@ -464,18 +390,5 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 		Score:               score,
 		LargeFileCandidates: largeCandidates,
 		FastModeUsed:        fastMode,
-		OtherLanguages:      otherLangs,
 	}, nil
-}
-
-// collectOtherLanguagesHealth collects LangHealth for non-Go languages in the project.
-func collectOtherLanguagesHealth(ctx context.Context, projectRoot string) []LangHealth {
-	var otherLangs []LangHealth
-	allLangs := CollectMultilangHealth(ctx, projectRoot)
-	for _, lang := range allLangs {
-		if lang.Lang != "go" && lang.Detected {
-			otherLangs = append(otherLangs, lang)
-		}
-	}
-	return otherLangs
 }

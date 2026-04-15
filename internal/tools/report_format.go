@@ -187,6 +187,17 @@ func formatGenericScorecardWithLangs(pb *proto.ProjectOverviewData, langs []Lang
 	return sb.String()
 }
 
+// GetOverviewText returns project overview as plain text for TUI/CLI display.
+// It aggregates project data (health when Go project, tasks, codebase, etc.) and formats as text.
+func GetOverviewText(ctx context.Context, projectRoot string) (string, error) {
+	pb, err := aggregateProjectDataProto(ctx, projectRoot, false)
+	if err != nil {
+		return "", err
+	}
+
+	return formatOverviewTextProto(pb), nil
+}
+
 // formatOverviewMarkdownProto formats overview as markdown from proto.
 func formatOverviewMarkdownProto(pb *proto.ProjectOverviewData) string {
 	if pb == nil {

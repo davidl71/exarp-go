@@ -14,18 +14,13 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 44 resources are registered.
-	if server.ResourceCount() != 44 {
-		t.Errorf("server.ResourceCount() = %v, want 44", server.ResourceCount())
-	}
-	if server.ResourceTemplateCount() != 16 {
-		t.Errorf("server.ResourceTemplateCount() = %v, want 16", server.ResourceTemplateCount())
+	// Verify all 24 resources are registered (11 base + 7 task + 2 session + 1 server + 1 models + 2 tools + 1 cursor/skills)
+	if server.ResourceCount() != 24 {
+		t.Errorf("server.ResourceCount() = %v, want 24", server.ResourceCount())
 	}
 
 	// Verify specific resources are registered
 	expectedResources := []string{
-		"stdio://config",
-		"stdio://config/schema",
 		"stdio://scorecard",
 		"stdio://memories",
 		"stdio://memories/category/{category}",
@@ -40,33 +35,15 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://session/status",
 		"stdio://server/status",
 		"stdio://models",
-		"stdio://cursor/skills",
-		"stdio://agent/skills",
-		"stdio://cursor/skills/{name}",
-		"stdio://agent/skills/{name}",
 		"stdio://tools",
-		"stdio://tool_catalog",
-		"stdio://tools/names",
 		"stdio://tools/{category}",
-		"stdio://resources/uris",
 		"stdio://tasks",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",
 		"stdio://tasks/priority/{priority}",
 		"stdio://tasks/tag/{tag}",
 		"stdio://tasks/summary",
-		"stdio://tasks/ready",
-		"stdio://ready-tasks",
 		"stdio://suggested-tasks",
-		"stdio://active-work",
-		"stdio://agent/briefing",
-		"stdio://codex/briefing",
-		"stdio://agent/task/{task_id}/execution-pack",
-		"stdio://codex/task/{task_id}/execution-pack",
-		"stdio://agent/alerts",
-		"stdio://codex/alerts",
-		"stdio://task-runs/{task_id}",
-		"agent://card",
 	}
 
 	for _, uri := range expectedResources {
@@ -88,45 +65,6 @@ func TestRegisterAllResources(t *testing.T) {
 			t.Errorf("resource %q mimeType is empty", uri)
 		}
 	}
-
-	expectedTemplates := []string{
-		"stdio://memories/category/{category}",
-		"stdio://memories/task/{task_id}",
-		"stdio://memories/session/{date}",
-		"stdio://prompts/mode/{mode}",
-		"stdio://prompts/persona/{persona}",
-		"stdio://prompts/category/{category}",
-		"stdio://cursor/skills/{name}",
-		"stdio://agent/skills/{name}",
-		"stdio://tools/{category}",
-		"stdio://tasks/{task_id}",
-		"stdio://tasks/status/{status}",
-		"stdio://tasks/priority/{priority}",
-		"stdio://tasks/tag/{tag}",
-		"stdio://agent/task/{task_id}/execution-pack",
-		"stdio://codex/task/{task_id}/execution-pack",
-		"stdio://task-runs/{task_id}",
-	}
-
-	for _, uri := range expectedTemplates {
-		resource, exists := server.GetResourceTemplate(uri)
-		if !exists {
-			t.Errorf("resource template %q not registered", uri)
-			continue
-		}
-
-		if resource.URI != uri {
-			t.Errorf("resource template.URI = %v, want %v", resource.URI, uri)
-		}
-
-		if resource.Name == "" {
-			t.Errorf("resource template %q name is empty", uri)
-		}
-
-		if resource.MimeType == "" {
-			t.Errorf("resource template %q mimeType is empty", uri)
-		}
-	}
 }
 
 func TestRegisterAllResources_URIParsing(t *testing.T) {
@@ -143,16 +81,6 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 		uri  string
 		want bool
 	}{
-		{
-			name: "config",
-			uri:  "stdio://config",
-			want: true,
-		},
-		{
-			name: "config schema",
-			uri:  "stdio://config/schema",
-			want: true,
-		},
 		{
 			name: "scorecard",
 			uri:  "stdio://scorecard",
@@ -224,56 +152,6 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "agent briefing",
-			uri:  "stdio://agent/briefing",
-			want: true,
-		},
-		{
-			name: "codex briefing",
-			uri:  "stdio://codex/briefing",
-			want: true,
-		},
-		{
-			name: "agent alerts",
-			uri:  "stdio://agent/alerts",
-			want: true,
-		},
-		{
-			name: "codex alerts",
-			uri:  "stdio://codex/alerts",
-			want: true,
-		},
-		{
-			name: "cursor skills",
-			uri:  "stdio://cursor/skills",
-			want: true,
-		},
-		{
-			name: "agent skills",
-			uri:  "stdio://agent/skills",
-			want: true,
-		},
-		{
-			name: "cursor skill by name pattern",
-			uri:  "stdio://cursor/skills/{name}",
-			want: true,
-		},
-		{
-			name: "agent skill by name pattern",
-			uri:  "stdio://agent/skills/{name}",
-			want: true,
-		},
-		{
-			name: "agent execution pack pattern",
-			uri:  "stdio://agent/task/{task_id}/execution-pack",
-			want: true,
-		},
-		{
-			name: "codex execution pack pattern",
-			uri:  "stdio://codex/task/{task_id}/execution-pack",
-			want: true,
-		},
-		{
 			name: "all tools",
 			uri:  "stdio://tools",
 			want: true,
@@ -340,8 +218,6 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 
 	// Verify handlers are registered for each resource
 	expectedResources := []string{
-		"stdio://config",
-		"stdio://config/schema",
 		"stdio://scorecard",
 		"stdio://memories",
 		"stdio://memories/category/{category}",
@@ -357,9 +233,7 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 		"stdio://server/status",
 		"stdio://models",
 		"stdio://tools",
-		"stdio://tools/names",
 		"stdio://tools/{category}",
-		"stdio://resources/uris",
 		"stdio://tasks",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",

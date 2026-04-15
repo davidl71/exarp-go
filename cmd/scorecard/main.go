@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/tools"
 )
@@ -16,16 +15,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" || strings.Contains(projectRoot, "{{PROJECT_ROOT}}") {
-		wd, err := os.Getwd()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
-			os.Exit(1)
-		}
-		projectRoot = wd
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to get working directory: %v\n", err)
+		os.Exit(1)
 	}
-	projectRoot = filepath.Clean(projectRoot)
+
+	projectRoot := filepath.Clean(wd)
 
 	// Check for --full flag to disable fast mode
 	fastMode := len(os.Args) <= 1 || os.Args[1] != "--full" // Default to fast mode for CLI

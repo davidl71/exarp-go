@@ -15,7 +15,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/vector"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
@@ -42,29 +41,35 @@ func memoryCategories() []string {
 	return config.MemoryCategories()
 }
 
-// applyMemoryRequestDefaults applies legacy defaults when fields are absent on the proto request.
-func applyMemoryRequestDefaults(req *proto.MemoryRequest, params map[string]interface{}) {
-	if req == nil || params == nil {
-		return
+// handleMemoryNative handles the memory tool with native Go CRUD operations.
+// All success responses use proto.MemoryResponse and are formatted via MemoryResponseToMap;
+// do not return ad-hoc maps so that responses stay aligned to the MemoryResponse proto.
+func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseMemoryRequest(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
-	if cast.ToString(params["action"]) == "" {
-		params["action"] = "search"
-	}
-	if cast.ToString(params["category"]) == "" {
-		params["category"] = "insight"
-	}
-	if req.GetLimit() == 0 {
-		params["limit"] = 10
-	}
-	if !req.GetIncludeRelated() {
-		params["include_related"] = true // Proto default false means use server default true
-	}
-}
 
-// handleMemoryDispatch routes memory tool actions using a params map (after proto/JSON decode).
-func handleMemoryDispatch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	if params == nil {
-		params = make(map[string]interface{})
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = MemoryRequestToParams(req)
+		// Set defaults for protobuf request
+		if req.Action == "" {
+			params["action"] = "search"
+		}
+
+		if req.Category == "" {
+			params["category"] = "insight"
+		}
+
+		if req.Limit == 0 {
+			params["limit"] = 10
+		}
+
+		if !req.IncludeRelated {
+			params["include_related"] = true // Default is true
+		}
 	}
 
 	action := cast.ToString(params["action"])
@@ -78,33 +83,14 @@ func handleMemoryDispatch(ctx context.Context, params map[string]interface{}) ([
 	case "recall":
 		return handleMemoryRecall(ctx, params)
 	case "search":
+		// Try basic text search in Go first, fall back to Python bridge for semantic search
 		return handleMemorySearch(ctx, params)
 	case "list":
 		return handleMemoryList(ctx, params)
 	default:
+		// Unknown action, fall back to Python bridge
 		return nil, fmt.Errorf("unknown action: %s (use 'save', 'recall', 'search', or 'list')", action)
 	}
-}
-
-// handleMemoryNative handles the memory tool with native Go CRUD operations.
-// All success responses use proto.MemoryResponse and are formatted via MemoryResponseToMap;
-// do not return ad-hoc maps so that responses stay aligned to the MemoryResponse proto.
-func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, params, err := ParseMemoryRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	if req != nil {
-		params = MemoryRequestToParams(req)
-		applyMemoryRequestDefaults(req, params)
-	}
-
-	if params == nil {
-		params = make(map[string]interface{})
-	}
-
-	return handleMemoryDispatch(ctx, params)
 }
 
 // handleMemorySave handles save action.
@@ -286,9 +272,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 	return framework.FormatResult(MemoryResponseToMap(resp), "")
 }
 
-// handleMemorySearch handles search action.
-// When Ollama is available it uses chromem-go semantic (vector) search;
-// otherwise it falls back to the existing case-insensitive substring scoring.
+// handleMemorySearch handles search action (basic text search in Go).
 func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	query := cast.ToString(params["query"])
 	if query == "" {
@@ -315,63 +299,37 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
 
-	// Filter by category first so both paths work on the same candidate set.
-	candidates := memories
-	if category != "" {
-		filtered := make([]Memory, 0, len(memories))
-		for _, m := range memories {
-			if m.Category == category {
-				filtered = append(filtered, m)
-			}
-		}
-		candidates = filtered
-	}
-
-	// --- Semantic search via chromem-go + Ollama (when available) ---
-	store, storeErr := vector.NewOllamaStore("", "") // defaults: localhost:11434, nomic-embed-text
-	if storeErr == nil && store.Available() {
-		results, err := memorySemanticSearch(ctx, store, candidates, query, limit)
-		if err == nil {
-			pbMemories := make([]*proto.Memory, 0, len(results))
-			for i := range results {
-				pb, pbErr := MemoryToProto(&results[i])
-				if pbErr == nil && pb != nil {
-					pbMemories = append(pbMemories, pb)
-				}
-			}
-			resp := &proto.MemoryResponse{
-				Success:    true,
-				Method:     "native_go_semantic",
-				Query:      query,
-				Memories:   pbMemories,
-				Count:      int32(len(results)),
-				TotalFound: int32(len(candidates)),
-			}
-			return framework.FormatResult(MemoryResponseToMap(resp), "")
-		}
-		// semantic search failed — fall through to text search
-	}
-
-	// --- Text search fallback ---
+	// Basic text search (semantic search would use Python bridge)
 	queryLower := strings.ToLower(query)
 	scored := []struct {
 		score  int
 		memory Memory
 	}{}
 
-	for _, m := range candidates {
+	for _, m := range memories {
+		// Filter by category if specified
+		if category != "" && m.Category != category {
+			continue
+		}
+
 		score := 0
 		titleLower := strings.ToLower(m.Title)
 		contentLower := strings.ToLower(m.Content)
 		categoryLower := strings.ToLower(m.Category)
 
+		// Title match scores highest
 		if strings.Contains(titleLower, queryLower) {
 			score += 10
 		}
+
+		// Content match
 		if strings.Contains(contentLower, queryLower) {
 			score += 5
+			// Bonus for multiple occurrences
 			score += strings.Count(contentLower, queryLower)
 		}
+
+		// Category match
 		if strings.Contains(categoryLower, queryLower) {
 			score += 3
 		}
@@ -384,7 +342,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// Sort by score descending.
+	// Sort by score descending
 	for i := 0; i < len(scored)-1; i++ {
 		for j := i + 1; j < len(scored); j++ {
 			if scored[i].score < scored[j].score {
@@ -393,18 +351,22 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	results := make([]Memory, 0, limit)
+	// Take top results
+	results := []Memory{}
+
 	for i, s := range scored {
 		if i >= limit {
 			break
 		}
+
 		results = append(results, s.memory)
 	}
 
 	pbMemories := make([]*proto.Memory, 0, len(results))
+
 	for i := range results {
-		pb, pbErr := MemoryToProto(&results[i])
-		if pbErr == nil && pb != nil {
+		pb, err := MemoryToProto(&results[i])
+		if err == nil && pb != nil {
 			pbMemories = append(pbMemories, pb)
 		}
 	}
@@ -419,42 +381,6 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	return framework.FormatResult(MemoryResponseToMap(resp), "")
-}
-
-// memorySemanticSearch builds a transient in-memory vector index from candidates,
-// queries it for the given query, and returns memories ordered by similarity.
-func memorySemanticSearch(ctx context.Context, store *vector.OllamaStore, candidates []Memory, query string, limit int) ([]Memory, error) {
-	docs := make([]vector.Document, 0, len(candidates))
-	for _, m := range candidates {
-		docs = append(docs, vector.Document{
-			ID:   m.ID,
-			Text: m.Title + "\n" + m.Content,
-		})
-	}
-
-	if err := store.AddAll(ctx, docs); err != nil {
-		return nil, err
-	}
-
-	searchResults, err := store.Search(ctx, query, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	// Map result IDs back to Memory structs (preserving semantic rank order).
-	byID := make(map[string]Memory, len(candidates))
-	for _, m := range candidates {
-		byID[m.ID] = m
-	}
-
-	ordered := make([]Memory, 0, len(searchResults))
-	for _, r := range searchResults {
-		if m, ok := byID[r.ID]; ok {
-			ordered = append(ordered, m)
-		}
-	}
-
-	return ordered, nil
 }
 
 // handleMemoryList handles list action.

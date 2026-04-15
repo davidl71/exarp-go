@@ -1,4 +1,4 @@
-// Package security provides access control, permission checking, and rate limiting.
+// access.go — Access control, permission checking, and rate limiting.
 package security
 
 import (

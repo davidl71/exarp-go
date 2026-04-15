@@ -16,42 +16,9 @@ import (
 	"github.com/spf13/cast"
 )
 
-// HandleSessionPrimeJSON returns session prime data as JSON bytes.
-// Used by the prime://context resource handler for OpenCode session bootstrap.
-func HandleSessionPrimeJSON(ctx context.Context) ([]byte, error) {
-	params := map[string]interface{}{
-		"include_hints": true,
-		"include_tasks": true,
-	}
-	result, err := handleSessionPrime(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-	if len(result) == 0 || result[0].Text == "" {
-		return nil, fmt.Errorf("session prime returned empty result")
-	}
-	return []byte(result[0].Text), nil
-}
-
-func isSessionHandoffSubAction(sub string) bool {
-	switch sub {
-	case "end", "resume", "latest", "list", "sync", "export", "close", "approve", "delete":
-		return true
-	default:
-		return false
-	}
-}
-
 // handleSessionNative handles the session tool with native Go implementation.
 func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action := strings.TrimSpace(cast.ToString(params["action"]))
-	// Allow handoff-only clients to pass sub_action (e.g. resume, list) without also setting action=handoff.
-	if action == "" {
-		if sub := strings.TrimSpace(cast.ToString(params["sub_action"])); sub != "" && isSessionHandoffSubAction(sub) {
-			action = "handoff"
-			params["action"] = "handoff"
-		}
-	}
 	if action == "" {
 		action = "prime"
 	}
@@ -65,10 +32,8 @@ func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]
 		return handleSessionPrompts(ctx, params)
 	case "assignee":
 		return handleSessionAssignee(ctx, params)
-	case "restore":
-		return handleSessionRestore(ctx, params)
 	default:
-		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', 'assignee', or 'restore')", action)
+		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', or 'assignee')", action)
 	}
 }
 
@@ -204,20 +169,6 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// Resolve client identity: explicit param takes precedence over context injection.
-	clientName := cast.ToString(params["client"])
-	if clientName == "" {
-		clientName = framework.ClientNameFromContext(ctx)
-	}
-
-	// Client-specific adjustments before building the result.
-	// opencode: force compact=true to reduce token overhead.
-	if clientName == "opencode" {
-		if _, ok := params["compact"]; !ok {
-			params["compact"] = true
-		}
-	}
-
 	overrideMode := cast.ToString(params["override_mode"])
 
 	projectRoot, err := FindProjectRoot()
@@ -300,34 +251,22 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			hints["plan_mode"] = planModeHint
 		}
 
-		todoCount, _ := database.GetTaskCountByStatus(ctx, models.StatusTodo)
+		todoCount := 0
+		for _, t := range tasks {
+			if t.Status == models.StatusTodo {
+				todoCount++
+			}
+		}
 		if todoCount > 10 {
 			hints["thinking_workflow"] = "For complex backlog analysis, sprint planning, or dependency enrichment: use the thinking-workflow skill (.cursor/skills/thinking-workflow/SKILL.md) — chain tractatus (structure) + sequential (process) + exarp-go MCP (execute)"
-		}
-
-		// Hint about ownership if tasks lack it
-		if len(tasks) > 0 {
-			missingOwnership := 0
-			for _, task := range tasks {
-				if IsPendingStatus(task.Status) && models.GetTaskOwnership(&task) == nil {
-					missingOwnership++
-				}
-			}
-			if missingOwnership > 2 {
-				hints["add_ownership"] = fmt.Sprintf("⚠️ %d pending tasks lack file ownership. Add with: task_workflow update <id> owned_files=['...'] lane='...' — or run task_analysis action=infer_ownership", missingOwnership)
-			}
 		}
 	} else if includeTasks {
 		planPath, _ = getPlanModeContext(projectRoot, tasks)
 	}
 
 	handoffAlert := (map[string]interface{})(nil)
-	// cursor client: suppress handoff alert (suppress noise); other clients follow include_handoff param.
-	suppressHandoff := clientName == "cursor"
-	if !suppressHandoff {
-		if _, has := params["include_handoff"]; !has || cast.ToBool(params["include_handoff"]) {
-			handoffAlert = checkHandoffAlert(projectRoot)
-		}
+	if _, has := params["include_handoff"]; !has || cast.ToBool(params["include_handoff"]) {
+		handoffAlert = checkHandoffAlert(projectRoot)
 	}
 
 	actionRequired := ""
@@ -337,18 +276,13 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	var conflictHints []string
 
-	if taskOverlaps, fileConflicts, forbiddenHits, err := DetectConflicts(ctx, projectRoot); err == nil {
+	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
 		for _, c := range taskOverlaps {
 			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
 		}
 
 		for _, c := range fileConflicts {
 			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
-		}
-
-		for _, c := range forbiddenHits {
-			conflictHints = append(conflictHints,
-				"Ownership forbidden: "+c.TaskID+" touches "+c.Path+" forbidden by "+c.OtherTaskID+" ("+c.Reason+")")
 		}
 	}
 
@@ -387,7 +321,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	var suggestedNext []map[string]interface{}
 	if includeTasks && tasksErr == nil {
-		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 5)
+		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
 		if len(suggestedNext) > 0 {
 			if includeCliCommand {
 				if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
@@ -399,37 +333,6 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	result := SessionPrimeResultToMap(pb)
 
-	activeLocks, _ := database.GetActiveLocks(ctx)
-	if len(activeLocks) > 0 {
-		lockMaps := make([]map[string]interface{}, 0, len(activeLocks))
-		for _, lock := range activeLocks {
-			lockMaps = append(lockMaps, lockToMap(lock))
-		}
-		result["active_claims"] = lockMaps
-	}
-	activeRuns, _ := database.ListTaskExecutionRuns(ctx, "", "running", 10)
-	if len(activeRuns) > 0 {
-		runMaps := make([]map[string]interface{}, 0, len(activeRuns))
-		for i := range activeRuns {
-			runMaps = append(runMaps, runToMap(&activeRuns[i]))
-		}
-		result["active_runs"] = runMaps
-	}
-
-	taskByID := make(map[string]Todo2Task, len(tasks))
-	for _, task := range tasks {
-		taskByID[task.ID] = task
-	}
-	if ae := buildActiveExecutionSummary(activeLocks, activeRuns, taskByID); ae != nil {
-		result["active_execution"] = ae
-	}
-
-	// generic client: minimal output — tasks + mode only, no hints, no handoff noise.
-	if clientName == "generic" {
-		includeHints = false
-		handoffAlert = nil
-	}
-
 	if includeTasks {
 		if tasksErr != nil {
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
@@ -440,37 +343,6 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 				if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
 					result["suggested_next_action"] = hint
 				}
-				if ln, ok := suggestedNext[0]["lane"].(string); ok && ln != "" {
-					result["suggested_lane"] = ln
-				}
-
-				// Add ownership collision warnings for suggested tasks
-				suggestedTaskIDs := make([]string, 0, len(suggestedNext))
-				for _, st := range suggestedNext {
-					if id, ok := st["id"].(string); ok {
-						suggestedTaskIDs = append(suggestedTaskIDs, id)
-					}
-				}
-
-				suggestedTaskObjs := make([]Todo2Task, 0, len(suggestedTaskIDs))
-				for _, task := range tasks {
-					for _, sid := range suggestedTaskIDs {
-						if task.ID == sid {
-							suggestedTaskObjs = append(suggestedTaskObjs, task)
-							break
-						}
-					}
-				}
-
-				if ownershipHints := buildOwnershipHints(suggestedTaskObjs); len(ownershipHints) > 0 {
-					result["ownership_warnings"] = ownershipHints
-				}
-			}
-
-			// Add hotspot summary: files contested by multiple pending tasks
-			hotspotSummary := buildHotspotSummary(tasks)
-			if len(hotspotSummary) > 0 {
-				result["hotspot_summary"] = hotspotSummary
 			}
 		}
 	}
@@ -489,123 +361,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	pb.StatusLabel = statusLabel
 	pb.StatusContext = statusContext
 
-	// Record resolved client identity in metadata.
-	if clientName != "" {
-		result["client"] = clientName
-	}
-
 	AddTokenEstimateToResult(result)
-
-	// Auto-compaction ledger: if context_threshold_pct is set (1–100), compare current token
-	// usage against budget and auto-write a CONTINUITY ledger when the threshold is exceeded.
-	if thresholdPct := cast.ToFloat64(params["context_threshold_pct"]); thresholdPct > 0 {
-		currentTokens := cast.ToInt(params["current_tokens"])
-		if currentTokens == 0 {
-			// Fall back to this response's own token estimate as a conservative proxy.
-			currentTokens, _ = result["token_estimate"].(int)
-		}
-		budgetTokens := cast.ToInt(params["budget_tokens"])
-		if budgetTokens == 0 {
-			budgetTokens = config.DefaultContextBudget()
-		}
-		if currentTokens > 0 && budgetTokens > 0 {
-			usagePct := float64(currentTokens) / float64(budgetTokens) * 100
-			if usagePct >= thresholdPct {
-				if ledgerPath, err := writeCompactionLedger(ctx, projectRoot, params); err == nil {
-					result["ledger_written"] = true
-					result["ledger_path"] = ledgerPath
-					result["ledger_trigger_pct"] = usagePct
-				}
-			}
-		}
-	}
-
-	// inject_ledger: include the latest compaction ledger in the prime result so the next
-	// session can read it without a separate call. Useful after context compaction.
-	if cast.ToBool(params["inject_ledger"]) {
-		if content, ledgerPath := readLatestLedger(projectRoot); content != "" {
-			result["latest_ledger"] = content
-			result["latest_ledger_path"] = ledgerPath
-		}
-	}
-
-	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
-	compact := ParamBool(params, "compact", true)
+	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(result, "", compact)
-}
-
-// buildActiveExecutionSummary picks the focal locked task + optional run for session prime.
-// Prefer the lock held by this process agent ID (PID-insensitive match); if ambiguous, use the sole active lock.
-func buildActiveExecutionSummary(locks []database.LockStatus, runs []database.TaskExecutionRun, taskByID map[string]Todo2Task) map[string]interface{} {
-	if len(locks) == 0 {
-		return nil
-	}
-
-	agentID, err := database.GetAgentID()
-	if err != nil {
-		agentID = ""
-	}
-
-	agentKey := database.AgentIdentityWithoutPID(agentID)
-
-	var chosen *database.LockStatus
-
-	for i := range locks {
-		if agentID != "" &&
-			(locks[i].Assignee == agentID || database.AgentIdentityWithoutPID(locks[i].Assignee) == agentKey) {
-			chosen = &locks[i]
-			break
-		}
-	}
-
-	if chosen == nil && len(locks) == 1 {
-		chosen = &locks[0]
-	}
-
-	if chosen == nil {
-		return nil
-	}
-
-	var run *database.TaskExecutionRun
-
-	for i := range runs {
-		if runs[i].TaskID != chosen.TaskID || runs[i].Status != "running" {
-			continue
-		}
-
-		if agentID != "" &&
-			(runs[i].AgentID == agentID || database.AgentIdentityWithoutPID(runs[i].AgentID) == agentKey) {
-			run = &runs[i]
-			break
-		}
-	}
-
-	if run == nil {
-		for i := range runs {
-			if runs[i].TaskID == chosen.TaskID && runs[i].Status == "running" {
-				run = &runs[i]
-				break
-			}
-		}
-	}
-
-	out := map[string]interface{}{
-		"task_id":    chosen.TaskID,
-		"assignee":   chosen.Assignee,
-		"lock_until": chosen.LockUntil.Format(time.RFC3339),
-	}
-
-	if run != nil {
-		out["run"] = runToMap(run)
-	}
-
-	if t, ok := taskByID[chosen.TaskID]; ok {
-		out["content"] = t.Content
-		out["status"] = t.Status
-		out["priority"] = t.Priority
-	}
-
-	return out
 }
 
 // handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export).

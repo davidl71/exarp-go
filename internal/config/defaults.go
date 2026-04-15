@@ -69,7 +69,6 @@ func GetDefaults() *FullConfig {
 			DefaultStatus:   "Todo",
 			DefaultPriority: "medium",
 			DefaultTags:     []string{},
-			Keybindings:     DefaultTaskKeybindings(),
 
 			// Status transitions
 			StatusWorkflow: map[string][]string{
@@ -94,7 +93,6 @@ func GetDefaults() *FullConfig {
 			AutoClarify:          false,
 		},
 		Database: DatabaseConfig{
-			Backend:             "sqlite",
 			SQLitePath:          ".todo2/todo2.db",
 			JSONFallbackPath:    ".todo2/state.todo2.json",
 			BackupPath:          ".todo2/backups",
@@ -109,14 +107,6 @@ func GetDefaults() *FullConfig {
 			WALMode:             true,
 			CheckpointInterval:  1000,
 			BackupRetentionDays: 30,
-		},
-		Cloud: CloudConfig{
-			Enabled:         false,
-			Provider:        "firestore",
-			ProjectID:       "",
-			Region:          "us-central1",
-			CollectionName:  "tasks",
-			CredentialsFile: "",
 		},
 		Security: SecurityConfig{
 			RateLimit: RateLimitConfig{
@@ -182,7 +172,7 @@ func GetDefaults() *FullConfig {
 				OutputFormat:  "text",
 			},
 			Report: ReportConfig{
-				DefaultFormat:          "json",
+				DefaultFormat:          "text",
 				DefaultOutputPath:      "",
 				IncludeMetrics:         true,
 				IncludeRecommendations: true,
@@ -198,6 +188,12 @@ func GetDefaults() *FullConfig {
 				MinCoverage:      80,
 				CoverageFormat:   "html",
 				Verbose:          false,
+			},
+			MLX: MLXConfig{
+				DefaultModel:       "mlx-community/Phi-3.5-mini-instruct-4bit",
+				DefaultMaxTokens:   512,
+				DefaultTemperature: 0.7,
+				Verbose:            false,
 			},
 			Ollama: OllamaConfig{
 				DefaultModel:       "llama3.2",
@@ -275,36 +271,11 @@ func GetDefaults() *FullConfig {
 				JSONFallback:  true,
 				MCPServers:    []string{},
 			},
-			SkipChecks:               []string{},
-			CustomTools:              []string{},
-			TaskDiscoveryIgnorePaths: []string{},
+			SkipChecks:  []string{},
+			CustomTools: []string{},
 		},
 		Automations: AutomationsConfig{
 			// Will be implemented in Phase 5
 		},
-		TUI: TUIConfig{
-			SpinnerStyle: "line",
-		},
-	}
-}
-
-// DefaultTaskKeybindings returns the built-in Bubble Tea TUI keybindings.
-func DefaultTaskKeybindings() map[string][]string {
-	return map[string][]string{
-		"quit":                {"q", "ctrl+c"},
-		"help":                {"?", "h"},
-		"refresh":             {"R"},
-		"toggle_auto_refresh": {"a"},
-		"search":              {"/"},
-		"create_task":         {"+"},
-		"bulk_status":         {"D"},
-		"status_done":         {"d"},
-		"status_in_progress":  {"i"},
-		"status_todo":         {"t"},
-		"status_review":       {"r"},
-		"detail":              {"enter"},
-		"back":                {"esc"},
-		"next_tab":            {"tab"},
-		"prev_tab":            {"shift+tab"},
 	}
 }

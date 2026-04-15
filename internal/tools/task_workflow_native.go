@@ -21,7 +21,7 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 
 	action := ParamString(params, "action")
 	if action == "" {
-		action = "list"
+		action = "sync"
 	}
 
 	switch action {
@@ -29,18 +29,12 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowClarify(ctx, params)
 	case "approve":
 		return handleTaskWorkflowApprove(ctx, params)
-	case "show":
-		return handleTaskWorkflowShow(ctx, params)
-	case "list":
-		return handleTaskWorkflowList(ctx, params)
 	case "sync":
 		return handleTaskWorkflowSync(ctx, params)
 	case "fix_dates":
 		return handleTaskWorkflowFixDates(ctx, params)
 	case "fix_empty_descriptions":
 		return handleTaskWorkflowFixEmptyDescriptions(ctx, params)
-	case "fix_empty_names":
-		return handleTaskWorkflowFixEmptyNames(ctx, params)
 	case "clarity":
 		return handleTaskWorkflowClarity(ctx, params)
 	case "cleanup":
@@ -73,30 +67,6 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowRunWithAI(ctx, params)
 	case "enrich_tool_hints":
 		return handleTaskWorkflowEnrichToolHints(ctx, params)
-	case "claim":
-		return handleTaskWorkflowClaim(ctx, params)
-	case "batch_claim":
-		return handleTaskWorkflowBatchClaim(ctx, params)
-	case "release":
-		return handleTaskWorkflowRelease(ctx, params)
-	case "agent_status":
-		return handleTaskWorkflowAgentStatus(ctx, params)
-	case "start_run":
-		return handleTaskWorkflowStartRun(ctx, params)
-	case "end_run":
-		return handleTaskWorkflowEndRun(ctx, params)
-	case "list_runs":
-		return handleTaskWorkflowListRuns(ctx, params)
-	case "show_run":
-		return handleTaskWorkflowShowRun(ctx, params)
-	case "verify":
-		return handleTaskWorkflowVerify(ctx, params)
-	case "add_progress":
-		return handleTaskWorkflowAddProgress(ctx, params)
-	case "split":
-		return handleTaskWorkflowSplit(ctx, params)
-	case "import_sqlite":
-		return handleTaskWorkflowImportSQLite(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

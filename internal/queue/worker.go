@@ -1,4 +1,4 @@
-// Package queue provides Asynq worker for processing task_execute jobs from Redis.
+// worker.go — Asynq worker: processes task_execute jobs from Redis queue.
 package queue
 
 import (
@@ -40,7 +40,7 @@ func handleTaskExecuteJob(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("task_id and project_root required")
 	}
 
-	// Ensure DB is initialized for this project (idempotent: same DSN skips reopen; different project re-inits).
+	// Ensure DB is initialized for this project (safe to call per task; re-inits if project changes).
 	if fullCfg, err := config.LoadConfig(p.ProjectRoot); err == nil {
 		dbCfg := database.DatabaseConfigFields{
 			SQLitePath:       fullCfg.Database.SQLitePath,
